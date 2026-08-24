@@ -40,12 +40,19 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.search = ''
+    if (pathname !== '/') {
+      // Preserve the destination so invite/claim links survive the login trip.
+      url.searchParams.set('next', pathname)
+    }
     return NextResponse.redirect(url)
   }
 
   if (user && pathname === '/login') {
+    const next = request.nextUrl.searchParams.get('next')
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.search = ''
+    url.pathname = next?.startsWith('/') ? next : '/'
     return NextResponse.redirect(url)
   }
 
