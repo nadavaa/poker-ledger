@@ -7,7 +7,9 @@ export default function AuthErrorPage() {
       <p className="text-sm">
         Sign-in link was invalid or expired. Try again.
       </p>
-      <Button render={<Link href="/login" />}>Back to login</Button>
+      <Button render={<Link href="/login" />} nativeButton={false}>
+        Back to login
+      </Button>
     </main>
   )
 }

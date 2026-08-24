@@ -17,9 +17,6 @@ function LoginForm() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const callbackUrl = () =>
-    `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
-
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -27,7 +24,11 @@ function LoginForm() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: callbackUrl() },
+      options: {
+        // /auth/confirm handles both the default ?code= link and the
+        // token_hash link from a customized email template.
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}`,
+      },
     })
     if (error) {
       setError(error.message)
@@ -42,7 +43,9 @@ function LoginForm() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: callbackUrl() },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     })
     if (error) setError(error.message)
   }

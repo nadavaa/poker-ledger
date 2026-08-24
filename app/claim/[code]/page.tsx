@@ -23,7 +23,9 @@ export default async function ClaimPage({
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-4">
         <p className="text-sm">This claim link is invalid.</p>
-        <Button render={<Link href="/" />}>Go home</Button>
+        <Button render={<Link href="/" />} nativeButton={false}>
+          Go home
+        </Button>
       </main>
     )
   }
