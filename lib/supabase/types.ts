@@ -240,6 +240,90 @@ export type Database = {
           },
         ]
       }
+      buyins: {
+        Row: {
+          id: string
+          game_id: string
+          member_id: string
+          amount_cents: number
+          chips: number
+          note: string | null
+          created_at: string
+          created_by_member_id: string
+          voided_at: string | null
+          voided_by_member_id: string | null
+          void_reason: string | null
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          member_id: string
+          amount_cents: number
+          chips: number
+          note?: string | null
+          created_at?: string
+          // Stamped by trigger; never sent by the client.
+          created_by_member_id?: string
+          voided_at?: string | null
+          voided_by_member_id?: string | null
+          void_reason?: string | null
+        }
+        Update: {
+          // Only the void transition is permitted, and the trigger stamps
+          // voided_at / voided_by_member_id itself.
+          void_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'buyins_game_id_fkey'
+            columns: ['game_id']
+            isOneToOne: false
+            referencedRelation: 'games'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'buyins_member_id_fkey'
+            columns: ['member_id']
+            isOneToOne: false
+            referencedRelation: 'group_members'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      game_admin_transfers: {
+        Row: {
+          id: string
+          game_id: string
+          from_member_id: string
+          to_member_id: string
+          transferred_by_member_id: string
+          was_forced: boolean
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          from_member_id: string
+          to_member_id: string
+          transferred_by_member_id: string
+          was_forced?: boolean
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'game_admin_transfers_game_id_fkey'
+            columns: ['game_id']
+            isOneToOne: false
+            referencedRelation: 'games'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -302,6 +386,14 @@ export type Database = {
           p_playing?: boolean
         }
         Returns: string
+      }
+      transfer_game_admin: {
+        Args: {
+          p_game_id: string
+          p_to_member_id: string
+          p_reason?: string | null
+        }
+        Returns: undefined
       }
     }
     Enums: {

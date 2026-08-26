@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { LiveRoster } from '@/components/game/live-roster'
+import type { Buyin } from '@/components/game/use-game-buyins'
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -43,19 +45,29 @@ export default async function GamePage({
   // RLS hides games in groups you don't belong to.
   if (!game) notFound()
 
-  const [{ data: signups }, { data: myMember }] = await Promise.all([
-    supabase
-      .from('game_signups')
-      .select('id, member_id, status, signup_order, group_members(display_name)')
-      .eq('game_id', gameId)
-      .order('signup_order'),
-    supabase
-      .from('group_members')
-      .select('id, display_name')
-      .eq('group_id', game.group_id)
-      .eq('profile_id', user.id)
-      .maybeSingle(),
-  ])
+  const [{ data: signups }, { data: myMember }, { data: buyins }] =
+    await Promise.all([
+      supabase
+        .from('game_signups')
+        .select(
+          'id, member_id, status, signup_order, group_members(display_name)'
+        )
+        .eq('game_id', gameId)
+        .order('signup_order'),
+      supabase
+        .from('group_members')
+        .select('id, display_name')
+        .eq('group_id', game.group_id)
+        .eq('profile_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('buyins')
+        .select(
+          'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
+        )
+        .eq('game_id', gameId)
+        .order('created_at', { ascending: false }),
+    ])
 
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
   const waitlist = signups?.filter((s) => s.status === 'waitlist') ?? []
@@ -155,31 +167,16 @@ export default async function GamePage({
         <p className="text-sm text-destructive">{errorMessage}</p>
       )}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Confirmed ({confirmed.length}/{game.seat_limit})
-        </h2>
-        {confirmed.length === 0 && (
-          <p className="text-sm text-muted-foreground">Nobody yet.</p>
-        )}
-        {confirmed.map((s) => (
-          <Card key={s.id}>
-            <CardContent className="flex items-center justify-between py-2.5">
-              <span className="text-sm">
-                {s.group_members?.display_name}
-                {s.member_id === myMember?.id && (
-                  <span className="text-muted-foreground"> (you)</span>
-                )}
-              </span>
-              {s.member_id === game.admin_member_id && (
-                <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                  admin
-                </span>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+      <LiveRoster
+        gameId={gameId}
+        players={confirmed.map((s) => ({
+          memberId: s.member_id,
+          name: s.group_members?.display_name ?? 'Unknown',
+        }))}
+        adminMemberId={game.admin_member_id}
+        myMemberId={myMember?.id ?? null}
+        initialBuyins={(buyins ?? []) as Buyin[]}
+      />
 
       {waitlist.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -202,10 +199,13 @@ export default async function GamePage({
         </section>
       )}
 
-      {isAdmin && (
-        <p className="text-xs text-muted-foreground">
-          You run this game. Buy-in tracking arrives in Phase 3.
-        </p>
+      {isAdmin && isOpen && (
+        <Button
+          render={<Link href={`/games/${gameId}/admin`} />}
+          nativeButton={false}
+        >
+          Track buy-ins
+        </Button>
       )}
     </main>
   )
