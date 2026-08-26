@@ -129,6 +129,117 @@ export type Database = {
           },
         ]
       }
+      games: {
+        Row: {
+          id: string
+          group_id: string
+          name: string | null
+          scheduled_at: string
+          location: string | null
+          seat_limit: number
+          default_buyin_cents: number
+          chips_per_dollar: number
+          status: Database['public']['Enums']['game_status']
+          admin_member_id: string
+          created_at: string
+          created_by_member_id: string
+          started_at: string | null
+          settled_at: string | null
+        }
+        Insert: {
+          id?: string
+          group_id: string
+          name?: string | null
+          scheduled_at: string
+          location?: string | null
+          seat_limit?: number
+          default_buyin_cents: number
+          chips_per_dollar: number
+          status?: Database['public']['Enums']['game_status']
+          admin_member_id: string
+          created_at?: string
+          created_by_member_id: string
+          started_at?: string | null
+          settled_at?: string | null
+        }
+        Update: {
+          id?: string
+          group_id?: string
+          name?: string | null
+          scheduled_at?: string
+          location?: string | null
+          seat_limit?: number
+          default_buyin_cents?: number
+          chips_per_dollar?: number
+          status?: Database['public']['Enums']['game_status']
+          admin_member_id?: string
+          created_at?: string
+          created_by_member_id?: string
+          started_at?: string | null
+          settled_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'games_group_id_fkey'
+            columns: ['group_id']
+            isOneToOne: false
+            referencedRelation: 'groups'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'games_admin_member_id_fkey'
+            columns: ['admin_member_id']
+            isOneToOne: false
+            referencedRelation: 'group_members'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      game_signups: {
+        Row: {
+          id: string
+          game_id: string
+          member_id: string
+          status: Database['public']['Enums']['signup_status']
+          signup_order: number
+          created_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          member_id: string
+          status?: Database['public']['Enums']['signup_status']
+          signup_order?: number
+          created_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          id?: string
+          game_id?: string
+          member_id?: string
+          status?: Database['public']['Enums']['signup_status']
+          signup_order?: number
+          created_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'game_signups_game_id_fkey'
+            columns: ['game_id']
+            isOneToOne: false
+            referencedRelation: 'games'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'game_signups_member_id_fkey'
+            columns: ['member_id']
+            isOneToOne: false
+            referencedRelation: 'group_members'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -174,9 +285,34 @@ export type Database = {
           already_claimed: boolean
         }[]
       }
+      can_admin_game: {
+        Args: { g: string }
+        Returns: boolean
+      }
+      create_game: {
+        Args: {
+          p_scheduled_at: string
+          p_group_id?: string | null
+          p_new_group_name?: string | null
+          p_name?: string | null
+          p_location?: string | null
+          p_seat_limit?: number | null
+          p_buyin_cents?: number | null
+          p_chips_per_dollar?: number | null
+          p_playing?: boolean
+        }
+        Returns: string
+      }
     }
     Enums: {
       member_role: 'owner' | 'admin' | 'member'
+      game_status:
+        | 'scheduled'
+        | 'active'
+        | 'reconciling'
+        | 'settled'
+        | 'cancelled'
+      signup_status: 'confirmed' | 'waitlist' | 'withdrawn'
     }
     CompositeTypes: {
       [_ in never]: never

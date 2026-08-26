@@ -61,6 +61,10 @@ export default async function HomePage() {
         </form>
       </header>
 
+      <Button render={<Link href="/games/new" />} nativeButton={false}>
+        New game
+      </Button>
+
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
           Your groups
