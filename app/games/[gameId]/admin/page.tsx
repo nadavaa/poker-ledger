@@ -42,7 +42,6 @@ export default async function GameAdminPage({
         .from('game_signups')
         .select('member_id, status, signup_order, group_members(display_name)')
         .eq('game_id', gameId)
-        .eq('status', 'confirmed')
         .order('signup_order'),
       supabase
         .from('group_members')
@@ -69,10 +68,23 @@ export default async function GameAdminPage({
     redirect(`/games/${gameId}`)
   }
 
-  const players = (signups ?? []).map((s) => ({
-    memberId: s.member_id,
-    name: s.group_members?.display_name ?? 'Unknown',
-  }))
+  const players = (signups ?? [])
+    .filter((s) => s.status === 'confirmed')
+    .map((s) => ({
+      memberId: s.member_id,
+      name: s.group_members?.display_name ?? 'Unknown',
+    }))
+
+  // Anyone in the group who isn't already in the game. A withdrawn signup can
+  // be re-added, so it doesn't count as taken.
+  const taken = new Set(
+    (signups ?? [])
+      .filter((s) => s.status !== 'withdrawn')
+      .map((s) => s.member_id)
+  )
+  const available = (members ?? [])
+    .filter((m) => !taken.has(m.id))
+    .map((m) => ({ id: m.id, name: m.display_name }))
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
 
   async function handOff(formData: FormData) {
@@ -118,6 +130,7 @@ export default async function GameAdminPage({
         <PreStartPanel
           gameId={gameId}
           players={players}
+          available={available}
           defaultBuyinCents={game.default_buyin_cents}
         />
       ) : (
@@ -128,6 +141,7 @@ export default async function GameAdminPage({
           defaultBuyinCents={game.default_buyin_cents}
           chipsPerDollar={Number(game.chips_per_dollar)}
           initialBuyins={(buyins ?? []) as Buyin[]}
+          available={available}
         />
       )}
 

@@ -391,6 +391,14 @@ export type Database = {
         Args: { p_cents: number; p_chips_per_dollar: number }
         Returns: number
       }
+      add_player_to_game: {
+        Args: {
+          p_game_id: string
+          p_member_id?: string | null
+          p_guest_name?: string | null
+        }
+        Returns: string
+      }
       start_game: {
         Args: { p_game_id: string; p_member_ids?: string[] }
         Returns: undefined

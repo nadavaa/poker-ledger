@@ -494,6 +494,12 @@ Everything writes through Supabase Realtime so all nine phones update instantly.
 
 Two more things on this screen:
 
+**Add a player.** Available before and during the game, from the same control
+in both places: pick an existing group member, or type a guest's name. Because
+running a game means seating whoever walked in, the game admin may create an
+unclaimed member in the group this way even without a group owner/admin role —
+a deliberate, narrow exception to "group writes need a group role".
+
 **Remove a player.** Behind a two-tap confirm — before the game starts from
 the signed-up list, after it starts from the long-press sheet. It frees a
 seat, so it is not in the same class as a mistap on a buy-in.
@@ -525,7 +531,7 @@ These are the ones that will actually come up:
 
 1. **Waitlist promotion.** Confirmed player withdraws, lowest-`signup_order` waitlister is auto-promoted. Do this in a Postgres trigger, not application code, so it can't race.
 2. **Mid-game cash out.** Player leaves early, records a cashout while the game is still `active`, and a waitlister takes the seat. The seat is free but the departed player stays in the settlement math.
-3. **Late arrival.** Admin adds someone not on the signup list directly into the active game.
+3. **Late arrival.** Admin adds someone not on the signup list, before or during the game — either an existing group member or a guest who has never used the app. A guest becomes an unclaimed `group_members` row, so their history is real from the first hand and claimable later. The seat limit still applies: a full table waitlists them. Adding does not stake them; the admin taps their card when they buy in.
 4. **Non-standard buy-in.** Someone buys in for $100 or half a stack. Long-press → custom amount.
 5. **Chip discrepancy.** Covered in 6.1. Assume it happens most games.
 6. **Buy-in logged to the wrong player.** Void plus re-add. Never edit.
@@ -558,7 +564,7 @@ Next.js + TypeScript + Tailwind + shadcn. Supabase project, `profiles` table, ma
 `games`, `game_signups`, the one-screen new-game flow with inline group creation, creator-becomes-admin, RSVP, seat limit, waitlist ordering, auto-promotion trigger, past/upcoming split. Done when: any member can create a game in a brand new group, nine people claim seats, and the tenth lands on the waitlist.
 
 **Phase 3 — Buy-in tracking (1–2 days)**
-`buyins`, start-game checklist that stakes whoever showed up, admin tap grid, void with undo, remove a player, Realtime subscriptions, live pot total, voluntary admin transfer with audit log. Done when: you tap on one phone and it updates on another within a second, and you can hand admin to a second device mid-game. **Run one real game on this before building anything else.** You'll learn more from that than from another week of specs.
+`buyins`, start-game checklist that stakes whoever showed up, admin tap grid, void with undo, add a member or guest, remove a player, Realtime subscriptions, live pot total, voluntary admin transfer with audit log. Done when: you tap on one phone and it updates on another within a second, and you can hand admin to a second device mid-game. **Run one real game on this before building anything else.** You'll learn more from that than from another week of specs.
 
 **Phase 4 — Reconciliation and settlement (1–2 days)**
 `cashouts`, discrepancy detection and the four resolutions, `settle.ts` with full test coverage, `settlements` table, settlement screen. Done when: a game with a $7 chip discrepancy can be resolved and settled.

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { useSignupRefresh } from './use-signup-refresh'
+import { AddPlayer, type AvailableMember } from './add-player'
 import type { Player } from './buy-in-grid'
 
 /**
@@ -16,10 +17,12 @@ import type { Player } from './buy-in-grid'
 export function PreStartPanel({
   gameId,
   players,
+  available,
   defaultBuyinCents,
 }: {
   gameId: string
   players: Player[]
+  available: AvailableMember[]
   defaultBuyinCents: number
 }) {
   const supabase = useMemo(() => createClient(), [])
@@ -120,6 +123,8 @@ export function PreStartPanel({
           </div>
         ))}
       </section>
+
+      <AddPlayer gameId={gameId} available={available} />
 
       <Button onClick={() => setDialogOpen(true)}>Start game</Button>
 

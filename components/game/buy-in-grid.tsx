@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
+import { AddPlayer, type AvailableMember } from './add-player'
 
 export type Player = { memberId: string; name: string }
 
@@ -22,6 +23,7 @@ export function BuyInGrid({
   defaultBuyinCents,
   chipsPerDollar,
   initialBuyins,
+  available,
 }: {
   gameId: string
   players: Player[]
@@ -29,6 +31,7 @@ export function BuyInGrid({
   defaultBuyinCents: number
   chipsPerDollar: number
   initialBuyins: Buyin[]
+  available: AvailableMember[]
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -147,6 +150,8 @@ export function BuyInGrid({
           Nobody is confirmed for this game yet.
         </p>
       )}
+
+      <AddPlayer gameId={gameId} available={available} />
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">Activity</h2>
