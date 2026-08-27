@@ -476,12 +476,22 @@ One screen. Date and time, optional location, group selector that doubles as a c
 - Outstanding settlements you owe or are owed
 - Scrolling list of past games with date, player count, your net for that game
 
-### Game detail — member view
-Roster with confirmed players and waitlist in order. Live buy-in count per player. Your own total staked. Read-only.
+### Game detail (the critical screen)
 
-### Game detail — admin view (the critical screen)
+**One screen, not two.** There is no separate admin route. Everything about a
+game lives at `/games/[gameId]`, and the admin's controls appear inline on
+that page for exactly one person: the game's current admin, while the game is
+still open. Everyone else sees the same page read-only. A second page meant
+the admin bounced between two views of the same game and saw the roster twice;
+handing the role over now simply changes what the page draws.
 
-This is the screen that has to be good, because Gilad is using it one-handed while holding cards. Design rules:
+Common to everyone: date, location, seats filled, your RSVP with one-tap
+join/withdraw, confirmed roster, waitlist in order, live buy-in count and
+total per player, your own total staked, and the activity feed. Before the
+game starts, no money is shown at all.
+
+For the admin the roster becomes the tap grid. This is the part that has to be
+good, because Gilad is using it one-handed while holding cards. Design rules:
 
 - Grid of player cards, one tap adds a buy-in at the default amount. That's it. One tap.
 - Each card shows name, buy-in count as dots or a number, dollar total
@@ -492,7 +502,7 @@ This is the screen that has to be good, because Gilad is using it one-handed whi
 
 Everything writes through Supabase Realtime so all nine phones update instantly. This kills the "did you write mine down?" problem, which is really the core value of the app.
 
-Two more things on this screen:
+Three more things on this screen:
 
 **Add a player.** Available before and during the game, from the same control
 in both places: pick an existing group member, or type a guest's name. Because
@@ -583,9 +593,8 @@ PWA manifest and service worker, install prompt, web push, offline write queue, 
 /app
   /(auth)/login, /join/[code], /claim/[code]
   /(app)/groups/[groupId]/page.tsx
-  /(app)/groups/[groupId]/games/[gameId]/page.tsx
-  /(app)/groups/[groupId]/games/[gameId]/admin/page.tsx
-  /(app)/groups/[groupId]/games/[gameId]/settle/page.tsx
+  /(app)/games/[gameId]/page.tsx          -- member and admin, one screen
+  /(app)/games/[gameId]/settle/page.tsx
   /(app)/profile
   /api/games/[gameId]/settle/route.ts
 /components

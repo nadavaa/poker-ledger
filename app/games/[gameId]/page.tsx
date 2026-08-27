@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { BuyInGrid } from '@/components/game/buy-in-grid'
+import { PreStartPanel } from '@/components/game/pre-start-panel'
 import { LiveRoster } from '@/components/game/live-roster'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
@@ -45,7 +47,7 @@ export default async function GamePage({
   // RLS hides games in groups you don't belong to.
   if (!game) notFound()
 
-  const [{ data: signups }, { data: myMember }, { data: buyins }] =
+  const [{ data: signups }, { data: members }, { data: buyins }, { data: transfers }] =
     await Promise.all([
       supabase
         .from('game_signups')
@@ -56,10 +58,10 @@ export default async function GamePage({
         .order('signup_order'),
       supabase
         .from('group_members')
-        .select('id, display_name')
+        .select('id, display_name, profile_id, is_active')
         .eq('group_id', game.group_id)
-        .eq('profile_id', user.id)
-        .maybeSingle(),
+        .eq('is_active', true)
+        .order('display_name'),
       supabase
         .from('buyins')
         .select(
@@ -67,13 +69,40 @@ export default async function GamePage({
         )
         .eq('game_id', gameId)
         .order('created_at', { ascending: false }),
+      supabase
+        .from('game_admin_transfers')
+        .select('id, created_at, was_forced, from_member_id, to_member_id')
+        .eq('game_id', gameId)
+        .order('created_at', { ascending: false }),
     ])
 
+  const myMember = members?.find((m) => m.profile_id === user.id) ?? null
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
   const waitlist = signups?.filter((s) => s.status === 'waitlist') ?? []
   const mySignup = signups?.find((s) => s.member_id === myMember?.id)
+
   const isAdmin = myMember?.id === game.admin_member_id
   const isOpen = game.status === 'scheduled' || game.status === 'active'
+  const started = game.status !== 'scheduled'
+  // RLS is the real guard on every write below; this only decides what to draw.
+  const runsTheGame = isAdmin && isOpen
+
+  const players = confirmed.map((s) => ({
+    memberId: s.member_id,
+    name: s.group_members?.display_name ?? 'Unknown',
+  }))
+  const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
+
+  // Anyone in the group not already in the game. A withdrawn signup can be
+  // re-added, so it doesn't count as taken.
+  const taken = new Set(
+    (signups ?? [])
+      .filter((s) => s.status !== 'withdrawn')
+      .map((s) => s.member_id)
+  )
+  const available = (members ?? [])
+    .filter((m) => !taken.has(m.id))
+    .map((m) => ({ id: m.id, name: m.display_name }))
 
   async function joinGame() {
     'use server'
@@ -104,6 +133,24 @@ export default async function GamePage({
     if (error) {
       redirect(`/games/${gameId}?error=${encodeURIComponent(error.message)}`)
     }
+    revalidatePath(`/games/${gameId}`)
+  }
+
+  async function handOff(formData: FormData) {
+    'use server'
+    const toMemberId = String(formData.get('to_member_id') ?? '')
+    const reason = String(formData.get('reason') ?? '')
+    if (!toMemberId) return
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('transfer_game_admin', {
+      p_game_id: gameId,
+      p_to_member_id: toMemberId,
+      p_reason: reason || null,
+    })
+    if (error) {
+      redirect(`/games/${gameId}?error=${encodeURIComponent(error.message)}`)
+    }
+    // The old admin loses write access immediately.
     revalidatePath(`/games/${gameId}`)
   }
 
@@ -164,20 +211,40 @@ export default async function GamePage({
       )}
 
       {errorMessage && (
-        <p className="text-sm text-destructive">{errorMessage}</p>
+        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {errorMessage}
+        </p>
       )}
 
-      <LiveRoster
-        gameId={gameId}
-        players={confirmed.map((s) => ({
-          memberId: s.member_id,
-          name: s.group_members?.display_name ?? 'Unknown',
-        }))}
-        adminMemberId={game.admin_member_id}
-        myMemberId={myMember?.id ?? null}
-        initialBuyins={(buyins ?? []) as Buyin[]}
-        started={game.status !== 'scheduled'}
-      />
+      {runsTheGame ? (
+        game.status === 'scheduled' ? (
+          <PreStartPanel
+            gameId={gameId}
+            players={players}
+            available={available}
+            defaultBuyinCents={game.default_buyin_cents}
+          />
+        ) : (
+          <BuyInGrid
+            gameId={gameId}
+            players={players}
+            adminMemberId={game.admin_member_id}
+            defaultBuyinCents={game.default_buyin_cents}
+            chipsPerDollar={Number(game.chips_per_dollar)}
+            initialBuyins={(buyins ?? []) as Buyin[]}
+            available={available}
+          />
+        )
+      ) : (
+        <LiveRoster
+          gameId={gameId}
+          players={players}
+          adminMemberId={game.admin_member_id}
+          myMemberId={myMember?.id ?? null}
+          initialBuyins={(buyins ?? []) as Buyin[]}
+          started={started}
+        />
+      )}
 
       {waitlist.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -200,13 +267,66 @@ export default async function GamePage({
         </section>
       )}
 
-      {isAdmin && isOpen && (
-        <Button
-          render={<Link href={`/games/${gameId}/admin`} />}
-          nativeButton={false}
-        >
-          Track buy-ins
-        </Button>
+      {runsTheGame && (
+        <details className="rounded-lg border border-border px-3 py-2">
+          <summary className="cursor-pointer text-sm text-muted-foreground">
+            Game settings
+          </summary>
+          <div className="flex flex-col gap-3 pt-3">
+            <form action={handOff} className="flex flex-col gap-2">
+              <label className="text-sm font-medium" htmlFor="to_member_id">
+                Hand off admin
+              </label>
+              <p className="text-xs text-muted-foreground">
+                They get write access immediately and you lose it. Every
+                handoff is logged.
+              </p>
+              <select
+                id="to_member_id"
+                name="to_member_id"
+                required
+                defaultValue=""
+                className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
+              >
+                <option value="" disabled>
+                  Pick a member…
+                </option>
+                {members
+                  ?.filter((m) => m.id !== game.admin_member_id)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.display_name}
+                    </option>
+                  ))}
+              </select>
+              <input
+                name="reason"
+                maxLength={120}
+                placeholder="Reason (optional)"
+                className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
+              />
+              <Button variant="outline" size="sm" type="submit">
+                Transfer admin
+              </Button>
+            </form>
+
+            {transfers && transfers.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <h3 className="text-xs font-medium text-muted-foreground">
+                  Handoff history
+                </h3>
+                {transfers.map((t) => (
+                  <p key={t.id} className="text-xs text-muted-foreground">
+                    {nameOf.get(t.from_member_id) ?? 'someone'} →{' '}
+                    {nameOf.get(t.to_member_id) ?? 'someone'}
+                    {t.was_forced && ' (forced)'} ·{' '}
+                    {new Date(t.created_at).toLocaleString()}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        </details>
       )}
     </main>
   )
