@@ -8,7 +8,7 @@ import { BuyInGrid } from '@/components/game/buy-in-grid'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
 const BUYIN_COLUMNS =
-  'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
+  'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
 
 export default async function GameAdminPage({
   params,

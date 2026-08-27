@@ -4,6 +4,7 @@ import { formatCents } from '@/lib/money'
 import { Card, CardContent } from '@/components/ui/card'
 import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
+import { useSignupRefresh } from './use-signup-refresh'
 import type { Player } from './buy-in-grid'
 
 /**
@@ -27,6 +28,7 @@ export function LiveRoster({
     gameId,
     initialBuyins
   )
+  useSignupRefresh(gameId)
   const names = new Map(players.map((p) => [p.memberId, p.name]))
   const mine = myMemberId ? totalsByMember.get(myMemberId) : undefined
 

@@ -13,6 +13,7 @@ export type Buyin = {
   created_by_member_id: string
   voided_at: string | null
   void_reason: string | null
+  is_auto: boolean
 }
 
 /**

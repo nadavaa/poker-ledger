@@ -33,6 +33,7 @@ export function ActivityFeed({
         // The admin logging their own buy-in gets a marker. Nobody will cheat;
         // the reason nobody will is that the log makes it pointless.
         const selfLogged =
+          !b.is_auto &&
           b.created_by_member_id === adminMemberId &&
           b.member_id === adminMemberId
 
@@ -64,9 +65,11 @@ export function ActivityFeed({
             <span className="shrink-0 text-xs text-muted-foreground">
               {b.voided_at
                 ? `voided${b.void_reason ? ` · ${b.void_reason}` : ''}`
-                : `${time(b.created_at)} · by ${
-                    names.get(b.created_by_member_id) ?? 'admin'
-                  }`}
+                : b.is_auto
+                  ? `${time(b.created_at)} · on join`
+                  : `${time(b.created_at)} · by ${
+                      names.get(b.created_by_member_id) ?? 'admin'
+                    }`}
             </span>
           </li>
         )

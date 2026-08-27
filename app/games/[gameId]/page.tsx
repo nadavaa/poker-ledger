@@ -63,7 +63,7 @@ export default async function GamePage({
       supabase
         .from('buyins')
         .select(
-          'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
+          'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
         )
         .eq('game_id', gameId)
         .order('created_at', { ascending: false }),

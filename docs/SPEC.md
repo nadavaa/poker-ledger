@@ -68,6 +68,32 @@ net_cents     = cashout_cents - sum(buyin_cents)
 
 Never update or delete a buy-in row. Every buy-in is an immutable event. Mistakes are corrected by voiding (soft delete with `voided_at`, `voided_by`, `void_reason`). This gives you a full audit trail, which is exactly what's missing from Gilad's notes app today. When someone says "I only bought in three times," you can show the timestamps.
 
+### 3.3a Taking a seat stakes the buy-in
+
+Confirming a seat creates that player's first buy-in automatically, at the
+game's snapshotted `default_buyin_cents`. Nobody sits down at a poker table
+without buying in, so the admin should never have to tap nine cards before the
+first hand — they tap only for re-buys.
+
+Mechanics:
+
+- The row is written by a trigger on `game_signups`, so it fires for a direct
+  signup, for an admin adding someone, and for a waitlist promotion alike.
+- It is flagged `is_auto = true` and rendered in the feed as "on join" rather
+  than attributed to whoever's write caused it. A promotion happens inside the
+  *withdrawing* player's transaction, so attributing it to the caller would be
+  actively misleading.
+- A player who already has a live buy-in never gets a second one, which keeps
+  leaving and rejoining a running game from double-staking them.
+- Chips are derived in Postgres by `cents_to_chips()`, the SQL counterpart to
+  `centsToChips()` in `lib/money.ts`. The conversion has exactly one home per
+  runtime; do not add a third.
+
+**Losing the seat before the game starts voids that stake.** Once the game is
+`active` it does not: a player who leaves early is still in the settlement
+math, and their money is genuinely in the pot. A no-show removed after the
+game started can be zeroed with an ordinary manual void.
+
 ### 3.4 Game ownership: one admin, always
 
 Any member can create a game. Whoever creates it becomes its admin, and a game has exactly one admin at all times.
@@ -199,6 +225,7 @@ create table buyins (
   note text,
   created_at timestamptz not null default now(),
   created_by_member_id uuid not null references group_members(id),
+  is_auto boolean not null default false,   -- true = staked automatically on join
   voided_at timestamptz,
   voided_by_member_id uuid references group_members(id),
   void_reason text
@@ -475,6 +502,10 @@ Everything writes through Supabase Realtime so all nine phones update instantly.
 
 Two more things on this screen:
 
+**Remove a player.** In the long-press sheet, behind a two-tap confirm — it
+frees a seat, so it is not in the same class as a mistap on a buy-in. Removing
+a confirmed player promotes the first waitlister, who arrives already staked.
+
 **Hand off admin.** Buried in a menu, not a primary button. Pick any active group member, confirm, done. The new admin gets the write access and the old one loses it immediately.
 
 **The admin's own buy-ins render differently in the activity feed.** One person having sole write access to everyone's money is a trust concession, and the control on it is visibility, not permission. Every player sees a live feed of every buy-in with a timestamp and who logged it, and the admin logging their own gets a subtle marker. Nobody will ever cheat, but the reason nobody will is that the log makes it pointless.
@@ -511,6 +542,7 @@ These are the ones that will actually come up:
 15. **Admin isn't playing.** Valid state. Their card doesn't appear in the buy-in grid and they're excluded from settlement math.
 16. **Two games running in one group at once.** Rare, but allowed, and they can have different admins. Nothing in the model prevents it, so make sure the group home doesn't assume a single "next game."
 17. **Non-admin tries to write.** RLS rejects it. Handle the error in the UI with a clear message rather than a silent failure, because the most likely cause is that admin was transferred away while their screen was stale.
+18. **No-show removed by the admin.** Admin removes a confirmed player from the game. The seat frees, the first waitlister is promoted and arrives already staked, and the removed player's buy-in on join is voided — but only if the game hasn't started. After it starts their money stays in the pot, same as any player who leaves early.
 
 ---
 

@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { centsToChips, centsToDollars, dollarsToCents, formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
+import { useSignupRefresh } from './use-signup-refresh'
 
 export type Player = { memberId: string; name: string }
 
@@ -29,10 +31,12 @@ export function BuyInGrid({
   initialBuyins: Buyin[]
 }) {
   const supabase = useMemo(() => createClient(), [])
+  const router = useRouter()
   const { buyins, totalsByMember, potCents, merge } = useGameBuyins(
     gameId,
     initialBuyins
   )
+  useSignupRefresh(gameId)
 
   const [error, setError] = useState<string | null>(null)
   const [undo, setUndo] = useState<{ id: string; name: string } | null>(null)
@@ -60,7 +64,7 @@ export function BuyInGrid({
         note: note?.trim() ? note.trim() : null,
       })
       .select(
-        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
+        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
       )
       .single()
 
@@ -83,7 +87,7 @@ export function BuyInGrid({
       .update({ void_reason: reason })
       .eq('id', id)
       .select(
-        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
+        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
       )
       .single()
 
@@ -92,6 +96,24 @@ export function BuyInGrid({
       return
     }
     merge([data as Buyin])
+  }
+
+  async function removePlayer(player: Player) {
+    setError(null)
+    // Freeing the seat is all this does; the promotion trigger pulls up the
+    // first waitlister, and their stake is created with them.
+    const { error } = await supabase
+      .from('game_signups')
+      .update({ status: 'withdrawn' })
+      .eq('game_id', gameId)
+      .eq('member_id', player.memberId)
+
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setSheet(null)
+    router.refresh()
   }
 
   return (
@@ -154,6 +176,7 @@ export function BuyInGrid({
 
       {sheet && (
         <PlayerSheet
+          key={sheet.memberId}
           player={sheet}
           chipsPerDollar={chipsPerDollar}
           defaultBuyinCents={defaultBuyinCents}
@@ -161,6 +184,7 @@ export function BuyInGrid({
           onClose={() => setSheet(null)}
           onAdd={(cents, note) => addBuyin(sheet, cents, note)}
           onVoid={(id) => voidBuyin(id, 'admin correction')}
+          onRemove={() => removePlayer(sheet)}
         />
       )}
     </div>
@@ -226,6 +250,7 @@ function PlayerSheet({
   onClose,
   onAdd,
   onVoid,
+  onRemove,
 }: {
   player: Player
   chipsPerDollar: number
@@ -234,10 +259,12 @@ function PlayerSheet({
   onClose: () => void
   onAdd: (cents: number, note?: string) => void
   onVoid: (id: string) => void
+  onRemove: () => void
 }) {
   const [amount, setAmount] = useState(centsToDollars(defaultBuyinCents))
   const [note, setNote] = useState('')
   const [invalid, setInvalid] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -321,6 +348,9 @@ function PlayerSheet({
             >
               <span className={b.voided_at ? 'line-through opacity-50' : ''}>
                 {formatCents(b.amount_cents)}
+                {b.is_auto && (
+                  <span className="text-muted-foreground"> · on join</span>
+                )}
                 {b.note && (
                   <span className="text-muted-foreground"> · {b.note}</span>
                 )}
@@ -338,6 +368,41 @@ function PlayerSheet({
               )}
             </div>
           ))}
+        </div>
+
+        <div className="mt-4 border-t border-border pt-3">
+          {confirmRemove ? (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-muted-foreground">
+                Free their seat?
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmRemove(false)}
+                >
+                  Cancel
+                </Button>
+                <Button variant="destructive" size="sm" onClick={onRemove}>
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmRemove(true)}
+            >
+              Remove from game
+            </Button>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            The first waitlister takes the seat. Before the game starts their
+            buy-in on join is voided; once it has started their money stays in
+            the pot.
+          </p>
         </div>
       </div>
     </div>
