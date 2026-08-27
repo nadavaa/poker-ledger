@@ -253,7 +253,6 @@ export type Database = {
           voided_at: string | null
           voided_by_member_id: string | null
           void_reason: string | null
-          is_auto: boolean
         }
         Insert: {
           id?: string
@@ -268,8 +267,6 @@ export type Database = {
           voided_at?: string | null
           voided_by_member_id?: string | null
           void_reason?: string | null
-          // Stamped by trigger; true only for the automatic buy-in on join.
-          is_auto?: boolean
         }
         Update: {
           // Only the void transition is permitted, and the trigger stamps
@@ -393,6 +390,10 @@ export type Database = {
       cents_to_chips: {
         Args: { p_cents: number; p_chips_per_dollar: number }
         Returns: number
+      }
+      start_game: {
+        Args: { p_game_id: string; p_member_ids?: string[] }
+        Returns: undefined
       }
       transfer_game_admin: {
         Args: {

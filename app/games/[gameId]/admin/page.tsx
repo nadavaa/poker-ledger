@@ -1,14 +1,14 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { BuyInGrid } from '@/components/game/buy-in-grid'
+import { PreStartPanel } from '@/components/game/pre-start-panel'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
 const BUYIN_COLUMNS =
-  'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
+  'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
 
 export default async function GameAdminPage({
   params,
@@ -75,19 +75,6 @@ export default async function GameAdminPage({
   }))
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
 
-  async function startGame() {
-    'use server'
-    const supabase = await createClient()
-    const { error } = await supabase
-      .from('games')
-      .update({ status: 'active', started_at: new Date().toISOString() })
-      .eq('id', gameId)
-    if (error) {
-      redirect(`/games/${gameId}/admin?error=${encodeURIComponent(error.message)}`)
-    }
-    revalidatePath(`/games/${gameId}/admin`)
-  }
-
   async function handOff(formData: FormData) {
     'use server'
     const toMemberId = String(formData.get('to_member_id') ?? '')
@@ -113,7 +100,7 @@ export default async function GameAdminPage({
           &larr; Game
         </Link>
         <h1 className="text-lg font-semibold">
-          {game.name ?? game.groups?.name} · running
+          {game.name ?? game.groups?.name}
         </h1>
         <p className="text-sm text-muted-foreground">
           {formatCents(game.default_buyin_cents)} default ·{' '}
@@ -127,22 +114,22 @@ export default async function GameAdminPage({
         </p>
       )}
 
-      {game.status === 'scheduled' && (
-        <form action={startGame}>
-          <Button type="submit" className="w-full">
-            Start game
-          </Button>
-        </form>
+      {game.status === 'scheduled' ? (
+        <PreStartPanel
+          gameId={gameId}
+          players={players}
+          defaultBuyinCents={game.default_buyin_cents}
+        />
+      ) : (
+        <BuyInGrid
+          gameId={gameId}
+          players={players}
+          adminMemberId={game.admin_member_id}
+          defaultBuyinCents={game.default_buyin_cents}
+          chipsPerDollar={Number(game.chips_per_dollar)}
+          initialBuyins={(buyins ?? []) as Buyin[]}
+        />
       )}
-
-      <BuyInGrid
-        gameId={gameId}
-        players={players}
-        adminMemberId={game.admin_member_id}
-        defaultBuyinCents={game.default_buyin_cents}
-        chipsPerDollar={Number(game.chips_per_dollar)}
-        initialBuyins={(buyins ?? []) as Buyin[]}
-      />
 
       <details className="rounded-lg border border-border px-3 py-2">
         <summary className="cursor-pointer text-sm text-muted-foreground">

@@ -64,7 +64,7 @@ export function BuyInGrid({
         note: note?.trim() ? note.trim() : null,
       })
       .select(
-        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
+        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
       )
       .single()
 
@@ -87,7 +87,7 @@ export function BuyInGrid({
       .update({ void_reason: reason })
       .eq('id', id)
       .select(
-        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
+        'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
       )
       .single()
 
@@ -348,9 +348,6 @@ function PlayerSheet({
             >
               <span className={b.voided_at ? 'line-through opacity-50' : ''}>
                 {formatCents(b.amount_cents)}
-                {b.is_auto && (
-                  <span className="text-muted-foreground"> · on join</span>
-                )}
                 {b.note && (
                   <span className="text-muted-foreground"> · {b.note}</span>
                 )}
@@ -399,9 +396,8 @@ function PlayerSheet({
             </Button>
           )}
           <p className="mt-1 text-xs text-muted-foreground">
-            The first waitlister takes the seat. Before the game starts their
-            buy-in on join is voided; once it has started their money stays in
-            the pot.
+            The first waitlister takes the seat. Everything this player bought
+            in for is voided and comes back out of the pot.
           </p>
         </div>
       </div>

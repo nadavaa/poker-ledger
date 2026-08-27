@@ -63,7 +63,7 @@ export default async function GamePage({
       supabase
         .from('buyins')
         .select(
-          'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason, is_auto'
+          'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
         )
         .eq('game_id', gameId)
         .order('created_at', { ascending: false }),
@@ -176,6 +176,7 @@ export default async function GamePage({
         adminMemberId={game.admin_member_id}
         myMemberId={myMember?.id ?? null}
         initialBuyins={(buyins ?? []) as Buyin[]}
+        started={game.status !== 'scheduled'}
       />
 
       {waitlist.length > 0 && (

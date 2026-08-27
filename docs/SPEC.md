@@ -68,31 +68,24 @@ net_cents     = cashout_cents - sum(buyin_cents)
 
 Never update or delete a buy-in row. Every buy-in is an immutable event. Mistakes are corrected by voiding (soft delete with `voided_at`, `voided_by`, `void_reason`). This gives you a full audit trail, which is exactly what's missing from Gilad's notes app today. When someone says "I only bought in three times," you can show the timestamps.
 
-### 3.3a Taking a seat stakes the buy-in
+### 3.3a Signing up is a plan; starting the game is the stake
 
-Confirming a seat creates that player's first buy-in automatically, at the
-game's snapshotted `default_buyin_cents`. Nobody sits down at a poker table
-without buying in, so the admin should never have to tap nine cards before the
-first hand — they tap only for re-buys.
+A signup is an intention to play, not chips on the table. Games routinely
+start before everyone has arrived, so nothing stakes money automatically and
+no buy-in or stake amount is shown for a `scheduled` game.
 
-Mechanics:
+The admin hits **Start game** and gets a checklist of everyone with a
+confirmed seat, defaulted to all checked. Whoever is actually at the table
+stays checked; the rest get unchecked. Starting writes one buy-in at the
+game's snapshotted `default_buyin_cents` for each checked player and flips the
+game to `active`. Latecomers are added with an ordinary tap as they walk in.
 
-- The row is written by a trigger on `game_signups`, so it fires for a direct
-  signup, for an admin adding someone, and for a waitlist promotion alike.
-- It is flagged `is_auto = true` and rendered in the feed as "on join" rather
-  than attributed to whoever's write caused it. A promotion happens inside the
-  *withdrawing* player's transaction, so attributing it to the caller would be
-  actively misleading.
-- A player who already has a live buy-in never gets a second one, which keeps
-  leaving and rejoining a running game from double-staking them.
-- Chips are derived in Postgres by `cents_to_chips()`, the SQL counterpart to
-  `centsToChips()` in `lib/money.ts`. The conversion has exactly one home per
-  runtime; do not add a third.
+This is one transaction (`start_game`), so a game never ends up `active` with
+half its opening buy-ins written.
 
-**Losing the seat before the game starts voids that stake.** Once the game is
-`active` it does not: a player who leaves early is still in the settlement
-math, and their money is genuinely in the pot. A no-show removed after the
-game started can be zeroed with an ordinary manual void.
+Chips are derived in Postgres by `cents_to_chips()`, the SQL counterpart to
+`centsToChips()` in `lib/money.ts`. The conversion has exactly one home per
+runtime; do not add a third.
 
 ### 3.4 Game ownership: one admin, always
 
@@ -225,7 +218,6 @@ create table buyins (
   note text,
   created_at timestamptz not null default now(),
   created_by_member_id uuid not null references group_members(id),
-  is_auto boolean not null default false,   -- true = staked automatically on join
   voided_at timestamptz,
   voided_by_member_id uuid references group_members(id),
   void_reason text
@@ -502,9 +494,15 @@ Everything writes through Supabase Realtime so all nine phones update instantly.
 
 Two more things on this screen:
 
-**Remove a player.** In the long-press sheet, behind a two-tap confirm — it
-frees a seat, so it is not in the same class as a mistap on a buy-in. Removing
-a confirmed player promotes the first waitlister, who arrives already staked.
+**Remove a player.** Behind a two-tap confirm — before the game starts from
+the signed-up list, after it starts from the long-press sheet. It frees a
+seat, so it is not in the same class as a mistap on a buy-in.
+
+Removing someone means they are not playing, so **everything they bought in
+for is voided and comes back out of the pot**, whether or not the game has
+started. This is deliberately not the same event as cashing out early: a
+player who played and left records a cashout and stays in the settlement math.
+Removal is for the person who never sat down.
 
 **Hand off admin.** Buried in a menu, not a primary button. Pick any active group member, confirm, done. The new admin gets the write access and the old one loses it immediately.
 
@@ -542,7 +540,7 @@ These are the ones that will actually come up:
 15. **Admin isn't playing.** Valid state. Their card doesn't appear in the buy-in grid and they're excluded from settlement math.
 16. **Two games running in one group at once.** Rare, but allowed, and they can have different admins. Nothing in the model prevents it, so make sure the group home doesn't assume a single "next game."
 17. **Non-admin tries to write.** RLS rejects it. Handle the error in the UI with a clear message rather than a silent failure, because the most likely cause is that admin was transferred away while their screen was stale.
-18. **No-show removed by the admin.** Admin removes a confirmed player from the game. The seat frees, the first waitlister is promoted and arrives already staked, and the removed player's buy-in on join is voided — but only if the game hasn't started. After it starts their money stays in the pot, same as any player who leaves early.
+18. **No-show removed by the admin.** Admin removes a confirmed player. The seat frees, the first waitlister is promoted, and every buy-in the removed player had is voided and leaves the pot total — removal means they are not playing. Distinct from edge case 2, where a player who actually played leaves early and stays in the settlement math.
 
 ---
 
@@ -560,7 +558,7 @@ Next.js + TypeScript + Tailwind + shadcn. Supabase project, `profiles` table, ma
 `games`, `game_signups`, the one-screen new-game flow with inline group creation, creator-becomes-admin, RSVP, seat limit, waitlist ordering, auto-promotion trigger, past/upcoming split. Done when: any member can create a game in a brand new group, nine people claim seats, and the tenth lands on the waitlist.
 
 **Phase 3 — Buy-in tracking (1–2 days)**
-`buyins`, admin tap grid, void with undo, Realtime subscriptions, live pot total, voluntary admin transfer with audit log. Done when: you tap on one phone and it updates on another within a second, and you can hand admin to a second device mid-game. **Run one real game on this before building anything else.** You'll learn more from that than from another week of specs.
+`buyins`, start-game checklist that stakes whoever showed up, admin tap grid, void with undo, remove a player, Realtime subscriptions, live pot total, voluntary admin transfer with audit log. Done when: you tap on one phone and it updates on another within a second, and you can hand admin to a second device mid-game. **Run one real game on this before building anything else.** You'll learn more from that than from another week of specs.
 
 **Phase 4 — Reconciliation and settlement (1–2 days)**
 `cashouts`, discrepancy detection and the four resolutions, `settle.ts` with full test coverage, `settlements` table, settlement screen. Done when: a game with a $7 chip discrepancy can be resolved and settled.

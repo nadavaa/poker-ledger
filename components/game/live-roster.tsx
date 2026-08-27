@@ -17,12 +17,15 @@ export function LiveRoster({
   adminMemberId,
   myMemberId,
   initialBuyins,
+  started,
 }: {
   gameId: string
   players: Player[]
   adminMemberId: string
   myMemberId: string | null
   initialBuyins: Buyin[]
+  /** Before the first hand nobody has staked anything, so show no money. */
+  started: boolean
 }) {
   const { buyins, totalsByMember, potCents } = useGameBuyins(
     gameId,
@@ -34,14 +37,16 @@ export function LiveRoster({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between rounded-lg border border-border px-3 py-2">
-        <span className="text-sm text-muted-foreground">Pot</span>
-        <span className="text-xl font-semibold tabular-nums">
-          {formatCents(potCents)}
-        </span>
-      </div>
+      {started && (
+        <div className="flex items-baseline justify-between rounded-lg border border-border px-3 py-2">
+          <span className="text-sm text-muted-foreground">Pot</span>
+          <span className="text-xl font-semibold tabular-nums">
+            {formatCents(potCents)}
+          </span>
+        </div>
+      )}
 
-      {myMemberId && (
+      {started && myMemberId && (
         <div className="flex items-baseline justify-between rounded-lg border border-border px-3 py-2">
           <span className="text-sm text-muted-foreground">You&apos;ve staked</span>
           <span className="font-semibold tabular-nums">
@@ -73,18 +78,21 @@ export function LiveRoster({
                     </span>
                   )}
                 </span>
-                <span className="text-sm tabular-nums">
-                  {formatCents(total?.cents ?? 0)}
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({total?.count ?? 0})
+                {started && (
+                  <span className="text-sm tabular-nums">
+                    {formatCents(total?.cents ?? 0)}
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      ({total?.count ?? 0})
+                    </span>
                   </span>
-                </span>
+                )}
               </CardContent>
             </Card>
           )
         })}
       </section>
 
+      {started && (
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">Activity</h2>
         <ActivityFeed
@@ -93,6 +101,7 @@ export function LiveRoster({
           adminMemberId={adminMemberId}
         />
       </section>
+      )}
     </div>
   )
 }
