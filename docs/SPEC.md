@@ -467,6 +467,8 @@ Caveats to build around: these URL schemes are undocumented and Venmo has change
 
 Settlement status flow: `pending` → payer taps Mark as Paid → `paid` → payee taps Confirm Received → `confirmed`. Add a `deferred` status for "I'll get you next week," which rolls the balance into the next game's settlement inputs (Phase 6).
 
+**Where the handshake is enforced.** An RLS policy lets only the two parties update the row at all; a `before update` trigger polices the transition itself, because RLS can see the old row or the new one but never compare them. The payer alone can move `pending → paid` (or undo it), the payee alone can move `paid → confirmed`, `confirmed` is terminal, and the parties and amount are immutable after settlement. Marking paid is independent of whether the Venmo link opened.
+
 ---
 
 ## 8. Screens
@@ -554,7 +556,7 @@ Both are states of `/games/[gameId]`, not separate routes, for the same reason t
 **Settled.** The admin sees the full transfer list as "Nadav pays Gilad $80" rows. A player sees only their own, framed as an action — "Pay Gilad $80", "Collect $45 from Yoni" — each with a Venmo deep link and a copy-to-clipboard fallback, since the URL scheme is undocumented and has changed before. A player with nothing outstanding gets an explicit "You're square for this game" rather than an empty list. Both see the aggregate confirmed count. Status chips for pending/paid/confirmed. A "Copy summary for WhatsApp" button that generates plain text to paste into the group chat, since that's where the group actually lives.
 
 ### Profile
-Display name, Venmo handle, game history, stats.
+Display name, Venmo handle, lifetime net per group, and settled-game history. Saving a Venmo handle writes it to the profile *and* to every one of that person's `group_members` rows — a plain member cannot edit their own member row, and the handle has to live there for other players' Venmo buttons to resolve. Balances never merge across groups, so lifetime is one card per group.
 
 ---
 

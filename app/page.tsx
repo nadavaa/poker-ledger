@@ -93,6 +93,14 @@ export default async function HomePage({
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            render={<Link href="/profile" />}
+            nativeButton={false}
+          >
+            Profile
+          </Button>
           <ThemeToggle />
           <form action={signOut}>
             <Button variant="ghost" size="sm" type="submit">

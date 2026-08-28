@@ -1,6 +1,9 @@
 import { formatCents } from '@/lib/money'
 import { Card, CardContent } from '@/components/ui/card'
 import { VenmoButton } from '@/components/settle/venmo-button'
+import { SettlementActions } from '@/components/settle/settlement-actions'
+import { CopySummary } from '@/components/settle/copy-summary'
+import { gameSummary } from '@/lib/summary'
 
 export type ResultRow = {
   memberId: string
@@ -85,13 +88,22 @@ function PlayerSettlements({
                 </p>
                 <SettlementStatus status={t.status} />
               </div>
-              <VenmoButton
-                handle={venmoHandles.get(counterpartyId) ?? null}
-                amountCents={t.amountCents}
-                note={gameLabel}
-                direction={paying ? 'pay' : 'collect'}
-                counterpartyName={counterparty}
-              />
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <VenmoButton
+                  handle={venmoHandles.get(counterpartyId) ?? null}
+                  amountCents={t.amountCents}
+                  note={gameLabel}
+                  direction={paying ? 'pay' : 'collect'}
+                  counterpartyName={counterparty}
+                />
+                {/* The link is a convenience; marking paid works whether or
+                    not Venmo opened. */}
+                <SettlementActions
+                  settlementId={t.id}
+                  status={t.status}
+                  role={paying ? 'payer' : 'payee'}
+                />
+              </div>
             </CardContent>
           </Card>
         )
@@ -291,9 +303,22 @@ export function SettledView({
                     </p>
                     <SettlementStatus status={t.status} />
                   </div>
-                  <span className="money-display shrink-0 text-xl font-semibold">
-                    {formatCents(t.amountCents)}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="money-display text-xl font-semibold">
+                      {formatCents(t.amountCents)}
+                    </span>
+                    <SettlementActions
+                      settlementId={t.id}
+                      status={t.status}
+                      role={
+                        t.fromMemberId === myMemberId
+                          ? 'payer'
+                          : t.toMemberId === myMemberId
+                            ? 'payee'
+                            : 'bystander'
+                      }
+                    />
+                  </div>
                 </CardContent>
               </Card>
             ))
@@ -305,6 +330,25 @@ export function SettledView({
             venmoHandles={venmoHandles}
             myMemberId={myMemberId}
             gameLabel={gameLabel}
+          />
+        )}
+
+        {isAdmin && transfers.length > 0 && (
+          <CopySummary
+            text={gameSummary({
+              title: gameLabel,
+              potCents,
+              players: rows.map((r) => ({
+                name: r.name,
+                netCents: r.netCents,
+              })),
+              transfers: transfers.map((t) => ({
+                fromName: names.get(t.fromMemberId) ?? 'Someone',
+                toName: names.get(t.toMemberId) ?? 'someone',
+                amountCents: t.amountCents,
+                confirmed: t.status === 'confirmed',
+              })),
+            })}
           />
         )}
       </section>
