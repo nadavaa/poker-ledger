@@ -381,6 +381,12 @@ If `discrepancy ≠ 0`, show it prominently and offer four resolutions:
 
 Each resolution writes to `game_adjustments` so the ledger stays auditable. This single feature is the biggest real-world improvement over the notes app, because today this problem gets resolved by arguing.
 
+**Where the gate lives.** `settle_game()` recomputes the nets itself and refuses to write a settlement while they don't sum to zero, while any chip count is still missing, or while the submitted transfers don't zero every player out. The button being disabled is a courtesy; the database is the guarantee.
+
+**How resolutions are stored.** All four modes materialise one adjustment row *per player* — even split, single player, or proportional to buy-in — rather than leaving a `member_id = null` row to be divided at settlement time. The split is then visible in the ledger, nets sum to zero by construction, and the arithmetic has one home. `member_id` stays nullable for a future table-level adjustment. Re-resolving replaces the previous resolution, so recounting a stack and resolving again is always sized to the discrepancy as it stands.
+
+**One source of truth for nets.** `game_nets(game_id)` computes buy-ins, cashout, adjustments and net per player. The reconciliation screen, the settle endpoint and the gate all read it, so the app and the database cannot disagree about what someone is owed. It replaces the `game_player_totals` view sketched above.
+
 ### 6.2 Minimum-transfer solver
 
 ```typescript
@@ -524,11 +530,12 @@ Removal is for the person who never sat down.
 
 **The admin's own buy-ins render differently in the activity feed.** One person having sole write access to everyone's money is a trust concession, and the control on it is visibility, not permission. Every player sees a live feed of every buy-in with a timestamp and who logged it, and the admin logging their own gets a subtle marker. Nobody will ever cheat, but the reason nobody will is that the log makes it pointless.
 
-### Cashout screen
-Numeric chip entry per player. A discrepancy counter at the top updates live and stays red until it hits zero. Settle button disabled until reconciled or an adjustment is recorded.
+### Cashout and settlement — still the same screen
+Both are states of `/games/[gameId]`, not separate routes, for the same reason the admin controls are: one game, one page.
 
-### Settlement screen
-The transfer list rendered as "Nadav pays Gilad $80" rows with a Venmo button on each. Status chips for pending/paid/confirmed. A "Copy summary for WhatsApp" button that generates plain text to paste into the group chat, since that's where the group actually lives.
+**Counting chips.** Numeric chip entry per player. A discrepancy counter at the top updates live as the admin types and stays red until it hits zero. Each player's running net shows beside their name. Settle is disabled until the count balances; a "Back to the game" escape hatch returns the game to `active` if chips need to keep moving.
+
+**Settled.** The transfer list rendered as "Nadav pays Gilad $80" rows with a Venmo button on each. Status chips for pending/paid/confirmed. A "Copy summary for WhatsApp" button that generates plain text to paste into the group chat, since that's where the group actually lives.
 
 ### Profile
 Display name, Venmo handle, game history, stats.
@@ -593,8 +600,7 @@ PWA manifest and service worker, install prompt, web push, offline write queue, 
 /app
   /(auth)/login, /join/[code], /claim/[code]
   /(app)/groups/[groupId]/page.tsx
-  /(app)/games/[gameId]/page.tsx          -- member and admin, one screen
-  /(app)/games/[gameId]/settle/page.tsx
+  /(app)/games/[gameId]/page.tsx          -- every state of a game, one screen
   /(app)/profile
   /api/games/[gameId]/settle/route.ts
 /components

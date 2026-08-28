@@ -324,6 +324,85 @@ export type Database = {
           },
         ]
       }
+      cashouts: {
+        Row: {
+          id: string
+          game_id: string
+          member_id: string
+          chips: number
+          amount_cents: number
+          recorded_at: string
+          recorded_by_member_id: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          member_id: string
+          chips: number
+          amount_cents: number
+          recorded_at?: string
+          recorded_by_member_id: string
+        }
+        Update: {
+          chips?: number
+          amount_cents?: number
+        }
+        Relationships: []
+      }
+      game_adjustments: {
+        Row: {
+          id: string
+          game_id: string
+          member_id: string | null
+          amount_cents: number
+          reason: string
+          created_at: string
+          created_by_member_id: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          member_id?: string | null
+          amount_cents: number
+          reason: string
+          created_at?: string
+          created_by_member_id: string
+        }
+        Update: {
+          reason?: string
+        }
+        Relationships: []
+      }
+      settlements: {
+        Row: {
+          id: string
+          game_id: string
+          from_member_id: string
+          to_member_id: string
+          amount_cents: number
+          status: Database['public']['Enums']['settlement_status']
+          paid_at: string | null
+          confirmed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          from_member_id: string
+          to_member_id: string
+          amount_cents: number
+          status?: Database['public']['Enums']['settlement_status']
+          paid_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          status?: Database['public']['Enums']['settlement_status']
+          paid_at?: string | null
+          confirmed_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -391,6 +470,47 @@ export type Database = {
         Args: { p_cents: number; p_chips_per_dollar: number }
         Returns: number
       }
+      chips_to_cents: {
+        Args: { p_chips: number; p_chips_per_dollar: number }
+        Returns: number
+      }
+      game_nets: {
+        Args: { p_game_id: string }
+        Returns: {
+          member_id: string
+          display_name: string
+          buyin_cents: number
+          cashout_cents: number
+          adjustment_cents: number
+          net_cents: number
+          has_cashout: boolean
+        }[]
+      }
+      begin_reconciliation: {
+        Args: { p_game_id: string }
+        Returns: undefined
+      }
+      reopen_game: {
+        Args: { p_game_id: string }
+        Returns: undefined
+      }
+      record_cashout: {
+        Args: { p_game_id: string; p_member_id: string; p_chips: number }
+        Returns: undefined
+      }
+      resolve_discrepancy: {
+        Args: {
+          p_game_id: string
+          p_mode: string
+          p_member_id?: string | null
+          p_reason?: string | null
+        }
+        Returns: undefined
+      }
+      settle_game: {
+        Args: { p_game_id: string; p_transfers: Json }
+        Returns: number
+      }
       add_player_to_game: {
         Args: {
           p_game_id: string
@@ -413,6 +533,7 @@ export type Database = {
       }
     }
     Enums: {
+      settlement_status: 'pending' | 'paid' | 'confirmed' | 'deferred'
       member_role: 'owner' | 'admin' | 'member'
       game_status:
         | 'scheduled'

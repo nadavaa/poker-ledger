@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { BuyInGrid } from '@/components/game/buy-in-grid'
 import { PreStartPanel } from '@/components/game/pre-start-panel'
 import { LiveRoster } from '@/components/game/live-roster'
+import { CashoutPanel } from '@/components/game/cashout-panel'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
 function formatWhen(iso: string) {
@@ -76,6 +77,26 @@ export default async function GamePage({
         .order('created_at', { ascending: false }),
     ])
 
+  const counting = game.status === 'reconciling'
+  const settled = game.status === 'settled'
+
+  const [{ data: nets }, { data: cashouts }, { data: settlements }] =
+    await Promise.all([
+      counting
+        ? supabase.rpc('game_nets', { p_game_id: gameId })
+        : Promise.resolve({ data: null }),
+      counting
+        ? supabase.from('cashouts').select('member_id, chips').eq('game_id', gameId)
+        : Promise.resolve({ data: null }),
+      settled
+        ? supabase
+            .from('settlements')
+            .select('id, from_member_id, to_member_id, amount_cents, status')
+            .eq('game_id', gameId)
+            .order('amount_cents', { ascending: false })
+        : Promise.resolve({ data: null }),
+    ])
+
   const myMember = members?.find((m) => m.profile_id === user.id) ?? null
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
   const waitlist = signups?.filter((s) => s.status === 'waitlist') ?? []
@@ -130,6 +151,28 @@ export default async function GamePage({
       .from('game_signups')
       .update({ status: 'withdrawn' })
       .eq('id', mySignup.id)
+    if (error) {
+      redirect(`/games/${gameId}?error=${encodeURIComponent(error.message)}`)
+    }
+    revalidatePath(`/games/${gameId}`)
+  }
+
+  async function endGame() {
+    'use server'
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('begin_reconciliation', {
+      p_game_id: gameId,
+    })
+    if (error) {
+      redirect(`/games/${gameId}?error=${encodeURIComponent(error.message)}`)
+    }
+    revalidatePath(`/games/${gameId}`)
+  }
+
+  async function reopenGame() {
+    'use server'
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('reopen_game', { p_game_id: gameId })
     if (error) {
       redirect(`/games/${gameId}?error=${encodeURIComponent(error.message)}`)
     }
@@ -216,7 +259,32 @@ export default async function GamePage({
         </p>
       )}
 
-      {runsTheGame ? (
+      {isAdmin && counting ? (
+        <>
+          <CashoutPanel
+            gameId={gameId}
+            chipsPerDollar={Number(game.chips_per_dollar)}
+            rows={(nets ?? []).map((n) => ({
+              memberId: n.member_id,
+              name: n.display_name,
+              buyinCents: n.buyin_cents,
+              adjustmentCents: n.adjustment_cents,
+              chips:
+                cashouts?.find((c) => c.member_id === n.member_id)?.chips !==
+                undefined
+                  ? String(
+                      cashouts.find((c) => c.member_id === n.member_id)!.chips
+                    )
+                  : null,
+            }))}
+          />
+          <form action={reopenGame}>
+            <Button variant="ghost" size="sm" type="submit">
+              Back to the game
+            </Button>
+          </form>
+        </>
+      ) : runsTheGame ? (
         game.status === 'scheduled' ? (
           <PreStartPanel
             gameId={gameId}
@@ -244,6 +312,45 @@ export default async function GamePage({
           initialBuyins={(buyins ?? []) as Buyin[]}
           started={started}
         />
+      )}
+
+      {runsTheGame && game.status === 'active' && (
+        <form action={endGame}>
+          <Button variant="outline" className="w-full" type="submit">
+            End game &amp; count chips
+          </Button>
+        </form>
+      )}
+
+      {settled && settlements && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Who pays who ({settlements.length})
+          </h2>
+          {settlements.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Everyone came out even. Nothing to pay.
+            </p>
+          )}
+          {settlements.map((t) => (
+            <Card key={t.id}>
+              <CardContent className="flex items-center justify-between gap-2 py-3">
+                <span className="text-sm">
+                  <span className="font-medium">
+                    {nameOf.get(t.from_member_id) ?? 'Someone'}
+                  </span>{' '}
+                  pays{' '}
+                  <span className="font-medium">
+                    {nameOf.get(t.to_member_id) ?? 'someone'}
+                  </span>
+                </span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {formatCents(t.amount_cents)}
+                </span>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
       )}
 
       {waitlist.length > 0 && (
