@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { centsToChips, formatCents } from '@/lib/money'
+import { resolveVenmoHandle } from '@/lib/venmo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BuyInGrid } from '@/components/game/buy-in-grid'
@@ -123,6 +124,21 @@ export default async function GamePage({
     : { data: null }
   const progress = progressRows?.[0] ?? { total: 0, confirmed: 0 }
 
+  // Most people set their handle on their profile, not on a member row, so
+  // the member value is only an override.
+  const profileIds = (members ?? [])
+    .map((m) => m.profile_id)
+    .filter((id): id is string => Boolean(id))
+  const { data: memberProfiles } = profileIds.length
+    ? await supabase
+        .from('profiles')
+        .select('id, venmo_handle')
+        .in('id', profileIds)
+    : { data: [] }
+  const profileHandle = new Map(
+    (memberProfiles ?? []).map((p) => [p.id, p.venmo_handle])
+  )
+
   const myMember = members?.find((m) => m.profile_id === user.id) ?? null
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
   const waitlist = signups?.filter((s) => s.status === 'waitlist') ?? []
@@ -140,7 +156,13 @@ export default async function GamePage({
   }))
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
   const venmoOf = new Map(
-    (members ?? []).map((m) => [m.id, m.venmo_handle as string | null])
+    (members ?? []).map((m) => [
+      m.id,
+      resolveVenmoHandle(
+        m.venmo_handle,
+        m.profile_id ? profileHandle.get(m.profile_id) : null
+      ),
+    ])
   )
 
   // Anyone in the group not already in the game. A withdrawn signup can be
@@ -425,6 +447,9 @@ export default async function GamePage({
           isAdmin={isAdmin}
           progress={progress}
           gameLabel={gameLabel}
+          venmoNote={`${game.groups?.name ?? 'Poker'} · ${formatDay(
+            game.scheduled_at
+          )}`}
           startedAt={game.started_at}
           settledAt={game.settled_at}
         />

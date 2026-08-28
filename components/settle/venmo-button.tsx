@@ -1,48 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { formatCents } from '@/lib/money'
 import { venmoLink } from '@/lib/venmo'
 import { Button } from '@/components/ui/button'
 
 /**
- * Opens Venmo with the amount prefilled. The deep link is a convenience, not
- * a dependency — the scheme is undocumented and has changed before — so the
- * handle and amount are always available as copyable plain text.
+ * Opens Venmo with the amount prefilled.
+ *
+ * The href is the https URL, not the venmo:// scheme: iOS and Android hand
+ * https://venmo.com off to the installed app, and a desktop browser opens the
+ * site. A bare custom scheme silently does nothing on desktop, which looks
+ * exactly like a broken button.
+ *
+ * Renders nothing when there is no handle — the row shows the amount, the
+ * name, and a note instead. Never a dead button.
  */
 export function VenmoButton({
   handle,
   amountCents,
   note,
   direction,
-  counterpartyName,
 }: {
   handle: string | null
   amountCents: number
   note: string
-  /** 'pay' sends money, 'collect' requests it. */
+  /** 'pay' sends money to them, 'collect' requests it from them. */
   direction: 'pay' | 'collect'
-  counterpartyName: string
 }) {
-  const [copied, setCopied] = useState(false)
-
-  const plain = handle
-    ? `@${handle.replace(/^@/, '')} ${formatCents(amountCents)}`
-    : `${counterpartyName} ${formatCents(amountCents)}`
-
-  async function copy() {
-    await navigator.clipboard.writeText(plain)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (!handle) {
-    return (
-      <Button variant="outline" size="sm" className="rounded-xl" onClick={copy}>
-        {copied ? 'Copied' : 'Copy amount'}
-      </Button>
-    )
-  }
+  if (!handle) return null
 
   const links = venmoLink(
     handle,
@@ -52,23 +36,15 @@ export function VenmoButton({
   )
 
   return (
-    <span className="flex shrink-0 items-center gap-1.5">
-      <Button
-        size="sm"
-        className="rounded-xl"
-        render={<a href={links.app} rel="noreferrer" />}
-        nativeButton={false}
-      >
-        {direction === 'pay' ? 'Venmo' : 'Request'}
-      </Button>
-      <Button
-        variant="ghost"
-        size="xs"
-        onClick={copy}
-        aria-label={`Copy ${plain}`}
-      >
-        {copied ? 'Copied' : 'Copy'}
-      </Button>
-    </span>
+    <Button
+      size="sm"
+      className="rounded-xl"
+      render={
+        <a href={links.web} target="_blank" rel="noopener noreferrer" />
+      }
+      nativeButton={false}
+    >
+      {direction === 'pay' ? 'Pay' : 'Request'}
+    </Button>
   )
 }

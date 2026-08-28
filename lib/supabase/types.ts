@@ -536,6 +536,10 @@ export type Database = {
         Args: { p_game_id: string; p_transfers: Json }
         Returns: number
       }
+      shares_a_group_with: {
+        Args: { pid: string }
+        Returns: boolean
+      }
       set_my_venmo_handle: {
         Args: { p_handle: string }
         Returns: undefined

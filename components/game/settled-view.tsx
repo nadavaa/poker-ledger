@@ -42,13 +42,13 @@ function PlayerSettlements({
   names,
   venmoHandles,
   myMemberId,
-  gameLabel,
+  venmoNote,
 }: {
   transfers: TransferRow[]
   names: Map<string, string>
   venmoHandles: Map<string, string | null>
   myMemberId: string | null
-  gameLabel: string
+  venmoNote: string
 }) {
   const outstanding = transfers.filter((t) => t.status !== 'confirmed')
 
@@ -72,6 +72,7 @@ function PlayerSettlements({
         const paying = t.fromMemberId === myMemberId
         const counterpartyId = paying ? t.toMemberId : t.fromMemberId
         const counterparty = names.get(counterpartyId) ?? 'someone'
+        const handle = venmoHandles.get(counterpartyId) ?? null
         return (
           <Card key={t.id}>
             <CardContent className="flex items-center justify-between gap-3 py-3">
@@ -86,18 +87,27 @@ function PlayerSettlements({
                     {formatCents(t.amountCents)}
                   </span>
                 </p>
+                {/* Plain selectable text, not a button: this is the fallback
+                    when the deep link doesn't land. */}
+                {handle ? (
+                  <p className="money select-text text-xs text-muted-foreground">
+                    @{handle}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No Venmo handle on file
+                  </p>
+                )}
                 <SettlementStatus status={t.status} />
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
                 <VenmoButton
-                  handle={venmoHandles.get(counterpartyId) ?? null}
+                  handle={handle}
                   amountCents={t.amountCents}
-                  note={gameLabel}
+                  note={venmoNote}
                   direction={paying ? 'pay' : 'collect'}
-                  counterpartyName={counterparty}
                 />
-                {/* The link is a convenience; marking paid works whether or
-                    not Venmo opened. */}
+                {/* Marking paid works whether or not Venmo ever opened. */}
                 <SettlementActions
                   settlementId={t.id}
                   status={t.status}
@@ -155,6 +165,7 @@ export function SettledView({
   isAdmin,
   progress,
   gameLabel,
+  venmoNote,
   startedAt,
   settledAt,
 }: {
@@ -168,6 +179,8 @@ export function SettledView({
   isAdmin: boolean
   progress: SettlementProgress
   gameLabel: string
+  /** What Venmo shows in the note field: which crew, which night. */
+  venmoNote: string
   startedAt: string | null
   settledAt: string | null
 }) {
@@ -329,7 +342,7 @@ export function SettledView({
             names={names}
             venmoHandles={venmoHandles}
             myMemberId={myMemberId}
-            gameLabel={gameLabel}
+            venmoNote={venmoNote}
           />
         )}
 
