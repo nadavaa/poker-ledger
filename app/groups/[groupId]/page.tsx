@@ -145,6 +145,16 @@ export default async function GroupPage({
           <h1 className="text-lg font-semibold">{group.name}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href={`/groups/${groupId}/edit`} />}
+              nativeButton={false}
+            >
+              Edit group
+            </Button>
+          )}
           <CopyLinkButton
             path={`/join/${group.invite_code}`}
             label="Copy invite"
@@ -306,7 +316,9 @@ export default async function GroupPage({
             <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               Members ({members?.filter((m) => m.is_active).length ?? 0})
             </h2>
-            {members?.map((m) => {
+            {members
+              ?.filter((m) => m.is_active)
+              .map((m) => {
               const played = gamesPlayedByMember.get(m.id) ?? 0
               return (
                 <Card key={m.id}>
@@ -327,11 +339,6 @@ export default async function GroupPage({
                             unclaimed
                           </span>
                         )}
-                        {!m.is_active && (
-                          <span className="rounded bg-muted px-1.5 py-0.5">
-                            inactive
-                          </span>
-                        )}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
@@ -346,7 +353,7 @@ export default async function GroupPage({
                   </CardContent>
                 </Card>
               )
-            })}
+              })}
           </section>
 
           {canManage && (

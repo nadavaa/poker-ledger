@@ -536,6 +536,31 @@ export type Database = {
         Args: { p_game_id: string; p_transfers: Json }
         Returns: number
       }
+      member_has_history: {
+        Args: { mid: string }
+        Returns: boolean
+      }
+      member_removal_block: {
+        Args: { mid: string }
+        Returns: string | null
+      }
+      member_removal_preview: {
+        Args: { p_member_id: string }
+        Returns: {
+          mode: string
+          blocked_reason: string | null
+          games_played: number
+          display_name: string
+        }[]
+      }
+      remove_group_member: {
+        Args: { p_member_id: string }
+        Returns: string
+      }
+      reactivate_group_member: {
+        Args: { p_member_id: string }
+        Returns: undefined
+      }
       is_group_owner: {
         Args: { gid: string }
         Returns: boolean

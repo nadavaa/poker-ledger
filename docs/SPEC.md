@@ -474,6 +474,9 @@ Settlement status flow: `pending` → payer taps Mark as Paid → `paid` → pay
 ### Auth / join
 Supabase magic link plus Google OAuth. Skip phone OTP, it needs Twilio and costs money. Invite links look like `/join/[inviteCode]`, and a claim flow at `/claim/[claimCode]` lets an existing unclaimed member attach their account.
 
+### Edit group
+Owner/admin only. Group name and the defaults for the *next* game — buy-in, chip ratio, seat limit — plus member management: add, remove, and an "Inactive members" section, collapsed, with Reactivate. Changing a default never touches an existing game: `create_game` snapshots buy-in, ratio and seat limit onto the `games` row, and every screen reads the game's own columns thereafter. The group defaults are read in exactly one place, prefilling the new-game form.
+
 ### Group screen
 Two tabs, with the active one in the URL so back and shared links work.
 
@@ -567,6 +570,7 @@ These are the ones that will actually come up:
 6. **Buy-in logged to the wrong player.** Void plus re-add. Never edit.
 7. **Game cancelled after signups exist.** Status → `cancelled`, signups preserved, no settlement.
 8. **Unclaimed member never signs up.** Works forever, admin manages them by hand.
+8a. **Removing a member.** Two operations behind one button, and the confirmation says which applies. A row nothing references — the typo'd placeholder — is hard deleted. Anyone with history is deactivated instead (`is_active = false`): they leave the roster and new-game signup, while every past game still renders their name and numbers. Removal is refused outright while they admin a game that isn't settled or cancelled, hold a settlement still `pending` or `paid`, or own the group. An RLS delete policy allows the delete only for a member with no history and no block; a *restrictive* update policy refuses a deactivation that has one, so both rules survive devtools. Reactivation restores the original row, so a guest who returns six months later gets their record back rather than a duplicate — and adding a name that matches an inactive member offers reactivation instead of inserting.
 9. **Player in multiple groups.** One profile, many `group_members`. Balances are per-group and never merge.
 10. **Someone deletes their account.** `profile_id` goes null on the member row, history is preserved.
 11. **Two admins tap the same buy-in simultaneously.** Append-only means you get two rows. Show recent buy-ins with timestamps so the duplicate is visible and voidable.
