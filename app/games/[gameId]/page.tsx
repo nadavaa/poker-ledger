@@ -12,6 +12,7 @@ import { CashoutPanel } from '@/components/game/cashout-panel'
 import { SettledView } from '@/components/game/settled-view'
 import { StatusBanner } from '@/components/game/status-banner'
 import { WaitlistPanel } from '@/components/game/waitlist-panel'
+import { DangerZone } from '@/components/game/danger-zone'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
 const BUYIN_COLUMNS =
@@ -21,6 +22,14 @@ const BUYIN_COLUMNS =
  *  request time. */
 function isOverdue(status: string, scheduledAt: string) {
   return status === 'scheduled' && new Date(scheduledAt).getTime() < Date.now()
+}
+
+function formatDay(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 function formatWhen(iso: string) {
@@ -73,7 +82,7 @@ export default async function GamePage({
       .order('signup_order'),
     supabase
       .from('group_members')
-      .select('id, display_name, profile_id, is_active')
+      .select('id, display_name, profile_id, is_active, role')
       .eq('group_id', game.group_id)
       .eq('is_active', true)
       .order('display_name'),
@@ -95,13 +104,11 @@ export default async function GamePage({
   const cancelled = game.status === 'cancelled'
 
   const [{ data: settlements }, { data: adjustments }] = await Promise.all([
-    settled
-      ? supabase
-          .from('settlements')
-          .select('id, from_member_id, to_member_id, amount_cents, status')
-          .eq('game_id', gameId)
-          .order('amount_cents', { ascending: false })
-      : Promise.resolve({ data: null }),
+    supabase
+      .from('settlements')
+      .select('id, from_member_id, to_member_id, amount_cents, status')
+      .eq('game_id', gameId)
+      .order('amount_cents', { ascending: false }),
     settled || counting
       ? supabase
           .from('game_adjustments')
@@ -116,6 +123,7 @@ export default async function GamePage({
   const mySignup = signups?.find((s) => s.member_id === myMember?.id)
 
   const isAdmin = myMember?.id === game.admin_member_id
+  const isGroupOwner = myMember?.role === 'owner'
   const isOpen = game.status === 'scheduled' || game.status === 'active'
   const runsTheGame = isAdmin && isOpen
   const overdue = isOverdue(game.status, game.scheduled_at)
@@ -136,6 +144,24 @@ export default async function GamePage({
   const available = (members ?? [])
     .filter((m) => !taken.has(m.id))
     .map((m) => ({ id: m.id, name: m.display_name }))
+
+  const liveBuyins = (buyins ?? []).filter((b) => !b.voided_at)
+  const blockingSettlements = (settlements ?? []).filter(
+    (s) => s.status === 'pending' || s.status === 'paid'
+  )
+  // Hard delete is only for a game that never happened. Anything that has
+  // started, or has money in it, gets cancelled instead.
+  const canDelete =
+    isAdmin &&
+    game.status === 'scheduled' &&
+    (buyins?.length ?? 0) === 0 &&
+    blockingSettlements.length === 0
+  const canCancel =
+    (isAdmin || isGroupOwner) &&
+    game.status !== 'settled' &&
+    game.status !== 'cancelled' &&
+    blockingSettlements.length === 0
+  const gameLabel = game.name ?? formatDay(game.scheduled_at)
 
   async function joinGame() {
     'use server'
@@ -423,12 +449,13 @@ export default async function GamePage({
         />
       )}
 
-      {runsTheGame && (
+      {(isAdmin || isGroupOwner) && (
         <details className="rounded-lg border border-border px-3 py-2">
           <summary className="cursor-pointer text-sm text-muted-foreground">
             Game settings
           </summary>
           <div className="flex flex-col gap-3 pt-3">
+            {runsTheGame && (
             <form action={handOff} className="flex flex-col gap-2">
               <label className="text-sm font-medium" htmlFor="to_member_id">
                 Hand off admin
@@ -465,6 +492,29 @@ export default async function GamePage({
                 Transfer admin
               </Button>
             </form>
+            )}
+
+            <DangerZone
+              gameId={gameId}
+              groupId={game.group_id}
+              gameLabel={gameLabel}
+              status={game.status}
+              signupCount={signups?.length ?? 0}
+              buyinCount={liveBuyins.length}
+              buyinTotalCents={liveBuyins.reduce(
+                (sum, b) => sum + b.amount_cents,
+                0
+              )}
+              blockingSettlements={blockingSettlements.map((s) => ({
+                id: s.id,
+                fromName: nameOf.get(s.from_member_id) ?? 'Someone',
+                toName: nameOf.get(s.to_member_id) ?? 'someone',
+                amountCents: s.amount_cents,
+                status: s.status,
+              }))}
+              canDelete={canDelete}
+              canCancel={canCancel}
+            />
           </div>
         </details>
       )}

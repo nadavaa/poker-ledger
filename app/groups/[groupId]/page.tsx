@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CopyLinkButton } from '@/components/copy-link-button'
+import { MyStats } from '@/components/group/my-stats'
+import { computeStats } from '@/lib/stats'
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -35,7 +37,8 @@ export default async function GroupPage({
 }) {
   const { groupId } = await params
   const { tab } = await searchParams
-  const activeTab = tab === 'members' ? 'members' : 'games'
+  const activeTab =
+    tab === 'members' ? 'members' : tab === 'stats' ? 'stats' : 'games'
 
   const supabase = await createClient()
 
@@ -91,6 +94,23 @@ export default async function GroupPage({
   // game page; lifetime P/L stays on the home screen.
   const gamesPlayedByMember = new Map(
     (lifetime ?? []).map((l) => [l.member_id, l.games_played])
+  )
+
+  // Settled games only: an unfinished game has no meaningful net.
+  const settledById = new Map(
+    (games ?? [])
+      .filter((g) => g.status === 'settled')
+      .map((g) => [g.id, g.scheduled_at])
+  )
+  const myStats = computeStats(
+    (totals ?? [])
+      .filter((t) => t.member_id === me?.id && settledById.has(t.game_id))
+      .map((t) => ({
+        gameId: t.game_id,
+        netCents: t.net_cents,
+        buyinCents: t.buyin_cents,
+        scheduledAt: settledById.get(t.game_id)!,
+      }))
   )
 
   // Anything not finished is "in flight". A group can run more than one at
@@ -151,9 +171,22 @@ export default async function GroupPage({
         >
           Members
         </Link>
+        <Link
+          href={`/groups/${groupId}?tab=stats`}
+          aria-current={activeTab === 'stats' ? 'page' : undefined}
+          className={`flex-1 rounded-md px-3 py-1.5 text-center text-sm ${
+            activeTab === 'stats'
+              ? 'bg-muted font-medium'
+              : 'text-muted-foreground'
+          }`}
+        >
+          My Stats
+        </Link>
       </nav>
 
-      {activeTab === 'games' ? (
+      {activeTab === 'stats' ? (
+        <MyStats stats={myStats} />
+      ) : activeTab === 'games' ? (
         <>
           <Button
             render={<Link href={`/groups/${groupId}/games/new`} />}

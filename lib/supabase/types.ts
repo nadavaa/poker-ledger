@@ -536,6 +536,14 @@ export type Database = {
         Args: { p_game_id: string; p_transfers: Json }
         Returns: number
       }
+      is_group_owner: {
+        Args: { gid: string }
+        Returns: boolean
+      }
+      cancel_game: {
+        Args: { p_game_id: string }
+        Returns: undefined
+      }
       promote_to_confirmed: {
         Args: {
           p_game_id: string

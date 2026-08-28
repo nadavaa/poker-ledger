@@ -475,6 +475,8 @@ Two tabs, with the active one in the URL so back and shared links work.
 
 **Games.** New Game for any member. Games still in flight pinned at the top, soonest first; history below with date, player count, pot and your net.
 
+**My Stats.** The signed-in player's record in this group, from settled games only: total net as the headline, average per game, best and worst game with dates, win rate, current streak, longest winning and losing streaks, and total bought in. A net of exactly zero is neither a win nor a loss — it ends a streak without starting one. Streaks run over `scheduled_at` ascending. With no settled games the tab renders a short empty state rather than a wall of zeroes; `computeStats()` returns null for that case so a NaN average is impossible by construction. The maths lives in `lib/stats.ts`, pure and tested like `lib/settle.ts`.
+
 **Members.** Display name, games played, and whether the row is claimed. Deliberately no money: lifetime P/L lives on the home screen and per-game results live on the game page, so a shared group screen doesn't put everyone's running balance in front of the room. Owners and admins get Add Player and the copy-claim-link action.
 
 ### App home (multi-group)
@@ -569,6 +571,8 @@ These are the ones that will actually come up:
 14. **Admin leaves the group.** Block removal of a member who admins any non-settled game until the role is transferred. Enforce with a trigger.
 15. **Admin isn't playing.** Valid state. Their card doesn't appear in the buy-in grid and they're excluded from settlement math.
 16. **Two games running in one group at once.** Rare, but allowed, and they can have different admins. Nothing in the model prevents it, so make sure the group home doesn't assume a single "next game."
+16a. **Deleting a game.** Hard delete is only ever for a game that never happened: still `scheduled`, no buy-ins, no open settlements, and only by the game admin. Anything with money in it is cancelled instead, which keeps the roster, the buy-ins and the audit trail and only means no settlement is computed; the group owner may cancel as well as the game admin. A settled game is refused outright — its results feed every player's lifetime stats and it may carry settlements people are still owed, so removing it would rewrite someone else's numbers and could erase a debt. Any settlement still `pending` or `paid` blocks both actions, and the UI names who they involve. All of this is an RLS delete policy plus a `with check (status = 'cancelled')` update policy, not a UI check; confirmation requires typing the game's name and states what is lost by count.
+
 17. **Non-admin tries to write.** RLS rejects it. Handle the error in the UI with a clear message rather than a silent failure, because the most likely cause is that admin was transferred away while their screen was stale.
 18a. **Admin sends a confirmed player back.** Before the game starts, the admin can move a confirmed player to the waitlist (they go to the back of the line, or the promotion trigger would just re-seat them) or withdraw them. If that player already has buy-ins logged, `demote_from_confirmed` refuses and says to void the buy-ins first — money on the table is a different problem from a roster mistake.
 
