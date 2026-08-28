@@ -339,9 +339,13 @@ Policy summary:
 | `buyins` | group members | **game admin only** |
 | `cashouts` | group members | **game admin only** |
 | `game_admin_transfers` | group members | game admin, or group owner with `was_forced = true` |
-| `settlements` | group members | admin creates; `from_member` may set `paid`; `to_member` may set `confirmed` |
+| `settlements` | **the two parties to the row, plus the game admin** | admin creates; `from_member` may set `paid`; `to_member` may set `confirmed` |
 
 That last row is the good detail: the payer marks paid, the payee confirms received. Neither can do the other's half. It's a two-party handshake enforced at the DB level.
+
+**Who owes whom is between the two of them.** Settlement reads are narrower than every other table: a player sees only rows where they are the `from_member` or the `to_member`. The game admin still sees all of them, because chasing payments is their job. This is a policy, not a client-side filter — the rows never reach the browser, so devtools shows nothing extra.
+
+The scoreboard stays public. Everyone still sees every player's buy-ins, cashout and net in the results table; what's private is the debt graph, not the outcome. To keep the game legible without leaking it, `game_settlement_progress()` returns counts only — "6 of 8 transfers confirmed" — so anyone can tell whether the game is closed out without learning who is still carrying it.
 
 Example:
 
@@ -544,7 +548,7 @@ Both are states of `/games/[gameId]`, not separate routes, for the same reason t
 
 **Counting chips.** Chip entry accepts non-negative integers only — non-digits are stripped as you type rather than accepted and then rejected, pasted text is cleaned instead of refused, and mobile gets the numeric keypad. An empty field means "not counted yet"; `0` is a real entry for a player who busted, and the two are never conflated. A discrepancy counter at the top updates live as the admin types and stays red until it hits zero. Each player's running net shows beside their name. Settle is disabled until the count balances; a "Back to the game" escape hatch returns the game to `active` if chips need to keep moving.
 
-**Settled.** The transfer list rendered as "Nadav pays Gilad $80" rows with a Venmo button on each. Status chips for pending/paid/confirmed. A "Copy summary for WhatsApp" button that generates plain text to paste into the group chat, since that's where the group actually lives.
+**Settled.** The admin sees the full transfer list as "Nadav pays Gilad $80" rows. A player sees only their own, framed as an action — "Pay Gilad $80", "Collect $45 from Yoni" — each with a Venmo deep link and a copy-to-clipboard fallback, since the URL scheme is undocumented and has changed before. A player with nothing outstanding gets an explicit "You're square for this game" rather than an empty list. Both see the aggregate confirmed count. Status chips for pending/paid/confirmed. A "Copy summary for WhatsApp" button that generates plain text to paste into the group chat, since that's where the group actually lives.
 
 ### Profile
 Display name, Venmo handle, game history, stats.

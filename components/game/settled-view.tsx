@@ -1,5 +1,6 @@
 import { formatCents } from '@/lib/money'
 import { Card, CardContent } from '@/components/ui/card'
+import { VenmoButton } from '@/components/settle/venmo-button'
 
 export type ResultRow = {
   memberId: string
@@ -20,11 +21,83 @@ export type TransferRow = {
   status: string
 }
 
+export type SettlementProgress = { total: number; confirmed: number }
+
 export type AdjustmentRow = {
   id: string
   memberId: string | null
   amountCents: number
   reason: string
+}
+
+/**
+ * A player sees only what they are personally party to, framed as something
+ * to do rather than a ledger entry.
+ */
+function PlayerSettlements({
+  transfers,
+  names,
+  venmoHandles,
+  myMemberId,
+  gameLabel,
+}: {
+  transfers: TransferRow[]
+  names: Map<string, string>
+  venmoHandles: Map<string, string | null>
+  myMemberId: string | null
+  gameLabel: string
+}) {
+  const outstanding = transfers.filter((t) => t.status !== 'confirmed')
+
+  if (outstanding.length === 0) {
+    return (
+      <div className="rounded-2xl border border-up/30 bg-up-soft px-4 py-6 text-center">
+        <p className="flex items-center justify-center gap-2 text-sm font-semibold text-up">
+          <span aria-hidden>✓</span>
+          You&apos;re square for this game
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Nothing to pay and nothing to collect.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {outstanding.map((t) => {
+        const paying = t.fromMemberId === myMemberId
+        const counterpartyId = paying ? t.toMemberId : t.fromMemberId
+        const counterparty = names.get(counterpartyId) ?? 'someone'
+        return (
+          <Card key={t.id}>
+            <CardContent className="flex items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm">
+                  <span className="font-medium">
+                    {paying
+                      ? `Pay ${counterparty}`
+                      : `Collect from ${counterparty}`}
+                  </span>{' '}
+                  <span className="money-display font-semibold">
+                    {formatCents(t.amountCents)}
+                  </span>
+                </p>
+                <SettlementStatus status={t.status} />
+              </div>
+              <VenmoButton
+                handle={venmoHandles.get(counterpartyId) ?? null}
+                amountCents={t.amountCents}
+                note={gameLabel}
+                direction={paying ? 'pay' : 'collect'}
+                counterpartyName={counterparty}
+              />
+            </CardContent>
+          </Card>
+        )
+      })}
+    </>
+  )
 }
 
 /**
@@ -65,15 +138,24 @@ export function SettledView({
   transfers,
   adjustments,
   names,
+  venmoHandles,
   myMemberId,
+  isAdmin,
+  progress,
+  gameLabel,
   startedAt,
   settledAt,
 }: {
   rows: ResultRow[]
+  /** RLS already limits this to rows the viewer is party to, unless admin. */
   transfers: TransferRow[]
   adjustments: AdjustmentRow[]
   names: Map<string, string>
+  venmoHandles: Map<string, string | null>
   myMemberId: string | null
+  isAdmin: boolean
+  progress: SettlementProgress
+  gameLabel: string
   startedAt: string | null
   settledAt: string | null
 }) {
@@ -179,35 +261,52 @@ export function SettledView({
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          Who pays who ({transfers.length})
+        <h2 className="flex items-baseline justify-between gap-2 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          <span>{isAdmin ? 'Who pays who' : 'Your settlements'}</span>
+          {/* Counts only — enough to know the game is closed out, without
+              revealing who is still carrying a debt. */}
+          <span className="money normal-case tracking-normal">
+            {progress.confirmed} of {progress.total} confirmed
+          </span>
         </h2>
-        {transfers.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Everyone came out even. Nothing to pay.
-          </p>
-        )}
-        {transfers.map((t) => (
-          <Card key={t.id}>
-            <CardContent className="flex items-center justify-between gap-2 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm">
-                  <span className="font-medium">
-                    {names.get(t.fromMemberId) ?? 'Someone'}
-                  </span>{' '}
-                  <span className="text-muted-foreground">pays</span>{' '}
-                  <span className="font-medium">
-                    {names.get(t.toMemberId) ?? 'someone'}
+
+        {isAdmin ? (
+          transfers.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
+              Everyone came out even. Nothing to pay.
+            </p>
+          ) : (
+            transfers.map((t) => (
+              <Card key={t.id}>
+                <CardContent className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm">
+                      <span className="font-medium">
+                        {names.get(t.fromMemberId) ?? 'Someone'}
+                      </span>{' '}
+                      <span className="text-muted-foreground">pays</span>{' '}
+                      <span className="font-medium">
+                        {names.get(t.toMemberId) ?? 'someone'}
+                      </span>
+                    </p>
+                    <SettlementStatus status={t.status} />
+                  </div>
+                  <span className="money-display shrink-0 text-xl font-semibold">
+                    {formatCents(t.amountCents)}
                   </span>
-                </p>
-                <SettlementStatus status={t.status} />
-              </div>
-              <span className="money-display shrink-0 text-xl font-semibold">
-                {formatCents(t.amountCents)}
-              </span>
-            </CardContent>
-          </Card>
-        ))}
+                </CardContent>
+              </Card>
+            ))
+          )
+        ) : (
+          <PlayerSettlements
+            transfers={transfers}
+            names={names}
+            venmoHandles={venmoHandles}
+            myMemberId={myMemberId}
+            gameLabel={gameLabel}
+          />
+        )}
       </section>
     </div>
   )

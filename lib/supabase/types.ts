@@ -540,6 +540,10 @@ export type Database = {
         Args: { gid: string }
         Returns: boolean
       }
+      game_settlement_progress: {
+        Args: { p_game_id: string }
+        Returns: { total: number; confirmed: number }[]
+      }
       cancel_game: {
         Args: { p_game_id: string }
         Returns: undefined

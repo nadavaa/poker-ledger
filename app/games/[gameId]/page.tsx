@@ -83,7 +83,7 @@ export default async function GamePage({
       .order('signup_order'),
     supabase
       .from('group_members')
-      .select('id, display_name, profile_id, is_active, role')
+      .select('id, display_name, profile_id, is_active, role, venmo_handle')
       .eq('group_id', game.group_id)
       .eq('is_active', true)
       .order('display_name'),
@@ -118,6 +118,11 @@ export default async function GamePage({
       : Promise.resolve({ data: null }),
   ])
 
+  const { data: progressRows } = settled
+    ? await supabase.rpc('game_settlement_progress', { p_game_id: gameId })
+    : { data: null }
+  const progress = progressRows?.[0] ?? { total: 0, confirmed: 0 }
+
   const myMember = members?.find((m) => m.profile_id === user.id) ?? null
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
   const waitlist = signups?.filter((s) => s.status === 'waitlist') ?? []
@@ -134,6 +139,9 @@ export default async function GamePage({
     name: s.group_members?.display_name ?? 'Unknown',
   }))
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
+  const venmoOf = new Map(
+    (members ?? []).map((m) => [m.id, m.venmo_handle as string | null])
+  )
 
   // Anyone in the group not already in the game. A withdrawn signup can be
   // re-added, so it doesn't count as taken.
@@ -412,7 +420,11 @@ export default async function GamePage({
             reason: a.reason,
           }))}
           names={nameOf}
+          venmoHandles={venmoOf}
           myMemberId={myMember?.id ?? null}
+          isAdmin={isAdmin}
+          progress={progress}
+          gameLabel={gameLabel}
           startedAt={game.started_at}
           settledAt={game.settled_at}
         />
