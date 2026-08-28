@@ -1,14 +1,11 @@
 import { formatCents } from '@/lib/money'
-import { Card, CardContent } from '@/components/ui/card'
-import { VenmoButton } from '@/components/settle/venmo-button'
-import { SettlementActions } from '@/components/settle/settlement-actions'
 import { CopySummary } from '@/components/settle/copy-summary'
-import { gameSummary } from '@/lib/summary'
 import {
-  canPay,
-  settlementRole,
-  type SettlementRole,
-} from '@/lib/settlements'
+  TransferCard,
+  type TransferRow,
+} from '@/components/settle/transfer-card'
+import { gameSummary } from '@/lib/summary'
+import { settlementRole } from '@/lib/settlements'
 
 export type ResultRow = {
   memberId: string
@@ -21,13 +18,7 @@ export type ResultRow = {
   netCents: number
 }
 
-export type TransferRow = {
-  id: string
-  fromMemberId: string
-  toMemberId: string
-  amountCents: number
-  status: string
-}
+export type { TransferRow }
 
 export type SettlementProgress = { total: number; confirmed: number }
 
@@ -36,123 +27,6 @@ export type AdjustmentRow = {
   memberId: string | null
   amountCents: number
   reason: string
-}
-
-/**
- * One transfer, drawn for whoever is looking at it. The payer gets the Venmo
- * link and "Mark as paid"; the payee gets "Confirm received" and no link,
- * because settlement is one-directional. A bystander — including the game
- * admin on other people's rows — gets the facts and no buttons.
- */
-function TransferCard({
-  transfer,
-  role,
-  names,
-  venmoHandles,
-  venmoNote,
-}: {
-  transfer: TransferRow
-  role: SettlementRole
-  names: Map<string, string>
-  venmoHandles: Map<string, string | null>
-  venmoNote: string
-}) {
-  const payerName = names.get(transfer.fromMemberId) ?? 'Someone'
-  const payeeName = names.get(transfer.toMemberId) ?? 'someone'
-  const payeeHandle = venmoHandles.get(transfer.toMemberId) ?? null
-  const paying = canPay(role)
-
-  return (
-    <Card>
-      <CardContent className="flex items-center justify-between gap-3 py-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm">
-            {role === 'payer' ? (
-              <>
-                <span className="font-medium">Pay {payeeName}</span>{' '}
-                <span className="money-display font-semibold">
-                  {formatCents(transfer.amountCents)}
-                </span>
-              </>
-            ) : role === 'payee' ? (
-              <>
-                <span className="font-medium">Collect from {payerName}</span>{' '}
-                <span className="money-display font-semibold">
-                  {formatCents(transfer.amountCents)}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="font-medium">{payerName}</span>{' '}
-                <span className="text-muted-foreground">pays</span>{' '}
-                <span className="font-medium">{payeeName}</span>
-              </>
-            )}
-          </p>
-
-          {/* The handle is the payer's fallback when the link doesn't land,
-              so only they need to see it. */}
-          {paying &&
-            (payeeHandle ? (
-              <p className="money select-text text-xs text-muted-foreground">
-                @{payeeHandle}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                No Venmo handle on file
-              </p>
-            ))}
-
-          <SettlementStatus status={transfer.status} />
-        </div>
-
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          {role === 'bystander' && (
-            <span className="money-display text-xl font-semibold">
-              {formatCents(transfer.amountCents)}
-            </span>
-          )}
-          {paying && (
-            <VenmoButton
-              handle={payeeHandle}
-              amountCents={transfer.amountCents}
-              note={venmoNote}
-              payeeName={payeeName}
-            />
-          )}
-          {/* Always present for a party, so a row never has no action —
-              including when the payee has no handle on file. */}
-          <SettlementActions
-            settlementId={transfer.id}
-            status={transfer.status}
-            role={role}
-          />
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-/**
- * Status never rides on colour alone — every state carries a glyph and a
- * word, because a colourblind player is being told what they owe.
- */
-function SettlementStatus({ status }: { status: string }) {
-  const map: Record<string, { label: string; tone: string; glyph: string }> = {
-    pending: { label: 'Pending', tone: 'text-pending', glyph: '○' },
-    paid: { label: 'Paid, awaiting confirm', tone: 'text-amber-500', glyph: '◐' },
-    confirmed: { label: 'Confirmed', tone: 'text-up', glyph: '✓' },
-    deferred: { label: 'Deferred', tone: 'text-muted-foreground', glyph: '»' },
-  }
-  const s = map[status] ?? map.pending
-  return (
-    <p className={`mt-0.5 flex items-center gap-1 text-xs ${s.tone}`}>
-      <span aria-hidden className="font-semibold">
-        {s.glyph}
-      </span>
-      {s.label}
-    </p>
-  )
 }
 
 function duration(startedAt: string | null, settledAt: string | null) {
@@ -336,7 +210,7 @@ export function SettledView({
 
           return (isAdmin ? transfers : outstanding).map((t) => (
             <TransferCard
-              key={t.id}
+              key={`${t.id}:${t.status}`}
               transfer={t}
               role={settlementRole(t, myMemberId)}
               names={names}

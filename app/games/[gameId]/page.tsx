@@ -108,7 +108,9 @@ export default async function GamePage({
   const [{ data: settlements }, { data: adjustments }] = await Promise.all([
     supabase
       .from('settlements')
-      .select('id, from_member_id, to_member_id, amount_cents, status')
+      .select(
+        'id, from_member_id, to_member_id, amount_cents, status, confirmed_at'
+      )
       .eq('game_id', gameId)
       .order('amount_cents', { ascending: false }),
     settled || counting
@@ -434,6 +436,7 @@ export default async function GamePage({
             toMemberId: s.to_member_id,
             amountCents: s.amount_cents,
             status: s.status,
+            confirmedAt: s.confirmed_at,
           }))}
           adjustments={(adjustments ?? []).map((a) => ({
             id: a.id,
