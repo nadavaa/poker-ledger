@@ -44,6 +44,9 @@ export function CashoutPanel({
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [assignTo, setAssignTo] = useState('')
+  // hasAdjustments arrives from the server render, so it lags a resolve by a
+  // round trip. Track the write locally so Settle doesn't sit dead in the gap.
+  const [justResolved, setJustResolved] = useState(false)
 
   /** Digits only. Strips anything else rather than rejecting the edit, so a
    *  pasted "1,240 chips" becomes 1240 instead of nothing. */
@@ -90,7 +93,9 @@ export function CashoutPanel({
     trackerState === 'over'
 
   const canSettle =
-    allEntered && (remainingChips === 0 || hasAdjustments) && !dirty
+    allEntered &&
+    (remainingChips === 0 || hasAdjustments || justResolved) &&
+    !dirty
 
   async function saveChips(r: NetRow, value?: number) {
     const n = value ?? entered(r)
@@ -132,6 +137,7 @@ export function CashoutPanel({
       setError(error.message)
       return
     }
+    setJustResolved(true)
     router.refresh()
   }
 
@@ -208,6 +214,8 @@ export function CashoutPanel({
                     const clean = digitsOnly(e.target.value)
                     setChips((p) => ({ ...p, [r.memberId]: clean }))
                     setSaved((p) => ({ ...p, [r.memberId]: false }))
+                    // Any adjustment was sized to the previous count.
+                    setJustResolved(false)
                   }}
                   onBlur={() => {
                     // 007 -> 7, but '' stays '' and '0' stays '0'.

@@ -45,7 +45,12 @@ export function BuyInGrid({
   useSignupRefresh(gameId)
 
   const [error, setError] = useState<string | null>(null)
-  const [undo, setUndo] = useState<{ id: string; name: string } | null>(null)
+  const [undo, setUndo] = useState<{
+    id: string
+    name: string
+    amountCents: number
+  } | null>(null)
+  const [undoPending, setUndoPending] = useState(false)
   const [sheet, setSheet] = useState<Player | null>(null)
 
   const names = new Map(players.map((p) => [p.memberId, p.name]))
@@ -82,12 +87,17 @@ export function BuyInGrid({
 
     merge([data as Buyin])
     if (undoTimer.current) clearTimeout(undoTimer.current)
-    setUndo({ id: data.id, name: player.name })
+    // Carry the real amount: a long-press buy-in isn't the default one.
+    setUndo({ id: data.id, name: player.name, amountCents: data.amount_cents })
+    setUndoPending(false)
     undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS)
   }
 
   async function voidBuyin(id: string, reason: string) {
     setError(null)
+    // Already voided here or by another device's Realtime update. The trigger
+    // would reject a second void, and there is nothing to tell the admin.
+    if (buyins.some((b) => b.id === id && b.voided_at)) return
     const { data, error } = await supabase
       .from('buyins')
       .update({ void_reason: reason })
@@ -171,14 +181,18 @@ export function BuyInGrid({
           <div className="material pointer-events-auto mx-4 flex w-full max-w-md animate-[toast-in_200ms_ease-out] items-center justify-between gap-3 rounded-2xl border border-white/10 bg-popover/85 py-2 pl-4 pr-2 shadow-2xl backdrop-blur-xl">
             <span className="text-sm text-foreground">
               <span className="money font-semibold">
-                {formatCents(defaultBuyinCents)}
+                {formatCents(undo.amountCents)}
               </span>{' '}
               <span className="text-muted-foreground">for {undo.name}</span>
             </span>
             <button
-              className="-my-1 rounded-xl px-3 py-2.5 text-sm font-semibold text-up transition-transform duration-100 active:scale-95"
-              onClick={() => {
-                voidBuyin(undo.id, 'undo')
+              disabled={undoPending}
+              className="-my-1 rounded-xl px-3 py-2.5 text-sm font-semibold text-up transition-transform duration-100 active:scale-95 disabled:opacity-50"
+              onClick={async () => {
+                if (undoPending) return
+                setUndoPending(true)
+                await voidBuyin(undo.id, 'undo')
+                setUndoPending(false)
                 setUndo(null)
               }}
             >
