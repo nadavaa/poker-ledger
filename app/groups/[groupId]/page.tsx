@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { MyStats } from '@/components/group/my-stats'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { computeStats } from '@/lib/stats'
+import { computeStats, runningBalance } from '@/lib/stats'
+import { BalanceChart } from '@/components/group/balance-chart'
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -103,16 +104,16 @@ export default async function GroupPage({
       .filter((g) => g.status === 'settled')
       .map((g) => [g.id, g.scheduled_at])
   )
-  const myStats = computeStats(
-    (totals ?? [])
-      .filter((t) => t.member_id === me?.id && settledById.has(t.game_id))
-      .map((t) => ({
-        gameId: t.game_id,
-        netCents: t.net_cents,
-        buyinCents: t.buyin_cents,
-        scheduledAt: settledById.get(t.game_id)!,
-      }))
-  )
+  const myResults = (totals ?? [])
+    .filter((t) => t.member_id === me?.id && settledById.has(t.game_id))
+    .map((t) => ({
+      gameId: t.game_id,
+      netCents: t.net_cents,
+      buyinCents: t.buyin_cents,
+      scheduledAt: settledById.get(t.game_id)!,
+    }))
+  const myStats = computeStats(myResults)
+  const myBalance = runningBalance(myResults)
 
   // Anything not finished is "in flight". A group can run more than one at
   // once (spec edge case 16), so this is a list, soonest first.
@@ -201,7 +202,10 @@ export default async function GroupPage({
       </nav>
 
       {activeTab === 'stats' ? (
-        <MyStats stats={myStats} />
+        <>
+          <MyStats stats={myStats} />
+          <BalanceChart points={myBalance} />
+        </>
       ) : activeTab === 'games' ? (
         <>
           <Button

@@ -109,7 +109,7 @@ export default async function GamePage({
     supabase
       .from('settlements')
       .select(
-        'id, from_member_id, to_member_id, amount_cents, status, confirmed_at'
+        'id, from_member_id, to_member_id, amount_cents, status, confirmed_at, confirmed_by_member_id'
       )
       .eq('game_id', gameId)
       .order('amount_cents', { ascending: false }),
@@ -437,6 +437,7 @@ export default async function GamePage({
             amountCents: s.amount_cents,
             status: s.status,
             confirmedAt: s.confirmed_at,
+            confirmedByMemberId: s.confirmed_by_member_id,
           }))}
           adjustments={(adjustments ?? []).map((a) => ({
             id: a.id,

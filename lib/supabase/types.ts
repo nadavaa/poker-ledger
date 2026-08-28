@@ -383,6 +383,7 @@ export type Database = {
           status: Database['public']['Enums']['settlement_status']
           paid_at: string | null
           confirmed_at: string | null
+          confirmed_by_member_id: string | null
           created_at: string
         }
         Insert: {
@@ -400,6 +401,7 @@ export type Database = {
           status?: Database['public']['Enums']['settlement_status']
           paid_at?: string | null
           confirmed_at?: string | null
+          confirmed_by_member_id?: string | null
         }
         Relationships: []
       }

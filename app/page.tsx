@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { InstallPrompt } from '@/components/pwa/install-prompt'
 
 export default async function HomePage({
   searchParams,
@@ -109,6 +110,8 @@ export default async function HomePage({
           </form>
         </div>
       </header>
+
+      <InstallPrompt />
 
       {errorMessage && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">

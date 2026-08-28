@@ -34,6 +34,35 @@ export type Stats = {
   longestLossStreak: number
 }
 
+export type BalancePoint = {
+  gameId: string
+  scheduledAt: string
+  /** Cumulative net after this game. */
+  balanceCents: number
+}
+
+/**
+ * The running balance after each settled game, oldest first. This is the
+ * shape of a season: the number people actually argue about is where the
+ * line is now, but the story is how it got there.
+ */
+export function runningBalance(results: GameResult[]): BalancePoint[] {
+  const ordered = [...results].sort(
+    (a, b) =>
+      a.scheduledAt.localeCompare(b.scheduledAt) ||
+      a.gameId.localeCompare(b.gameId)
+  )
+  let balance = 0
+  return ordered.map((r) => {
+    balance += r.netCents
+    return {
+      gameId: r.gameId,
+      scheduledAt: r.scheduledAt,
+      balanceCents: balance,
+    }
+  })
+}
+
 /**
  * Returns null when there is nothing to report, so callers render an empty
  * state instead of a wall of zeroes and a NaN average.

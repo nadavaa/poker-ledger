@@ -216,6 +216,7 @@ export function SettledView({
               names={names}
               venmoHandles={venmoHandles}
               venmoNote={venmoNote}
+              isGameAdmin={isAdmin}
             />
           ))
         })()}

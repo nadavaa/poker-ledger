@@ -9,6 +9,12 @@ import { Input } from '@/components/ui/input'
 import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
+import {
+  enqueue,
+  flushQueue,
+  queuedFor,
+  type QueuedBuyin,
+} from '@/lib/offline-queue'
 import { AddPlayer, type AvailableMember } from './add-player'
 import { PotHeader } from './pot-header'
 
@@ -45,6 +51,7 @@ export function BuyInGrid({
   useSignupRefresh(gameId)
 
   const [error, setError] = useState<string | null>(null)
+  const [queued, setQueued] = useState(0)
   const [undo, setUndo] = useState<{
     id: string
     name: string
@@ -63,6 +70,28 @@ export function BuyInGrid({
     []
   )
 
+  useEffect(() => {
+    async function send(item: QueuedBuyin) {
+      return supabase.from('buyins').insert({
+        game_id: item.gameId,
+        member_id: item.memberId,
+        amount_cents: item.amountCents,
+        chips: item.chips,
+        note: item.note,
+      })
+    }
+
+    async function drain() {
+      const sent = await flushQueue(gameId, send)
+      setQueued(queuedFor(gameId).length)
+      if (sent > 0) router.refresh()
+    }
+
+    window.addEventListener('online', drain)
+    drain()
+    return () => window.removeEventListener('online', drain)
+  }, [supabase, gameId, router])
+
   async function addBuyin(player: Player, cents: number, note?: string) {
     setError(null)
     const { data, error } = await supabase
@@ -80,6 +109,20 @@ export function BuyInGrid({
       .single()
 
     if (error) {
+      // A failed fetch means the network went, not that the write was
+      // refused. Keep the tap and send it when we're back.
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        enqueue({
+          gameId,
+          memberId: player.memberId,
+          amountCents: cents,
+          chips: centsToChips(cents, chipsPerDollar),
+          note: note?.trim() ? note.trim() : null,
+        })
+        setQueued(queuedFor(gameId).length)
+        setError(null)
+        return
+      }
       // Most likely cause: admin was transferred away while this screen was stale.
       setError(error.message)
       return
@@ -143,6 +186,13 @@ export function BuyInGrid({
       {error && (
         <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
           {error}
+        </p>
+      )}
+
+      {queued > 0 && (
+        <p className="rounded-xl bg-pending-soft px-3 py-2 text-sm text-pending">
+          {queued} buy-in{queued === 1 ? '' : 's'} saved on this phone. They
+          send themselves when you&apos;re back online.
         </p>
       )}
 

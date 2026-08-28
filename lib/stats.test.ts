@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeStats, type GameResult } from './stats'
+import { computeStats, runningBalance, type GameResult } from './stats'
 
 /** Games one day apart, in the order given. */
 function games(...nets: number[]): GameResult[] {
@@ -113,5 +113,25 @@ describe('computeStats', () => {
     const s = computeStats(games(100, 101))!
     expect(Number.isInteger(s.averageNetCents)).toBe(true)
     expect(s.averageNetCents).toBe(101) // 100.5 rounds up
+  })
+})
+
+describe('runningBalance', () => {
+  it('accumulates oldest first', () => {
+    expect(runningBalance(games(100, -30, 50)).map((p) => p.balanceCents)).toEqual(
+      [100, 70, 120]
+    )
+  })
+
+  it('orders by date, not input order', () => {
+    const unordered: GameResult[] = [
+      { gameId: 'b', netCents: -50, buyinCents: 5000, scheduledAt: '2026-08-02T20:00:00.000Z' },
+      { gameId: 'a', netCents: 200, buyinCents: 5000, scheduledAt: '2026-08-01T20:00:00.000Z' },
+    ]
+    expect(runningBalance(unordered).map((p) => p.balanceCents)).toEqual([200, 150])
+  })
+
+  it('is empty for no games', () => {
+    expect(runningBalance([])).toEqual([])
   })
 })

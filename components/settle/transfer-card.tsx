@@ -16,6 +16,7 @@ export type TransferRow = {
   amountCents: number
   status: string
   confirmedAt: string | null
+  confirmedByMemberId: string | null
 }
 
 function formatDay(iso: string) {
@@ -34,19 +35,24 @@ function statusLine({
   role,
   payeeName,
   confirmedAt,
+  closedOutBy,
 }: {
   status: string
   role: SettlementRole
   payeeName: string
   confirmedAt: string | null
+  /** Set when the admin closed it out instead of the payee confirming. */
+  closedOutBy: string | null
 }): { glyph: string; tone: string; label: string } {
   if (status === 'confirmed') {
+    const when = confirmedAt ? ` ${formatDay(confirmedAt)}` : ''
     return {
       glyph: '✓',
       tone: 'text-up',
-      label: confirmedAt
-        ? `Confirmed ${formatDay(confirmedAt)}`
-        : 'Confirmed',
+      // Say who closed it rather than implying the payee acknowledged it.
+      label: closedOutBy
+        ? `Closed out by ${closedOutBy}${when}`
+        : `Confirmed${when}`,
     }
   }
   if (status === 'paid') {
@@ -82,12 +88,14 @@ export function TransferCard({
   names,
   venmoHandles,
   venmoNote,
+  isGameAdmin,
 }: {
   transfer: TransferRow
   role: SettlementRole
   names: Map<string, string>
   venmoHandles: Map<string, string | null>
   venmoNote: string
+  isGameAdmin: boolean
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -102,6 +110,9 @@ export function TransferCard({
 
   const isPayer = canPay(role)
   const isPayee = role === 'payee'
+  // The escape hatch for a payee who isn't on the app, or never taps. Never
+  // on your own debt: that would be confirming yourself.
+  const canCloseOut = isGameAdmin && !isPayer && !isPayee
   // The link is only useful while there is still a payment to send.
   const showVenmo = isPayer && status === 'pending'
 
@@ -123,7 +134,19 @@ export function TransferCard({
     router.refresh()
   }
 
-  const line = statusLine({ status, role, payeeName, confirmedAt: transfer.confirmedAt })
+  const closedOutBy =
+    transfer.confirmedByMemberId &&
+    transfer.confirmedByMemberId !== transfer.toMemberId
+      ? (names.get(transfer.confirmedByMemberId) ?? 'the admin')
+      : null
+
+  const line = statusLine({
+    status,
+    role,
+    payeeName,
+    confirmedAt: transfer.confirmedAt,
+    closedOutBy,
+  })
 
   return (
     <Card>
@@ -225,6 +248,19 @@ export function TransferCard({
               onClick={() => move('confirmed')}
             >
               Confirm received
+            </Button>
+          )}
+
+          {canCloseOut && status !== 'confirmed' && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl"
+              disabled={pending}
+              onClick={() => move('confirmed')}
+              title={`Close this out if ${payeeName} isn't going to confirm in the app`}
+            >
+              Close out
             </Button>
           )}
         </div>

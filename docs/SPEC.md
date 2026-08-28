@@ -621,7 +621,13 @@ Next.js + TypeScript + Tailwind + shadcn. Supabase project, `profiles` table, ma
 Venmo deep links, paid/confirmed handshake, WhatsApp summary text, per-member history and lifetime stats.
 
 **Phase 6 — Polish**
-PWA manifest and service worker, install prompt, web push, offline write queue, deferred settlements rolling into the next game, charts of running balance, biggest win/loss stats.
+PWA manifest and service worker, install prompt, offline write queue, charts of running balance, and closing out payments nobody acknowledged.
+
+**Deferred settlements do not roll forward.** A debt is closed in the game it came from. Rolling a balance into the next game means a number on tonight's settlement screen that has nothing to do with tonight's cards, and it compounds: one unpaid $40 quietly rides along for weeks until nobody can say what it was for.
+
+**The handshake has to survive one side not being on the app.** An unclaimed guest has no account, and a player who does may simply never open it, so a transfer would sit pending forever and the game would never read as finished. The game admin can close a transfer out — but never their own debt, which would be confirming themselves. `confirmed_by_member_id` records who did it and the row says "closed out by Gilad" rather than implying the payee acknowledged anything.
+
+**Web push is not built.** It needs VAPID keys and a sender, and the spec's own reasoning applies: WhatsApp is a better notification channel for this group, and the app's job is to generate text worth pasting there.
 
 ---
 
