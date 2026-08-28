@@ -4,6 +4,11 @@ import { VenmoButton } from '@/components/settle/venmo-button'
 import { SettlementActions } from '@/components/settle/settlement-actions'
 import { CopySummary } from '@/components/settle/copy-summary'
 import { gameSummary } from '@/lib/summary'
+import {
+  canPay,
+  settlementRole,
+  type SettlementRole,
+} from '@/lib/settlements'
 
 export type ResultRow = {
   memberId: string
@@ -34,91 +39,97 @@ export type AdjustmentRow = {
 }
 
 /**
- * A player sees only what they are personally party to, framed as something
- * to do rather than a ledger entry.
+ * One transfer, drawn for whoever is looking at it. The payer gets the Venmo
+ * link and "Mark as paid"; the payee gets "Confirm received" and no link,
+ * because settlement is one-directional. A bystander — including the game
+ * admin on other people's rows — gets the facts and no buttons.
  */
-function PlayerSettlements({
-  transfers,
+function TransferCard({
+  transfer,
+  role,
   names,
   venmoHandles,
-  myMemberId,
   venmoNote,
 }: {
-  transfers: TransferRow[]
+  transfer: TransferRow
+  role: SettlementRole
   names: Map<string, string>
   venmoHandles: Map<string, string | null>
-  myMemberId: string | null
   venmoNote: string
 }) {
-  const outstanding = transfers.filter((t) => t.status !== 'confirmed')
-
-  if (outstanding.length === 0) {
-    return (
-      <div className="rounded-2xl border border-up/30 bg-up-soft px-4 py-6 text-center">
-        <p className="flex items-center justify-center gap-2 text-sm font-semibold text-up">
-          <span aria-hidden>✓</span>
-          You&apos;re square for this game
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Nothing to pay and nothing to collect.
-        </p>
-      </div>
-    )
-  }
+  const payerName = names.get(transfer.fromMemberId) ?? 'Someone'
+  const payeeName = names.get(transfer.toMemberId) ?? 'someone'
+  const payeeHandle = venmoHandles.get(transfer.toMemberId) ?? null
+  const paying = canPay(role)
 
   return (
-    <>
-      {outstanding.map((t) => {
-        const paying = t.fromMemberId === myMemberId
-        const counterpartyId = paying ? t.toMemberId : t.fromMemberId
-        const counterparty = names.get(counterpartyId) ?? 'someone'
-        const handle = venmoHandles.get(counterpartyId) ?? null
-        return (
-          <Card key={t.id}>
-            <CardContent className="flex items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm">
-                  <span className="font-medium">
-                    {paying
-                      ? `Pay ${counterparty}`
-                      : `Collect from ${counterparty}`}
-                  </span>{' '}
-                  <span className="money-display font-semibold">
-                    {formatCents(t.amountCents)}
-                  </span>
-                </p>
-                {/* Plain selectable text, not a button: this is the fallback
-                    when the deep link doesn't land. */}
-                {handle ? (
-                  <p className="money select-text text-xs text-muted-foreground">
-                    @{handle}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    No Venmo handle on file
-                  </p>
-                )}
-                <SettlementStatus status={t.status} />
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <VenmoButton
-                  handle={handle}
-                  amountCents={t.amountCents}
-                  note={venmoNote}
-                  direction={paying ? 'pay' : 'collect'}
-                />
-                {/* Marking paid works whether or not Venmo ever opened. */}
-                <SettlementActions
-                  settlementId={t.id}
-                  status={t.status}
-                  role={paying ? 'payer' : 'payee'}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
-    </>
+    <Card>
+      <CardContent className="flex items-center justify-between gap-3 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm">
+            {role === 'payer' ? (
+              <>
+                <span className="font-medium">Pay {payeeName}</span>{' '}
+                <span className="money-display font-semibold">
+                  {formatCents(transfer.amountCents)}
+                </span>
+              </>
+            ) : role === 'payee' ? (
+              <>
+                <span className="font-medium">Collect from {payerName}</span>{' '}
+                <span className="money-display font-semibold">
+                  {formatCents(transfer.amountCents)}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="font-medium">{payerName}</span>{' '}
+                <span className="text-muted-foreground">pays</span>{' '}
+                <span className="font-medium">{payeeName}</span>
+              </>
+            )}
+          </p>
+
+          {/* The handle is the payer's fallback when the link doesn't land,
+              so only they need to see it. */}
+          {paying &&
+            (payeeHandle ? (
+              <p className="money select-text text-xs text-muted-foreground">
+                @{payeeHandle}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No Venmo handle on file
+              </p>
+            ))}
+
+          <SettlementStatus status={transfer.status} />
+        </div>
+
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          {role === 'bystander' && (
+            <span className="money-display text-xl font-semibold">
+              {formatCents(transfer.amountCents)}
+            </span>
+          )}
+          {paying && (
+            <VenmoButton
+              handle={payeeHandle}
+              amountCents={transfer.amountCents}
+              note={venmoNote}
+              payeeName={payeeName}
+            />
+          )}
+          {/* Always present for a party, so a row never has no action —
+              including when the payee has no handle on file. */}
+          <SettlementActions
+            settlementId={transfer.id}
+            status={transfer.status}
+            role={role}
+          />
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -295,56 +306,45 @@ export function SettledView({
           </span>
         </h2>
 
-        {isAdmin ? (
-          transfers.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
-              Everyone came out even. Nothing to pay.
-            </p>
-          ) : (
-            transfers.map((t) => (
-              <Card key={t.id}>
-                <CardContent className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm">
-                      <span className="font-medium">
-                        {names.get(t.fromMemberId) ?? 'Someone'}
-                      </span>{' '}
-                      <span className="text-muted-foreground">pays</span>{' '}
-                      <span className="font-medium">
-                        {names.get(t.toMemberId) ?? 'someone'}
-                      </span>
-                    </p>
-                    <SettlementStatus status={t.status} />
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="money-display text-xl font-semibold">
-                      {formatCents(t.amountCents)}
-                    </span>
-                    <SettlementActions
-                      settlementId={t.id}
-                      status={t.status}
-                      role={
-                        t.fromMemberId === myMemberId
-                          ? 'payer'
-                          : t.toMemberId === myMemberId
-                            ? 'payee'
-                            : 'bystander'
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )
-        ) : (
-          <PlayerSettlements
-            transfers={transfers}
-            names={names}
-            venmoHandles={venmoHandles}
-            myMemberId={myMemberId}
-            venmoNote={venmoNote}
-          />
-        )}
+        {(() => {
+          // RLS already scopes this: an admin receives every transfer, a
+          // player only their own. What each row shows is decided per
+          // transfer, never by whether the viewer runs the game.
+          const outstanding = transfers.filter((t) => t.status !== 'confirmed')
+
+          if (isAdmin && transfers.length === 0) {
+            return (
+              <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
+                Everyone came out even. Nothing to pay.
+              </p>
+            )
+          }
+
+          if (!isAdmin && outstanding.length === 0) {
+            return (
+              <div className="rounded-2xl border border-up/30 bg-up-soft px-4 py-6 text-center">
+                <p className="flex items-center justify-center gap-2 text-sm font-semibold text-up">
+                  <span aria-hidden>✓</span>
+                  You&apos;re square for this game
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Nothing to pay and nothing to collect.
+                </p>
+              </div>
+            )
+          }
+
+          return (isAdmin ? transfers : outstanding).map((t) => (
+            <TransferCard
+              key={t.id}
+              transfer={t}
+              role={settlementRole(t, myMemberId)}
+              names={names}
+              venmoHandles={venmoHandles}
+              venmoNote={venmoNote}
+            />
+          ))
+        })()}
 
         {isAdmin && transfers.length > 0 && (
           <CopySummary

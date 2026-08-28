@@ -38,14 +38,9 @@ describe('resolveVenmoHandle', () => {
 
 describe('venmoLink', () => {
   it('builds a pay link with the amount and note prefilled', () => {
-    const { web } = venmoLink('@gilad', 8000, 'Tuesday crew · Aug 28', 'pay')
+    const { web } = venmoLink('@gilad', 8000, 'Tuesday crew · Aug 28')
     expect(web).toBe(
       'https://venmo.com/gilad?txn=pay&amount=80.00&note=Tuesday%20crew%20%C2%B7%20Aug%2028'
     )
-  })
-
-  it('builds a charge link for collecting', () => {
-    const { web } = venmoLink('yoni', 4500, 'note', 'charge')
-    expect(web).toBe('https://venmo.com/yoni?txn=charge&amount=45.00&note=note')
   })
 })

@@ -467,6 +467,10 @@ Caveats to build around: these URL schemes are undocumented and Venmo has change
 
 Settlement status flow: `pending` → payer taps Mark as Paid → `paid` → payee taps Confirm Received → `confirmed`. Add a `deferred` status for "I'll get you next week," which rolls the balance into the next game's settlement inputs (Phase 6).
 
+**Settlement is one-directional.** The payer pays and the payee confirms; there is no request/charge link, and only the payer ever gets a Venmo button. The payee can confirm straight from `pending` — they may have been paid in cash at the table, or the payer may simply have forgotten to tap — because the person owed the money is the authority on whether it arrived.
+
+**Roles are per transfer, not per game.** `settlementRole()` in `lib/settlements.ts` decides what a row shows by comparing the viewer's `group_member_id` against the transfer's two parties. The game admin is a bystander on transfers between two other people: they see the row and its status and get no buttons. Branching on "is this person the admin" instead put an admin who was also a payer down a path with no Venmo button at all.
+
 **Where the handshake is enforced.** An RLS policy lets only the two parties update the row at all; a `before update` trigger polices the transition itself, because RLS can see the old row or the new one but never compare them. The payer alone can move `pending → paid` (or undo it), the payee alone can move `paid → confirmed`, `confirmed` is terminal, and the parties and amount are immutable after settlement. Marking paid is independent of whether the Venmo link opened.
 
 ---

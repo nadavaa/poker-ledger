@@ -31,8 +31,8 @@ export function resolveVenmoHandle(
 }
 
 /**
- * `pay` sends money, `charge` requests it. Amount formatting goes through
- * money.ts like every other cents-to-dollars conversion.
+ * A payment link, prefilled. Settlement is one-directional — the payer pays
+ * and the payee confirms — so there is no request/charge form here.
  *
  * Prefer `web` as the href: https is handled by the OS, which hands off to
  * the Venmo app when it's installed and opens the site when it isn't. A bare
@@ -41,14 +41,13 @@ export function resolveVenmoHandle(
 export function venmoLink(
   handle: string,
   cents: number,
-  note: string,
-  txn: 'pay' | 'charge' = 'pay'
+  note: string
 ): VenmoLinks {
   const amount = centsToDollars(cents)
   const n = encodeURIComponent(note)
   const h = encodeURIComponent(normalizeHandle(handle) ?? '')
   return {
-    app: `venmo://paycharge?txn=${txn}&recipients=${h}&amount=${amount}&note=${n}`,
-    web: `https://venmo.com/${h}?txn=${txn}&amount=${amount}&note=${n}`,
+    app: `venmo://paycharge?txn=pay&recipients=${h}&amount=${amount}&note=${n}`,
+    web: `https://venmo.com/${h}?txn=pay&amount=${amount}&note=${n}`,
   }
 }

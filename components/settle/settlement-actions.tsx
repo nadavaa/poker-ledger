@@ -67,7 +67,9 @@ export function SettlementActions({
         </Button>
       )}
 
-      {role === 'payee' && status === 'paid' && (
+      {/* Works from pending too: they may have been paid in cash, or the
+          payer may simply have forgotten to tap. */}
+      {role === 'payee' && (
         <Button
           size="sm"
           className="rounded-xl"
@@ -76,12 +78,6 @@ export function SettlementActions({
         >
           Confirm received
         </Button>
-      )}
-
-      {role === 'payee' && status === 'pending' && (
-        <span className="text-xs text-muted-foreground">
-          Waiting on payment
-        </span>
       )}
 
       {error && <span className="text-xs text-down">{error}</span>}

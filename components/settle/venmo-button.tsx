@@ -4,7 +4,7 @@ import { venmoLink } from '@/lib/venmo'
 import { Button } from '@/components/ui/button'
 
 /**
- * Opens Venmo with the amount prefilled.
+ * Opens Venmo with the payment prefilled. Only the payer ever sees this.
  *
  * The href is the https URL, not the venmo:// scheme: iOS and Android hand
  * https://venmo.com off to the installed app, and a desktop browser opens the
@@ -18,22 +18,16 @@ export function VenmoButton({
   handle,
   amountCents,
   note,
-  direction,
+  payeeName,
 }: {
   handle: string | null
   amountCents: number
   note: string
-  /** 'pay' sends money to them, 'collect' requests it from them. */
-  direction: 'pay' | 'collect'
+  payeeName: string
 }) {
   if (!handle) return null
 
-  const links = venmoLink(
-    handle,
-    amountCents,
-    note,
-    direction === 'pay' ? 'pay' : 'charge'
-  )
+  const links = venmoLink(handle, amountCents, note)
 
   return (
     <Button
@@ -44,7 +38,7 @@ export function VenmoButton({
       }
       nativeButton={false}
     >
-      {direction === 'pay' ? 'Pay' : 'Request'}
+      Pay {payeeName}
     </Button>
   )
 }
