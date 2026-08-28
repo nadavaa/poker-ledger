@@ -150,9 +150,9 @@ export function CashoutPanel({
 
   return (
     // Bottom padding leaves room for the pinned tracker.
-    <div className="flex flex-col gap-3 pb-44">
+    <div className="flex flex-col gap-3 pb-56">
       {error && (
-        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
           {error}
         </p>
       )}
@@ -169,69 +169,85 @@ export function CashoutPanel({
           return (
             <div
               key={r.memberId}
-              className="flex items-center gap-2 rounded-lg border border-border p-2"
+              className={`flex items-center gap-3 rounded-2xl border p-3 transition-colors ${
+                n === null
+                  ? 'border-dashed border-border/70 bg-card/40'
+                  : 'border-border bg-card'
+              }`}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{r.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  in {r.buyinChips.toLocaleString()} chips (
-                  {formatCents(r.buyinCents)})
+                <p className="truncate text-[0.9rem] font-medium">{r.name}</p>
+                <p className="money mt-0.5 text-xs text-muted-foreground">
+                  in {r.buyinChips.toLocaleString()} ·{' '}
+                  {formatCents(r.buyinCents)}
                   {r.adjustmentCents !== 0 &&
                     ` · adj ${formatCents(r.adjustmentCents)}`}
                 </p>
-                {n !== null && (
-                  <p className="text-xs text-muted-foreground">
-                    out {n.toLocaleString()} chips ({formatCents(cashoutCents!)}
-                    )
-                    <span
-                      className={
-                        net! >= 0 ? ' text-emerald-600' : ' text-destructive'
-                      }
-                    >
-                      {' '}
-                      · net {formatCents(net!)}
-                    </span>
+                {net !== null && (
+                  <p
+                    className={`money-display mt-1 text-xl font-semibold ${
+                      net > 0
+                        ? 'text-up'
+                        : net < 0
+                          ? 'text-down'
+                          : 'text-muted-foreground'
+                    }`}
+                  >
+                    {net > 0 ? '+' : ''}
+                    {formatCents(net)}
                   </p>
                 )}
               </div>
-              <Input
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={chips[r.memberId] ?? ''}
-                onChange={(e) => {
-                  const clean = digitsOnly(e.target.value)
-                  setChips((p) => ({ ...p, [r.memberId]: clean }))
-                  setSaved((p) => ({ ...p, [r.memberId]: false }))
-                }}
-                onBlur={() => {
-                  // 007 -> 7, but '' stays '' and '0' stays '0'.
-                  const raw = chips[r.memberId] ?? ''
-                  const normalised = raw === '' ? '' : String(Number(raw))
-                  if (normalised !== raw) {
-                    setChips((p) => ({ ...p, [r.memberId]: normalised }))
-                  }
-                  saveChips(r, parsed(normalised) ?? undefined)
-                }}
-                placeholder="chips"
-                aria-label={`${r.name} chip count`}
-                className="w-24"
-              />
+
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <Input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={chips[r.memberId] ?? ''}
+                  onChange={(e) => {
+                    const clean = digitsOnly(e.target.value)
+                    setChips((p) => ({ ...p, [r.memberId]: clean }))
+                    setSaved((p) => ({ ...p, [r.memberId]: false }))
+                  }}
+                  onBlur={() => {
+                    // 007 -> 7, but '' stays '' and '0' stays '0'.
+                    const raw = chips[r.memberId] ?? ''
+                    const normalised = raw === '' ? '' : String(Number(raw))
+                    if (normalised !== raw) {
+                      setChips((p) => ({ ...p, [r.memberId]: normalised }))
+                    }
+                    saveChips(r, parsed(normalised) ?? undefined)
+                  }}
+                  placeholder="—"
+                  aria-label={`${r.name} chip count`}
+                  className="money h-12 w-24 text-center !text-lg font-semibold"
+                />
+                <span className="text-[0.65rem] uppercase tracking-[0.08em] text-muted-foreground">
+                  chips out
+                </span>
+              </div>
             </div>
           )
         })}
       </section>
 
       {missing.length === 1 && remainingChips >= 0 && (
-        <Button variant="outline" size="sm" onClick={assignRemainder}>
+        <Button
+          variant="outline"
+          className="h-11 rounded-xl"
+          onClick={assignRemainder}
+        >
           Assign remaining {remainingChips.toLocaleString()} chips to{' '}
           {missing[0].name}
         </Button>
       )}
 
       {isProblem && trackerState !== 'impossible' && (
-        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
-          <h3 className="text-sm font-medium">
-            {trackerState === 'short' ? 'Chips unaccounted for' : 'Too many chips counted'}
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-down/30 bg-down-soft p-3.5">
+          <h3 className="text-sm font-semibold text-down">
+            {trackerState === 'short'
+              ? 'Chips unaccounted for'
+              : 'Too many chips counted'}
           </h3>
           <p className="text-xs text-muted-foreground">
             Recount a stack first — that fixes it most of the time. Otherwise
@@ -282,68 +298,79 @@ export function CashoutPanel({
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background">
-        <div className="mx-auto w-full max-w-md p-3">
-          <dl className="flex flex-col gap-0.5 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Total pot</dt>
-              <dd className="tabular-nums">
-                {potChips.toLocaleString()} chips ({formatCents(potCents)})
-              </dd>
+      <div className="material fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/85 backdrop-blur-xl backdrop-saturate-150">
+        <div className="mx-auto w-full max-w-md px-4 pt-3 pb-safe">
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+              <span className="money">
+                Pot {potChips.toLocaleString()} · {formatCents(potCents)}
+              </span>
+              <span className="money">
+                Out {distributedChips.toLocaleString()} ·{' '}
+                {formatCents(distributedCents)}
+              </span>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Distributed</dt>
-              <dd className="tabular-nums">
-                {distributedChips.toLocaleString()} chips (
-                {formatCents(distributedCents)})
-              </dd>
-            </div>
-            <div
-              className={`flex justify-between font-medium ${
-                isProblem
-                  ? 'text-destructive'
-                  : trackerState === 'balanced'
-                    ? 'text-emerald-600'
-                    : ''
-              }`}
-            >
-              <dt>
-                {trackerState === 'over' || trackerState === 'impossible'
-                  ? 'Over by'
-                  : 'Remaining'}
-              </dt>
-              <dd className="tabular-nums">
-                {Math.abs(remainingChips).toLocaleString()} chips (
-                {formatCents(Math.abs(remainingCents))})
-                {!allEntered && (
-                  <span className="text-muted-foreground">
-                    {' '}
-                    — {missing.length} left
-                  </span>
+
+            <div className="flex flex-col items-end">
+              <span
+                className={`flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.08em] ${
+                  isProblem
+                    ? 'text-down'
+                    : trackerState === 'balanced'
+                      ? 'text-up'
+                      : 'text-muted-foreground'
+                }`}
+              >
+                {trackerState === 'balanced' && (
+                  <svg
+                    viewBox="0 0 12 12"
+                    aria-hidden
+                    className="size-3 fill-none stroke-current stroke-[2]"
+                  >
+                    <path
+                      d="M2 6.5 4.8 9.2 10 3.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 )}
-              </dd>
+                {trackerState === 'balanced'
+                  ? 'Balanced'
+                  : trackerState === 'over' || trackerState === 'impossible'
+                    ? 'Over by'
+                    : 'Remaining'}
+              </span>
+              <span
+                className={`money-display text-[2.25rem] font-semibold ${
+                  isProblem
+                    ? 'text-down'
+                    : trackerState === 'balanced'
+                      ? 'text-up'
+                      : 'text-foreground'
+                }`}
+              >
+                {Math.abs(remainingChips).toLocaleString()}
+              </span>
+              <span className="money text-xs text-muted-foreground">
+                chips · {formatCents(Math.abs(remainingCents))}
+                {!allEntered && ` · ${missing.length} left`}
+              </span>
             </div>
-          </dl>
+          </div>
 
           {trackerState === 'impossible' && (
-            <p className="mt-1 text-xs text-destructive">
+            <p className="mt-2 rounded-xl bg-down-soft px-3 py-2 text-xs text-down">
               More chips counted than are in the pot, and there are still
               players to enter. Something is miscounted.
             </p>
           )}
 
           <Button
-            className="mt-2 w-full"
+            className="mt-3 h-12 w-full rounded-xl text-base"
             disabled={!canSettle || pending}
             onClick={settleGame}
           >
-            {pending
-              ? 'Working…'
-              : canSettle
-                ? 'Settle up'
-                : dirty
-                  ? 'Saving…'
-                  : 'Settle up'}
+            {pending ? 'Working…' : dirty ? 'Saving…' : 'Settle up'}
           </Button>
         </div>
       </div>

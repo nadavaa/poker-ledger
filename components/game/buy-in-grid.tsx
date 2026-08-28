@@ -131,12 +131,12 @@ export function BuyInGrid({
       />
 
       {error && (
-        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
           {error}
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
         {players.map((p) => (
           <PlayerCard
             key={p.memberId}
@@ -156,7 +156,9 @@ export function BuyInGrid({
       <AddPlayer gameId={gameId} available={available} />
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Activity</h2>
+        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          Activity
+        </h2>
         <ActivityFeed
           buyins={buyins}
           names={names}
@@ -165,19 +167,24 @@ export function BuyInGrid({
       </section>
 
       {undo && (
-        <div className="fixed inset-x-0 bottom-4 z-20 mx-auto flex w-[min(28rem,calc(100%-2rem))] items-center justify-between gap-2 rounded-lg bg-foreground px-3 py-2 text-background shadow-lg">
-          <span className="text-sm">
-            {formatCents(defaultBuyinCents)} for {undo.name}
-          </span>
-          <button
-            className="text-sm font-medium underline"
-            onClick={() => {
-              voidBuyin(undo.id, 'undo')
-              setUndo(null)
-            }}
-          >
-            Undo
-          </button>
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center pb-safe">
+          <div className="material pointer-events-auto mx-4 flex w-full max-w-md animate-[toast-in_200ms_ease-out] items-center justify-between gap-3 rounded-2xl border border-white/10 bg-popover/85 py-2 pl-4 pr-2 shadow-2xl backdrop-blur-xl">
+            <span className="text-sm text-foreground">
+              <span className="money font-semibold">
+                {formatCents(defaultBuyinCents)}
+              </span>{' '}
+              <span className="text-muted-foreground">for {undo.name}</span>
+            </span>
+            <button
+              className="-my-1 rounded-xl px-3 py-2.5 text-sm font-semibold text-up transition-transform duration-100 active:scale-95"
+              onClick={() => {
+                voidBuyin(undo.id, 'undo')
+                setUndo(null)
+              }}
+            >
+              Undo
+            </button>
+          </div>
         </div>
       )}
 
@@ -211,6 +218,8 @@ function PlayerCard({
 }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fired = useRef(false)
+  const count = total?.count ?? 0
+  const staked = count > 0
 
   function start() {
     fired.current = false
@@ -230,22 +239,58 @@ function PlayerCard({
     <button
       type="button"
       // No confirmation dialog: speed matters more than accuracy, because
-      // void exists.
+      // void exists. Feedback is on pointer-down, never on release.
       onPointerDown={start}
       onPointerUp={() => cancel(true)}
       onPointerLeave={() => cancel(false)}
       onPointerCancel={() => cancel(false)}
       onContextMenu={(e) => e.preventDefault()}
-      className="flex touch-manipulation select-none flex-col items-start gap-1 rounded-lg border border-border p-3 text-left transition-colors active:bg-muted"
+      className={`flex min-h-[7.5rem] touch-manipulation select-none flex-col justify-between rounded-2xl border p-3.5 text-left transition-[transform,background-color,border-color] duration-100 ease-out active:scale-[0.97] ${
+        staked
+          ? 'border-border bg-card active:bg-muted'
+          : 'border-dashed border-border/70 bg-card/40 active:bg-muted/60'
+      }`}
     >
-      <span className="text-sm font-medium">{player.name}</span>
-      <span className="text-lg font-semibold tabular-nums">
+      <span className="line-clamp-1 text-[0.9rem] font-medium text-foreground/90">
+        {player.name}
+      </span>
+
+      <span
+        className={`money-display text-[2rem] font-semibold ${
+          staked ? 'text-foreground' : 'text-muted-foreground/50'
+        }`}
+      >
         {formatCents(total?.cents ?? 0)}
       </span>
-      <span className="text-xs text-muted-foreground">
-        {total?.count ?? 0} buy-in{(total?.count ?? 0) === 1 ? '' : 's'}
-      </span>
+
+      <BuyInDots count={count} />
     </button>
+  )
+}
+
+/** Buy-in count as pips — countable at a glance without reading a number. */
+function BuyInDots({ count }: { count: number }) {
+  if (count === 0) {
+    return (
+      <span className="text-xs text-muted-foreground/70">tap to buy in</span>
+    )
+  }
+  if (count > 6) {
+    return (
+      <span className="money text-xs text-muted-foreground">
+        {count} buy-ins
+      </span>
+    )
+  }
+  return (
+    <span
+      className="flex items-center gap-1"
+      aria-label={`${count} buy-in${count === 1 ? '' : 's'}`}
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <span key={i} aria-hidden className="size-1.5 rounded-full bg-up" />
+      ))}
+    </span>
   )
 }
 

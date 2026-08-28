@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { MyStats } from '@/components/group/my-stats'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { computeStats } from '@/lib/stats'
 
 function formatWhen(iso: string) {
@@ -143,19 +144,24 @@ export default async function GroupPage({
           </Link>
           <h1 className="text-lg font-semibold">{group.name}</h1>
         </div>
-        <CopyLinkButton
-          path={`/join/${group.invite_code}`}
-          label="Copy invite link"
-        />
+        <div className="flex shrink-0 items-center gap-2">
+          <CopyLinkButton
+            path={`/join/${group.invite_code}`}
+            label="Copy invite"
+          />
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Tabs live in the URL so back and shared links land where you expect. */}
-      <nav className="flex gap-1 rounded-lg border border-border p-1">
+      <nav className="flex gap-1 rounded-2xl bg-muted/60 p-1">
         <Link
           href={`/groups/${groupId}?tab=games`}
           aria-current={activeTab === 'games' ? 'page' : undefined}
-          className={`flex-1 rounded-md px-3 py-1.5 text-center text-sm ${
-            activeTab === 'games' ? 'bg-muted font-medium' : 'text-muted-foreground'
+          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm transition-colors ${
+            activeTab === 'games'
+              ? 'bg-card font-semibold text-foreground shadow-sm'
+              : 'text-muted-foreground'
           }`}
         >
           Games
@@ -163,9 +169,9 @@ export default async function GroupPage({
         <Link
           href={`/groups/${groupId}?tab=members`}
           aria-current={activeTab === 'members' ? 'page' : undefined}
-          className={`flex-1 rounded-md px-3 py-1.5 text-center text-sm ${
+          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm transition-colors ${
             activeTab === 'members'
-              ? 'bg-muted font-medium'
+              ? 'bg-card font-semibold text-foreground shadow-sm'
               : 'text-muted-foreground'
           }`}
         >
@@ -174,9 +180,9 @@ export default async function GroupPage({
         <Link
           href={`/groups/${groupId}?tab=stats`}
           aria-current={activeTab === 'stats' ? 'page' : undefined}
-          className={`flex-1 rounded-md px-3 py-1.5 text-center text-sm ${
+          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm transition-colors ${
             activeTab === 'stats'
-              ? 'bg-muted font-medium'
+              ? 'bg-card font-semibold text-foreground shadow-sm'
               : 'text-muted-foreground'
           }`}
         >
@@ -189,6 +195,7 @@ export default async function GroupPage({
       ) : activeTab === 'games' ? (
         <>
           <Button
+            className="h-12 rounded-xl text-base"
             render={<Link href={`/groups/${groupId}/games/new`} />}
             nativeButton={false}
           >
@@ -197,29 +204,50 @@ export default async function GroupPage({
 
           {live.length > 0 && (
             <section className="flex flex-col gap-2">
-              <h2 className="text-sm font-medium text-muted-foreground">
+              <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                 Happening now
               </h2>
               {live.map((g) => (
                 <Link key={g.id} href={`/games/${g.id}`}>
-                  <Card className="border-foreground/25 transition-colors hover:bg-muted/50">
-                    <CardContent className="flex items-center justify-between gap-2 py-3">
-                      <div>
-                        <p className="text-sm font-medium">
+                  <Card
+                    className={`transition-colors hover:bg-muted/40 ${
+                      g.status === 'active'
+                        ? 'border-up/35 bg-live-soft'
+                        : 'border-border'
+                    }`}
+                  >
+                    <CardContent className="flex items-center justify-between gap-3 py-3.5">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
                           {g.name ?? formatWhen(g.scheduled_at)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="truncate text-xs text-muted-foreground">
                           {formatWhen(g.scheduled_at)}
                           {g.location && ` · ${g.location}`}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium uppercase">
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span
+                          className={`flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.06em] ${
+                            g.status === 'active' ? 'text-up' : 'text-pending'
+                          }`}
+                        >
+                          {g.status === 'active' ? (
+                            <span aria-hidden className="relative flex size-2">
+                              <span className="absolute inline-flex size-full animate-ping rounded-full bg-up opacity-60" />
+                              <span className="relative inline-flex size-2 rounded-full bg-up" />
+                            </span>
+                          ) : (
+                            <span
+                              aria-hidden
+                              className="size-2 rounded-full border-2 border-current"
+                            />
+                          )}
                           {g.status === 'active' ? 'Live' : 'Scheduled'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
+                        </span>
+                        <span className="money text-xs text-muted-foreground">
                           {playersByGame.get(g.id) ?? 0}/{g.seat_limit} seats
-                        </p>
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -229,7 +257,7 @@ export default async function GroupPage({
           )}
 
           <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium text-muted-foreground">
+            <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               History
             </h2>
             {past.length === 0 && (
@@ -242,10 +270,10 @@ export default async function GroupPage({
               return (
                 <Link key={g.id} href={`/games/${g.id}`}>
                   <Card className="transition-colors hover:bg-muted/50">
-                    <CardContent className="flex items-center justify-between gap-2 py-3">
-                      <div>
+                    <CardContent className="flex items-center justify-between gap-3 py-3.5">
+                      <div className="min-w-0">
                         <p className="text-sm">{formatDay(g.scheduled_at)}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="money truncate text-xs text-muted-foreground">
                           {playersByGame.get(g.id) ?? 0} players ·{' '}
                           {formatCents(potByGame.get(g.id) ?? 0)} pot
                           {g.status === 'cancelled' && ' · cancelled'}
@@ -253,10 +281,15 @@ export default async function GroupPage({
                       </div>
                       {myNet !== undefined && g.status === 'settled' && (
                         <span
-                          className={`text-sm font-semibold tabular-nums ${
-                            myNet >= 0 ? 'text-emerald-600' : 'text-destructive'
+                          className={`money-display shrink-0 text-xl font-semibold ${
+                            myNet > 0
+                              ? 'text-up'
+                              : myNet < 0
+                                ? 'text-down'
+                                : 'text-muted-foreground'
                           }`}
                         >
+                          {myNet > 0 ? '+' : ''}
                           {formatCents(myNet)}
                         </span>
                       )}
@@ -270,7 +303,7 @@ export default async function GroupPage({
       ) : (
         <>
           <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium text-muted-foreground">
+            <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               Members ({members?.filter((m) => m.is_active).length ?? 0})
             </h2>
             {members?.map((m) => {

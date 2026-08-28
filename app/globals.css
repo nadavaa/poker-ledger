@@ -24,6 +24,14 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-up: var(--up);
+  --color-up-soft: var(--up-soft);
+  --color-down: var(--down);
+  --color-down-soft: var(--down-soft);
+  --color-pending: var(--pending);
+  --color-pending-soft: var(--pending-soft);
+  --color-live: var(--live);
+  --color-live-soft: var(--live-soft);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -73,6 +81,18 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+
+  /* Semantic money colours. Green is up, red is down, and pending is a
+     deliberately non-committal slate so "waiting" never reads as either. */
+  --up: oklch(0.52 0.15 152);
+  --up-soft: oklch(0.52 0.15 152 / 12%);
+  --down: oklch(0.55 0.21 27);
+  --down-soft: oklch(0.55 0.21 27 / 12%);
+  --pending: oklch(0.55 0.04 250);
+  --pending-soft: oklch(0.55 0.04 250 / 12%);
+  --live: oklch(0.52 0.15 152);
+  --live-soft: oklch(0.52 0.15 152 / 14%);
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -84,11 +104,13 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  /* Tuned for a dim room: a deep, near-black ground so the screen isn't a
+     lamp, with cards lifted just enough to separate. */
+  --background: oklch(0.13 0.004 250);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.185 0.005 250);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.21 0.006 250);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
@@ -99,9 +121,20 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+
+  /* Brighter and less saturated than the light-mode pair: on a near-black
+     ground, a mid green reads as muddy and a full red vibrates. */
+  --up: oklch(0.82 0.17 152);
+  --up-soft: oklch(0.82 0.17 152 / 15%);
+  --down: oklch(0.72 0.18 25);
+  --down-soft: oklch(0.72 0.18 25 / 16%);
+  --pending: oklch(0.75 0.04 250);
+  --pending-soft: oklch(0.75 0.04 250 / 14%);
+  --live: oklch(0.82 0.17 152);
+  --live-soft: oklch(0.82 0.17 152 / 16%);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -117,9 +150,64 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@layer utilities {
+  /* Money is the content. Tabular figures so digits don't shuffle as values
+     update, and negative tracking because large numerals read too loose. */
+  .money {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.02em;
+  }
+  .money-display {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  /* Sits above the home indicator on a phone. */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /* A press must register on pointer-down, not on release, and the browser's
+     tap highlight is slower and uglier than our own. */
+  button,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .material {
+      backdrop-filter: none !important;
+      background: var(--background) !important;
+    }
   }
   body {
     @apply bg-background text-foreground;

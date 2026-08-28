@@ -66,7 +66,7 @@ export function AddPlayer({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+    <div className="flex flex-col gap-2 rounded-2xl border border-border p-3.5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Add player</h3>
         <Button variant="ghost" size="xs" onClick={() => setOpen(false)}>
@@ -128,7 +128,7 @@ export function AddPlayer({
       </p>
 
       {note && <p className="text-sm">{note}</p>}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-down">{error}</p>}
     </div>
   )
 }

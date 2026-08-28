@@ -13,6 +13,7 @@ import { SettledView } from '@/components/game/settled-view'
 import { StatusBanner } from '@/components/game/status-banner'
 import { WaitlistPanel } from '@/components/game/waitlist-panel'
 import { DangerZone } from '@/components/game/danger-zone'
+import { ThemeToggle } from '@/components/theme-toggle'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
 const BUYIN_COLUMNS =
@@ -247,20 +248,24 @@ export default async function GamePage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header>
-        <Link
-          href={`/groups/${game.group_id}`}
-          className="text-xs text-muted-foreground"
-        >
-          &larr; {game.groups?.name}
-        </Link>
-        <h1 className="text-lg font-semibold">
-          {game.name ?? formatWhen(game.scheduled_at)}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {formatWhen(game.scheduled_at)}
-          {game.location && ` · ${game.location}`}
-        </p>
+      <header className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Link
+            href={`/groups/${game.group_id}`}
+            className="text-xs text-muted-foreground"
+          >
+            &larr; {game.groups?.name}
+          </Link>
+          <h1 className="truncate text-lg font-semibold tracking-tight">
+            {game.name ?? formatWhen(game.scheduled_at)}
+          </h1>
+          <p className="truncate text-sm text-muted-foreground">
+            {formatWhen(game.scheduled_at)}
+            {game.location && ` · ${game.location}`}
+          </p>
+        </div>
+        {/* Reachable from the table, where you actually want to go dark. */}
+        <ThemeToggle />
       </header>
 
       <StatusBanner
@@ -430,7 +435,11 @@ export default async function GamePage({
 
       {runsTheGame && game.status === 'active' && (
         <form action={endGame}>
-          <Button variant="outline" className="w-full" type="submit">
+          <Button
+            variant="outline"
+            className="h-12 w-full rounded-xl text-base"
+            type="submit"
+          >
             End game &amp; count chips
           </Button>
         </form>

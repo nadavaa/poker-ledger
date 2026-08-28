@@ -3,14 +3,6 @@
 import { useSyncExternalStore } from 'react'
 import { formatCents } from '@/lib/money'
 
-function elapsedLabel(fromIso: string, now: number) {
-  const ms = Math.max(now - new Date(fromIso).getTime(), 0)
-  const mins = Math.floor(ms / 60000)
-  const h = Math.floor(mins / 60)
-  const m = mins % 60
-  return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
 const MINUTE = 60000
 
 /**
@@ -29,9 +21,18 @@ function useNow() {
   )
 }
 
+function elapsedLabel(fromIso: string, now: number) {
+  const ms = Math.max(now - new Date(fromIso).getTime(), 0)
+  const mins = Math.floor(ms / 60000)
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+
 /**
- * The running pot, pinned so it never scrolls away. Chips and dollars
- * together: players think in chips, settlement happens in dollars.
+ * The running pot, pinned so it never scrolls away. It is the largest number
+ * on the screen because it is the thing people look up to check. Chips sit
+ * underneath in dollars' shadow: players count chips, settlement is dollars.
  */
 export function PotHeader({
   potCents,
@@ -45,23 +46,38 @@ export function PotHeader({
   const now = useNow()
 
   return (
-    <div className="sticky top-0 z-10 -mx-4 flex items-baseline justify-between border-b border-border bg-background px-4 py-2">
-      <div>
-        <p className="text-xs text-muted-foreground">Pot</p>
-        {startedAt && now !== null && (
-          <p className="text-xs text-muted-foreground">
-            {elapsedLabel(startedAt, now)} elapsed
-          </p>
-        )}
+    <div className="material sticky top-0 z-20 -mx-4 -mt-4 mb-1 bg-background/80 px-4 pb-3 pt-4 backdrop-blur-xl backdrop-saturate-150">
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            Pot
+          </span>
+          {startedAt && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span
+                aria-hidden
+                className="size-1.5 animate-pulse rounded-full bg-live"
+              />
+              {now !== null ? `${elapsedLabel(startedAt, now)} in` : 'Live'}
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col items-end">
+          <span className="money-display text-[2.75rem] font-semibold text-foreground">
+            {formatCents(potCents)}
+          </span>
+          <span className="money text-sm text-muted-foreground">
+            {potChips.toLocaleString()} chips
+          </span>
+        </div>
       </div>
-      <div className="text-right">
-        <p className="text-xl font-semibold tabular-nums">
-          {formatCents(potCents)}
-        </p>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {potChips.toLocaleString()} chips
-        </p>
-      </div>
+
+      {/* Scroll edge, not a hard rule: content fades under the chrome. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -bottom-4 h-4 bg-gradient-to-b from-background/80 to-transparent"
+      />
     </div>
   )
 }

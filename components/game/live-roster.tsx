@@ -49,26 +49,28 @@ export function LiveRoster({
       )}
 
       {started && myMemberId && (
-        <div className="flex items-baseline justify-between rounded-lg border border-border px-3 py-2">
-          <span className="text-sm text-muted-foreground">You&apos;ve staked</span>
-          <span className="font-semibold tabular-nums">
+        <div className="flex items-end justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+          <span className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            You&apos;ve staked
+          </span>
+          <span className="money-display text-2xl font-semibold">
             {formatCents(mine?.cents ?? 0)}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">
-              ({mine?.count ?? 0})
+            <span className="money ml-1.5 text-xs font-normal text-muted-foreground">
+              {mine?.count ?? 0}×
             </span>
           </span>
         </div>
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
+        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           Confirmed ({players.length})
         </h2>
         {players.map((p) => {
           const total = totalsByMember.get(p.memberId)
           return (
             <Card key={p.memberId}>
-              <CardContent className="flex items-center justify-between py-2.5">
+              <CardContent className="flex items-center justify-between gap-2 py-3">
                 <span className="text-sm">
                   {p.name}
                   {p.memberId === myMemberId && (
@@ -81,10 +83,10 @@ export function LiveRoster({
                   )}
                 </span>
                 {started && (
-                  <span className="text-sm tabular-nums">
+                  <span className="money-display shrink-0 text-lg font-semibold">
                     {formatCents(total?.cents ?? 0)}
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      ({total?.count ?? 0})
+                    <span className="money ml-1.5 text-xs font-normal text-muted-foreground">
+                      {total?.count ?? 0}×
                     </span>
                   </span>
                 )}
@@ -96,7 +98,9 @@ export function LiveRoster({
 
       {started && (
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Activity</h2>
+        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          Activity
+        </h2>
         <ActivityFeed
           buyins={buyins}
           names={names}

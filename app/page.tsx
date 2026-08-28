@@ -5,6 +5,7 @@ import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export default async function HomePage({
   searchParams,
@@ -91,11 +92,14 @@ export default async function HomePage({
             {profile?.display_name ?? user.email}
           </h1>
         </div>
-        <form action={signOut}>
-          <Button variant="ghost" size="sm" type="submit">
-            Sign out
-          </Button>
-        </form>
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
+          <form action={signOut}>
+            <Button variant="ghost" size="sm" type="submit">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </header>
 
       {errorMessage && (
@@ -107,7 +111,7 @@ export default async function HomePage({
       {hasGroups ? (
         <>
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-medium text-muted-foreground">
+            <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               Your groups
             </h2>
             {memberships?.map(
@@ -115,27 +119,32 @@ export default async function HomePage({
                 m.groups && (
                   <Link key={m.id} href={`/groups/${m.groups.id}`}>
                     <Card className="transition-colors hover:bg-muted/50">
-                      <CardContent className="flex items-center justify-between gap-2 py-3">
-                        <div>
-                          <p className="text-sm font-medium">{m.groups.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                      <CardContent className="flex items-center justify-between gap-3 py-4">
+                        <div className="min-w-0">
+                          <p className="truncate text-[0.95rem] font-medium">
+                            {m.groups.name}
+                          </p>
+                          <p className="money text-xs text-muted-foreground">
                             {memberCount.get(m.group_id) ?? 0}{' '}
                             {memberCount.get(m.group_id) === 1
                               ? 'member'
                               : 'members'}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="flex shrink-0 flex-col items-end">
                           <p
-                            className={`text-sm font-semibold tabular-nums ${
-                              (netByMemberId.get(m.id) ?? 0) >= 0
-                                ? 'text-emerald-600'
-                                : 'text-destructive'
+                            className={`money-display text-2xl font-semibold ${
+                              (netByMemberId.get(m.id) ?? 0) > 0
+                                ? 'text-up'
+                                : (netByMemberId.get(m.id) ?? 0) < 0
+                                  ? 'text-down'
+                                  : 'text-muted-foreground'
                             }`}
                           >
+                            {(netByMemberId.get(m.id) ?? 0) > 0 ? '+' : ''}
                             {formatCents(netByMemberId.get(m.id) ?? 0)}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[0.7rem] uppercase tracking-[0.06em] text-muted-foreground">
                             lifetime
                           </p>
                         </div>

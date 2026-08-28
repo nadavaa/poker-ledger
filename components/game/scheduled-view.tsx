@@ -89,15 +89,18 @@ export function ScheduledView({
   return (
     <div className="flex flex-col gap-3">
       {error && (
-        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
           {error}
         </p>
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Confirmed ({players.length}/{seatLimit}) ·{' '}
-          {seatsLeft === 0 ? 'table full' : `${seatsLeft} seats left`}
+        <h2 className="flex items-baseline justify-between text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          <span>Confirmed</span>
+          <span className="money normal-case tracking-normal">
+            {players.length}/{seatLimit} ·{' '}
+            {seatsLeft === 0 ? 'table full' : `${seatsLeft} free`}
+          </span>
         </h2>
         {players.length === 0 && (
           <p className="text-sm text-muted-foreground">Nobody yet.</p>
@@ -105,10 +108,12 @@ export function ScheduledView({
         {players.map((p, i) => (
           <div
             key={p.memberId}
-            className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+            className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2.5"
           >
-            <span className="text-sm">
-              <span className="text-muted-foreground">{i + 1}. </span>
+            <span className="flex items-center gap-2.5 text-sm">
+              <span className="money flex size-6 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
+                {i + 1}
+              </span>
               {p.name}
               {p.memberId === myMemberId && (
                 <span className="text-muted-foreground"> (you)</span>
@@ -159,7 +164,13 @@ export function ScheduledView({
       {isAdmin && (
         <>
           <AddPlayer gameId={gameId} available={available} />
-          <Button onClick={() => setDialogOpen(true)}>Start game</Button>
+          {/* The one thing you came here to do, sized like it. */}
+          <Button
+            className="h-12 rounded-xl text-base"
+            onClick={() => setDialogOpen(true)}
+          >
+            Start game
+          </Button>
         </>
       )}
 
@@ -169,7 +180,7 @@ export function ScheduledView({
           onClick={() => setDialogOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-t-2xl bg-background p-4"
+            className="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="font-semibold">Who&apos;s at the table?</h3>
@@ -211,7 +222,11 @@ export function ScheduledView({
                 <Button variant="ghost" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={start} disabled={pending}>
+                <Button
+                  className="h-11 rounded-xl"
+                  onClick={start}
+                  disabled={pending}
+                >
                   {pending ? 'Starting…' : 'Start game'}
                 </Button>
               </div>

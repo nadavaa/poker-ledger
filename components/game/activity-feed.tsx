@@ -24,7 +24,11 @@ export function ActivityFeed({
   adminMemberId: string
 }) {
   if (buyins.length === 0) {
-    return <p className="text-sm text-muted-foreground">No buy-ins yet.</p>
+    return (
+      <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
+        No buy-ins yet.
+      </p>
+    )
   }
 
   return (
@@ -39,15 +43,17 @@ export function ActivityFeed({
         return (
           <li
             key={b.id}
-            className={`flex items-baseline justify-between gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm ${
-              b.voided_at ? 'opacity-50' : ''
+            className={`flex items-baseline justify-between gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm ${
+              b.voided_at ? 'opacity-45' : ''
             }`}
           >
             <span className={b.voided_at ? 'line-through' : ''}>
               <span className="font-medium">
                 {names.get(b.member_id) ?? 'Unknown'}
               </span>{' '}
-              {formatCents(b.amount_cents)}
+              <span className="money font-semibold">
+                {formatCents(b.amount_cents)}
+              </span>
               {b.note && (
                 <span className="text-muted-foreground"> · {b.note}</span>
               )}

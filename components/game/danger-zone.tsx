@@ -93,7 +93,7 @@ export function DangerZone({
 
   if (status === 'settled') {
     return (
-      <div className="flex flex-col gap-1 rounded-lg border border-border p-3">
+      <div className="flex flex-col gap-1 rounded-2xl border border-border p-3.5">
         <h3 className="text-sm font-medium">Delete game</h3>
         <p className="text-xs text-muted-foreground">
           A settled game can&apos;t be deleted or cancelled. Its results feed
@@ -112,7 +112,7 @@ export function DangerZone({
   if (!canDelete && !canCancel) return null
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+    <div className="flex flex-col gap-2 rounded-2xl border border-border p-3.5">
       <h3 className="text-sm font-medium">
         {canDelete ? 'Delete game' : 'Cancel game'}
       </h3>
@@ -182,7 +182,7 @@ export function DangerZone({
         </>
       )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-down">{error}</p>}
     </div>
   )
 }

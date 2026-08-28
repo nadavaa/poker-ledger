@@ -12,9 +12,11 @@ function day(iso: string) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium tabular-nums">{value}</p>
+    <div className="rounded-2xl border border-border bg-card px-3.5 py-3">
+      <p className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="money mt-1 text-[0.95rem] font-semibold">{value}</p>
     </div>
   )
 }
@@ -31,7 +33,7 @@ export function MyStats({ stats }: { stats: Stats | null }) {
   if (!stats) {
     return (
       <Card>
-        <CardContent className="py-4">
+        <CardContent className="py-6 text-center">
           <p className="text-sm text-muted-foreground">
             No settled games yet. Your stats show up once a game you played in
             has been counted and settled.
@@ -41,18 +43,23 @@ export function MyStats({ stats }: { stats: Stats | null }) {
     )
   }
 
-  const positive = stats.totalNetCents >= 0
-
   return (
     <div className="flex flex-col gap-3">
       <Card>
-        <CardContent className="py-4 text-center">
-          <p className="text-xs text-muted-foreground">Total net</p>
+        <CardContent className="py-6 text-center">
+          <p className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            Total net
+          </p>
           <p
-            className={`text-4xl font-semibold tabular-nums ${
-              positive ? 'text-emerald-600' : 'text-destructive'
+            className={`money-display my-1.5 text-[3.25rem] font-semibold ${
+              stats.totalNetCents > 0
+                ? 'text-up'
+                : stats.totalNetCents < 0
+                  ? 'text-down'
+                  : 'text-foreground'
             }`}
           >
+            {stats.totalNetCents > 0 ? '+' : ''}
             {formatCents(stats.totalNetCents)}
           </p>
           <p className="text-xs text-muted-foreground">

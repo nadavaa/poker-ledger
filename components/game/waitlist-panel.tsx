@@ -58,12 +58,12 @@ export function WaitlistPanel({
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium text-muted-foreground">
+      <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
         Waitlist ({entries.length})
       </h2>
 
       {error && (
-        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
           {error}
         </p>
       )}
@@ -79,7 +79,9 @@ export function WaitlistPanel({
                 )}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">#{i + 1}</span>
+                <span className="money flex size-6 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
+                  {i + 1}
+                </span>
                 {isAdmin && confirmOverfill !== e.memberId && (
                   <Button
                     variant="outline"
