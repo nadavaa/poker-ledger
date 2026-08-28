@@ -10,20 +10,25 @@ import { AddPlayer, type AvailableMember } from './add-player'
 import type { Player } from './buy-in-grid'
 
 /**
- * The admin's view before the first hand. Signing up is a plan, not chips on
- * the table, so nothing here shows money: the stake happens at Start, for
- * whoever actually walked through the door.
+ * A game that hasn't started. Signing up is a plan, not chips on the table,
+ * so there is no money on this screen at all — no pot, no buy-in counts.
  */
-export function PreStartPanel({
+export function ScheduledView({
   gameId,
   players,
   available,
+  seatLimit,
   defaultBuyinCents,
+  myMemberId,
+  isAdmin,
 }: {
   gameId: string
   players: Player[]
   available: AvailableMember[]
+  seatLimit: number
   defaultBuyinCents: number
+  myMemberId: string | null
+  isAdmin: boolean
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -37,6 +42,8 @@ export function PreStartPanel({
   const [here, setHere] = useState<Set<string>>(
     () => new Set(players.map((p) => p.memberId))
   )
+
+  const seatsLeft = Math.max(seatLimit - players.length, 0)
 
   async function removePlayer(memberId: string) {
     setError(null)
@@ -83,50 +90,61 @@ export function PreStartPanel({
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">
-          Signed up ({players.length})
+          Confirmed ({players.length}/{seatLimit}) ·{' '}
+          {seatsLeft === 0 ? 'table full' : `${seatsLeft} seats left`}
         </h2>
         {players.length === 0 && (
           <p className="text-sm text-muted-foreground">Nobody yet.</p>
         )}
-        {players.map((p) => (
+        {players.map((p, i) => (
           <div
             key={p.memberId}
             className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
           >
-            <span className="text-sm">{p.name}</span>
-            {confirmRemove === p.memberId ? (
-              <span className="flex gap-1">
+            <span className="text-sm">
+              <span className="text-muted-foreground">{i + 1}. </span>
+              {p.name}
+              {p.memberId === myMemberId && (
+                <span className="text-muted-foreground"> (you)</span>
+              )}
+            </span>
+            {isAdmin &&
+              (confirmRemove === p.memberId ? (
+                <span className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setConfirmRemove(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="xs"
+                    onClick={() => removePlayer(p.memberId)}
+                  >
+                    Remove
+                  </Button>
+                </span>
+              ) : (
                 <Button
                   variant="ghost"
                   size="xs"
-                  onClick={() => setConfirmRemove(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="xs"
-                  onClick={() => removePlayer(p.memberId)}
+                  onClick={() => setConfirmRemove(p.memberId)}
                 >
                   Remove
                 </Button>
-              </span>
-            ) : (
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => setConfirmRemove(p.memberId)}
-              >
-                Remove
-              </Button>
-            )}
+              ))}
           </div>
         ))}
       </section>
 
-      <AddPlayer gameId={gameId} available={available} />
-
-      <Button onClick={() => setDialogOpen(true)}>Start game</Button>
+      {isAdmin && (
+        <>
+          <AddPlayer gameId={gameId} available={available} />
+          <Button onClick={() => setDialogOpen(true)}>Start game</Button>
+        </>
+      )}
 
       {dialogOpen && (
         <div
@@ -139,8 +157,8 @@ export function PreStartPanel({
           >
             <h3 className="font-semibold">Who&apos;s at the table?</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Everyone you check buys in for{' '}
-              {formatCents(defaultBuyinCents)}. Add the rest as they arrive.
+              Everyone you check buys in for {formatCents(defaultBuyinCents)}.
+              Add the rest as they arrive.
             </p>
 
             <div className="mt-3 flex flex-col gap-1">

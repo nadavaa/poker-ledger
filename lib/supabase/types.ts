@@ -405,7 +405,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      game_player_totals: {
+        Row: {
+          game_id: string
+          group_id: string
+          member_id: string
+          display_name: string
+          buyin_cents: number
+          buyin_chips: number
+          buyin_count: number
+          cashout_cents: number | null
+          cashout_chips: number | null
+          adjustment_cents: number
+          net_cents: number
+        }
+        Relationships: []
+      }
+      member_lifetime: {
+        Row: {
+          group_id: string
+          member_id: string
+          display_name: string
+          games_played: number
+          lifetime_net_cents: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       my_member_id: {

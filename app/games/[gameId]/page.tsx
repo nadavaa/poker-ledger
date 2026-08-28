@@ -2,14 +2,25 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { formatCents } from '@/lib/money'
+import { centsToChips, formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BuyInGrid } from '@/components/game/buy-in-grid'
-import { PreStartPanel } from '@/components/game/pre-start-panel'
+import { ScheduledView } from '@/components/game/scheduled-view'
 import { LiveRoster } from '@/components/game/live-roster'
 import { CashoutPanel } from '@/components/game/cashout-panel'
+import { SettledView } from '@/components/game/settled-view'
+import { StatusBanner } from '@/components/game/status-banner'
 import type { Buyin } from '@/components/game/use-game-buyins'
+
+const BUYIN_COLUMNS =
+  'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
+
+/** Start time passed and nobody ever hit Start. Server-rendered, so "now" is
+ *  request time. */
+function isOverdue(status: string, scheduledAt: string) {
+  return status === 'scheduled' && new Date(scheduledAt).getTime() < Date.now()
+}
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -40,7 +51,7 @@ export default async function GamePage({
   const { data: game } = await supabase
     .from('games')
     .select(
-      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, groups(name)'
+      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, started_at, settled_at, groups(name)'
     )
     .eq('id', gameId)
     .maybeSingle()
@@ -48,54 +59,55 @@ export default async function GamePage({
   // RLS hides games in groups you don't belong to.
   if (!game) notFound()
 
-  const [{ data: signups }, { data: members }, { data: buyins }, { data: transfers }] =
-    await Promise.all([
-      supabase
-        .from('game_signups')
-        .select(
-          'id, member_id, status, signup_order, group_members(display_name)'
-        )
-        .eq('game_id', gameId)
-        .order('signup_order'),
-      supabase
-        .from('group_members')
-        .select('id, display_name, profile_id, is_active')
-        .eq('group_id', game.group_id)
-        .eq('is_active', true)
-        .order('display_name'),
-      supabase
-        .from('buyins')
-        .select(
-          'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
-        )
-        .eq('game_id', gameId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('game_admin_transfers')
-        .select('id, created_at, was_forced, from_member_id, to_member_id')
-        .eq('game_id', gameId)
-        .order('created_at', { ascending: false }),
-    ])
+  const [
+    { data: signups },
+    { data: members },
+    { data: buyins },
+    { data: totals },
+  ] = await Promise.all([
+    supabase
+      .from('game_signups')
+      .select('id, member_id, status, signup_order, group_members(display_name)')
+      .eq('game_id', gameId)
+      .order('signup_order'),
+    supabase
+      .from('group_members')
+      .select('id, display_name, profile_id, is_active')
+      .eq('group_id', game.group_id)
+      .eq('is_active', true)
+      .order('display_name'),
+    supabase
+      .from('buyins')
+      .select(BUYIN_COLUMNS)
+      .eq('game_id', gameId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('game_player_totals')
+      .select(
+        'member_id, display_name, buyin_cents, buyin_chips, cashout_cents, cashout_chips, adjustment_cents, net_cents'
+      )
+      .eq('game_id', gameId),
+  ])
 
   const counting = game.status === 'reconciling'
   const settled = game.status === 'settled'
+  const cancelled = game.status === 'cancelled'
 
-  const [{ data: nets }, { data: cashouts }, { data: settlements }] =
-    await Promise.all([
-      counting
-        ? supabase.rpc('game_nets', { p_game_id: gameId })
-        : Promise.resolve({ data: null }),
-      counting
-        ? supabase.from('cashouts').select('member_id, chips').eq('game_id', gameId)
-        : Promise.resolve({ data: null }),
-      settled
-        ? supabase
-            .from('settlements')
-            .select('id, from_member_id, to_member_id, amount_cents, status')
-            .eq('game_id', gameId)
-            .order('amount_cents', { ascending: false })
-        : Promise.resolve({ data: null }),
-    ])
+  const [{ data: settlements }, { data: adjustments }] = await Promise.all([
+    settled
+      ? supabase
+          .from('settlements')
+          .select('id, from_member_id, to_member_id, amount_cents, status')
+          .eq('game_id', gameId)
+          .order('amount_cents', { ascending: false })
+      : Promise.resolve({ data: null }),
+    settled || counting
+      ? supabase
+          .from('game_adjustments')
+          .select('id, member_id, amount_cents, reason')
+          .eq('game_id', gameId)
+      : Promise.resolve({ data: null }),
+  ])
 
   const myMember = members?.find((m) => m.profile_id === user.id) ?? null
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
@@ -104,9 +116,8 @@ export default async function GamePage({
 
   const isAdmin = myMember?.id === game.admin_member_id
   const isOpen = game.status === 'scheduled' || game.status === 'active'
-  const started = game.status !== 'scheduled'
-  // RLS is the real guard on every write below; this only decides what to draw.
   const runsTheGame = isAdmin && isOpen
+  const overdue = isOverdue(game.status, game.scheduled_at)
 
   const players = confirmed.map((s) => ({
     memberId: s.member_id,
@@ -205,8 +216,10 @@ export default async function GamePage({
         ? `Waitlist #${waitlist.findIndex((w) => w.id === mySignup.id) + 1}`
         : 'Withdrawn'
 
+  const chipsPerDollar = Number(game.chips_per_dollar)
+
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 p-4">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
       <header>
         <Link
           href={`/groups/${game.group_id}`}
@@ -221,37 +234,24 @@ export default async function GamePage({
           {formatWhen(game.scheduled_at)}
           {game.location && ` · ${game.location}`}
         </p>
-        <p className="text-sm text-muted-foreground">
-          {formatCents(game.default_buyin_cents)} buy-in ·{' '}
-          {game.chips_per_dollar} chips/$ · {confirmed.length}/
-          {game.seat_limit} seats
-          {game.status !== 'scheduled' && ` · ${game.status}`}
-        </p>
       </header>
 
-      {myMember && (
-        <Card>
-          <CardContent className="flex items-center justify-between gap-2 py-3">
-            <span className="text-sm font-medium">{myStatusLabel}</span>
-            {isOpen &&
-              (mySignup && mySignup.status !== 'withdrawn' ? (
-                <form action={withdraw}>
-                  <Button variant="outline" size="sm" type="submit">
-                    Withdraw
-                  </Button>
-                </form>
-              ) : (
-                <form action={joinGame}>
-                  <Button size="sm" type="submit">
-                    {confirmed.length >= game.seat_limit
-                      ? 'Join waitlist'
-                      : "I'm in"}
-                  </Button>
-                </form>
-              ))}
-          </CardContent>
-        </Card>
-      )}
+      <StatusBanner
+        status={game.status}
+        overdue={overdue}
+        buyinCents={game.default_buyin_cents}
+        chips={centsToChips(game.default_buyin_cents, chipsPerDollar)}
+        detail={
+          overdue
+            ? 'Start time has passed'
+            : game.status === 'scheduled'
+              ? `${formatCents(game.default_buyin_cents)} = ${centsToChips(
+                  game.default_buyin_cents,
+                  chipsPerDollar
+                )} chips`
+              : undefined
+        }
+      />
 
       {errorMessage && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -259,59 +259,146 @@ export default async function GamePage({
         </p>
       )}
 
-      {isAdmin && counting ? (
-        <>
-          <CashoutPanel
-            gameId={gameId}
-            chipsPerDollar={Number(game.chips_per_dollar)}
-            rows={(nets ?? []).map((n) => ({
-              memberId: n.member_id,
-              name: n.display_name,
-              buyinCents: n.buyin_cents,
-              adjustmentCents: n.adjustment_cents,
-              chips:
-                cashouts?.find((c) => c.member_id === n.member_id)?.chips !==
-                undefined
-                  ? String(
-                      cashouts.find((c) => c.member_id === n.member_id)!.chips
-                    )
-                  : null,
-            }))}
-          />
-          <form action={reopenGame}>
-            <Button variant="ghost" size="sm" type="submit">
-              Back to the game
-            </Button>
-          </form>
-        </>
-      ) : runsTheGame ? (
-        game.status === 'scheduled' ? (
-          <PreStartPanel
-            gameId={gameId}
-            players={players}
-            available={available}
-            defaultBuyinCents={game.default_buyin_cents}
-          />
-        ) : (
+      {myMember && isOpen && (
+        <Card>
+          <CardContent className="flex items-center justify-between gap-2 py-3">
+            <span className="text-sm font-medium">{myStatusLabel}</span>
+            {mySignup && mySignup.status !== 'withdrawn' ? (
+              <form action={withdraw}>
+                <Button variant="outline" size="sm" type="submit">
+                  Withdraw
+                </Button>
+              </form>
+            ) : (
+              <form action={joinGame}>
+                <Button size="sm" type="submit">
+                  {confirmed.length >= game.seat_limit
+                    ? 'Join waitlist'
+                    : "I'm in"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Each state renders a different page. */}
+      {game.status === 'scheduled' && (
+        <ScheduledView
+          gameId={gameId}
+          players={players}
+          available={available}
+          seatLimit={game.seat_limit}
+          defaultBuyinCents={game.default_buyin_cents}
+          myMemberId={myMember?.id ?? null}
+          isAdmin={isAdmin}
+        />
+      )}
+
+      {game.status === 'active' &&
+        (runsTheGame ? (
           <BuyInGrid
             gameId={gameId}
             players={players}
             adminMemberId={game.admin_member_id}
             defaultBuyinCents={game.default_buyin_cents}
-            chipsPerDollar={Number(game.chips_per_dollar)}
+            chipsPerDollar={chipsPerDollar}
             initialBuyins={(buyins ?? []) as Buyin[]}
             available={available}
+            startedAt={game.started_at}
           />
-        )
-      ) : (
-        <LiveRoster
-          gameId={gameId}
-          players={players}
-          adminMemberId={game.admin_member_id}
+        ) : (
+          <LiveRoster
+            gameId={gameId}
+            players={players}
+            adminMemberId={game.admin_member_id}
+            myMemberId={myMember?.id ?? null}
+            initialBuyins={(buyins ?? []) as Buyin[]}
+            started
+            startedAt={game.started_at}
+          />
+        ))}
+
+      {counting &&
+        (isAdmin ? (
+          <>
+            <CashoutPanel
+              gameId={gameId}
+              chipsPerDollar={chipsPerDollar}
+              hasAdjustments={(adjustments?.length ?? 0) > 0}
+              rows={(totals ?? []).map((t) => ({
+                memberId: t.member_id,
+                name: t.display_name,
+                buyinCents: t.buyin_cents,
+                buyinChips: t.buyin_chips,
+                adjustmentCents: t.adjustment_cents,
+                chips:
+                  t.cashout_chips === null ? null : String(t.cashout_chips),
+              }))}
+            />
+            <form action={reopenGame}>
+              <Button variant="ghost" size="sm" type="submit">
+                Back to the game
+              </Button>
+            </form>
+          </>
+        ) : (
+          <LiveRoster
+            gameId={gameId}
+            players={players}
+            adminMemberId={game.admin_member_id}
+            myMemberId={myMember?.id ?? null}
+            initialBuyins={(buyins ?? []) as Buyin[]}
+            started
+            startedAt={game.started_at}
+          />
+        ))}
+
+      {settled && (
+        <SettledView
+          rows={(totals ?? []).map((t) => ({
+            memberId: t.member_id,
+            name: t.display_name,
+            buyinCents: t.buyin_cents,
+            buyinChips: t.buyin_chips,
+            cashoutCents: t.cashout_cents,
+            cashoutChips: t.cashout_chips,
+            adjustmentCents: t.adjustment_cents,
+            netCents: t.net_cents,
+          }))}
+          transfers={(settlements ?? []).map((s) => ({
+            id: s.id,
+            fromMemberId: s.from_member_id,
+            toMemberId: s.to_member_id,
+            amountCents: s.amount_cents,
+            status: s.status,
+          }))}
+          adjustments={(adjustments ?? []).map((a) => ({
+            id: a.id,
+            memberId: a.member_id,
+            amountCents: a.amount_cents,
+            reason: a.reason,
+          }))}
+          names={nameOf}
           myMemberId={myMember?.id ?? null}
-          initialBuyins={(buyins ?? []) as Buyin[]}
-          started={started}
+          startedAt={game.started_at}
+          settledAt={game.settled_at}
         />
+      )}
+
+      {cancelled && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Roster ({confirmed.length})
+          </h2>
+          {confirmed.map((s) => (
+            <Card key={s.id}>
+              <CardContent className="py-2.5 text-sm">
+                {s.group_members?.display_name}
+              </CardContent>
+            </Card>
+          ))}
+        </section>
       )}
 
       {runsTheGame && game.status === 'active' && (
@@ -322,38 +409,7 @@ export default async function GamePage({
         </form>
       )}
 
-      {settled && settlements && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Who pays who ({settlements.length})
-          </h2>
-          {settlements.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Everyone came out even. Nothing to pay.
-            </p>
-          )}
-          {settlements.map((t) => (
-            <Card key={t.id}>
-              <CardContent className="flex items-center justify-between gap-2 py-3">
-                <span className="text-sm">
-                  <span className="font-medium">
-                    {nameOf.get(t.from_member_id) ?? 'Someone'}
-                  </span>{' '}
-                  pays{' '}
-                  <span className="font-medium">
-                    {nameOf.get(t.to_member_id) ?? 'someone'}
-                  </span>
-                </span>
-                <span className="text-sm font-semibold tabular-nums">
-                  {formatCents(t.amount_cents)}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
-      )}
-
-      {waitlist.length > 0 && (
+      {waitlist.length > 0 && !settled && !cancelled && (
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">
             Waitlist ({waitlist.length})
@@ -416,22 +472,6 @@ export default async function GamePage({
                 Transfer admin
               </Button>
             </form>
-
-            {transfers && transfers.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <h3 className="text-xs font-medium text-muted-foreground">
-                  Handoff history
-                </h3>
-                {transfers.map((t) => (
-                  <p key={t.id} className="text-xs text-muted-foreground">
-                    {nameOf.get(t.from_member_id) ?? 'someone'} →{' '}
-                    {nameOf.get(t.to_member_id) ?? 'someone'}
-                    {t.was_forced && ' (forced)'} ·{' '}
-                    {new Date(t.created_at).toLocaleString()}
-                  </p>
-                ))}
-              </div>
-            )}
           </div>
         </details>
       )}

@@ -85,5 +85,10 @@ export function useGameBuyins(gameId: string, initial: Buyin[]) {
     [live]
   )
 
-  return { buyins, live, totalsByMember, potCents, merge }
+  const potChips = useMemo(
+    () => live.reduce((sum, b) => sum + b.chips, 0),
+    [live]
+  )
+
+  return { buyins, live, totalsByMember, potCents, potChips, merge }
 }

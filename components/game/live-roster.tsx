@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
+import { PotHeader } from './pot-header'
 import type { Player } from './buy-in-grid'
 
 /**
@@ -18,6 +19,7 @@ export function LiveRoster({
   myMemberId,
   initialBuyins,
   started,
+  startedAt,
 }: {
   gameId: string
   players: Player[]
@@ -26,8 +28,9 @@ export function LiveRoster({
   initialBuyins: Buyin[]
   /** Before the first hand nobody has staked anything, so show no money. */
   started: boolean
+  startedAt: string | null
 }) {
-  const { buyins, totalsByMember, potCents } = useGameBuyins(
+  const { buyins, totalsByMember, potCents, potChips } = useGameBuyins(
     gameId,
     initialBuyins
   )
@@ -38,12 +41,11 @@ export function LiveRoster({
   return (
     <div className="flex flex-col gap-4">
       {started && (
-        <div className="flex items-baseline justify-between rounded-lg border border-border px-3 py-2">
-          <span className="text-sm text-muted-foreground">Pot</span>
-          <span className="text-xl font-semibold tabular-nums">
-            {formatCents(potCents)}
-          </span>
-        </div>
+        <PotHeader
+          potCents={potCents}
+          potChips={potChips}
+          startedAt={startedAt}
+        />
       )}
 
       {started && myMemberId && (

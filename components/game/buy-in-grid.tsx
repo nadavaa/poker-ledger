@@ -10,6 +10,7 @@ import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
 import { AddPlayer, type AvailableMember } from './add-player'
+import { PotHeader } from './pot-header'
 
 export type Player = { memberId: string; name: string }
 
@@ -24,6 +25,7 @@ export function BuyInGrid({
   chipsPerDollar,
   initialBuyins,
   available,
+  startedAt,
 }: {
   gameId: string
   players: Player[]
@@ -32,10 +34,11 @@ export function BuyInGrid({
   chipsPerDollar: number
   initialBuyins: Buyin[]
   available: AvailableMember[]
+  startedAt: string | null
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
-  const { buyins, totalsByMember, potCents, merge } = useGameBuyins(
+  const { buyins, totalsByMember, potCents, potChips, merge } = useGameBuyins(
     gameId,
     initialBuyins
   )
@@ -121,12 +124,11 @@ export function BuyInGrid({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sticky top-0 z-10 -mx-4 flex items-baseline justify-between border-b border-border bg-background px-4 py-2">
-        <span className="text-sm text-muted-foreground">Pot</span>
-        <span className="text-xl font-semibold tabular-nums">
-          {formatCents(potCents)}
-        </span>
-      </div>
+      <PotHeader
+        potCents={potCents}
+        potChips={potChips}
+        startedAt={startedAt}
+      />
 
       {error && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">

@@ -1,25 +1,15 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { centsToDollars } from '@/lib/money'
 
-type GroupOption = {
-  id: string
-  name: string
+type GroupDefaults = {
   default_buyin_cents: number
   chips_per_dollar: number
   default_seat_limit: number
-}
-
-// Defaults for a brand-new group, matching the groups table defaults.
-const NEW_GROUP_DEFAULTS = {
-  default_buyin_cents: 5000,
-  chips_per_dollar: 2,
-  default_seat_limit: 9,
 }
 
 function defaultDateTime() {
@@ -32,61 +22,18 @@ function defaultDateTime() {
 }
 
 export function NewGameForm({
-  groups,
-  presetGroupId,
+  defaults,
   action,
   errorMessage,
 }: {
-  groups: GroupOption[]
-  presetGroupId?: string
+  defaults: GroupDefaults
   action: (formData: FormData) => void
   errorMessage?: string
 }) {
-  const initialGroup =
-    (presetGroupId && groups.some((g) => g.id === presetGroupId)
-      ? presetGroupId
-      : groups[0]?.id) ?? '__new__'
-
-  const [groupChoice, setGroupChoice] = useState(initialGroup)
-  const isNewGroup = groupChoice === '__new__'
-  const selected = groups.find((g) => g.id === groupChoice)
-  const defaults = selected ?? NEW_GROUP_DEFAULTS
-
   return (
     <form action={action}>
       <Card>
         <CardContent className="flex flex-col gap-4 py-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="group">Group</Label>
-            <select
-              id="group"
-              name="group"
-              value={groupChoice}
-              onChange={(e) => setGroupChoice(e.target.value)}
-              className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
-            >
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-              <option value="__new__">+ New group…</option>
-            </select>
-          </div>
-
-          {isNewGroup && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new_group_name">New group name</Label>
-              <Input
-                id="new_group_name"
-                name="new_group_name"
-                required
-                maxLength={80}
-                placeholder="Tuesday crew"
-              />
-            </div>
-          )}
-
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="scheduled_at">Date and time</Label>
             <Input
@@ -100,7 +47,12 @@ export function NewGameForm({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Game name (optional)</Label>
-            <Input id="name" name="name" maxLength={80} placeholder="Labor Day game" />
+            <Input
+              id="name"
+              name="name"
+              maxLength={80}
+              placeholder="Labor Day game"
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -123,7 +75,6 @@ export function NewGameForm({
                 min={2}
                 max={50}
                 required
-                key={`seats-${groupChoice}`}
                 defaultValue={defaults.default_seat_limit}
               />
             </div>
@@ -134,7 +85,6 @@ export function NewGameForm({
                 name="buyin"
                 inputMode="decimal"
                 required
-                key={`buyin-${groupChoice}`}
                 defaultValue={centsToDollars(defaults.default_buyin_cents)}
               />
             </div>
@@ -147,7 +97,6 @@ export function NewGameForm({
                 step="0.25"
                 min={0.25}
                 required
-                key={`ratio-${groupChoice}`}
                 defaultValue={defaults.chips_per_dollar}
               />
             </div>
