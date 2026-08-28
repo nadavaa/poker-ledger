@@ -38,6 +38,7 @@ export function ScheduledView({
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
   // Most people are usually there; the admin unchecks whoever isn't.
   const [here, setHere] = useState<Set<string>>(
     () => new Set(players.map((p) => p.memberId))
@@ -45,13 +46,18 @@ export function ScheduledView({
 
   const seatsLeft = Math.max(seatLimit - players.length, 0)
 
-  async function removePlayer(memberId: string) {
+  /** Send a confirmed player back to the waitlist, or off the game entirely.
+   *  Refuses if they already have buy-ins — that's a money problem, not a
+   *  roster one. */
+  async function demote(memberId: string, to: 'waitlist' | 'withdrawn') {
     setError(null)
-    const { error } = await supabase
-      .from('game_signups')
-      .update({ status: 'withdrawn' })
-      .eq('game_id', gameId)
-      .eq('member_id', memberId)
+    setBusy(memberId)
+    const { error } = await supabase.rpc('demote_from_confirmed', {
+      p_game_id: gameId,
+      p_member_id: memberId,
+      p_to: to,
+    })
+    setBusy(null)
     if (error) {
       setError(error.message)
       return
@@ -121,19 +127,30 @@ export function ScheduledView({
                   <Button
                     variant="destructive"
                     size="xs"
-                    onClick={() => removePlayer(p.memberId)}
+                    disabled={busy === p.memberId}
+                    onClick={() => demote(p.memberId, 'withdrawn')}
                   >
                     Remove
                   </Button>
                 </span>
               ) : (
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => setConfirmRemove(p.memberId)}
-                >
-                  Remove
-                </Button>
+                <span className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    disabled={busy === p.memberId}
+                    onClick={() => demote(p.memberId, 'waitlist')}
+                  >
+                    To waitlist
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setConfirmRemove(p.memberId)}
+                  >
+                    Remove
+                  </Button>
+                </span>
               ))}
           </div>
         ))}

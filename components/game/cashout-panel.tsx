@@ -45,11 +45,13 @@ export function CashoutPanel({
   const [pending, setPending] = useState(false)
   const [assignTo, setAssignTo] = useState('')
 
-  const parsed = (v: string) => {
-    const t = v.trim()
-    if (!/^\d+$/.test(t)) return null
-    return Number(t)
-  }
+  /** Digits only. Strips anything else rather than rejecting the edit, so a
+   *  pasted "1,240 chips" becomes 1240 instead of nothing. */
+  const digitsOnly = (v: string) => v.replace(/\D/g, '')
+
+  /** Empty means "not counted yet" and is not the same as a busted player,
+   *  who is entered with 0. */
+  const parsed = (v: string) => (v === '' ? null : Number(v))
 
   const entered = (r: NetRow) => parsed(chips[r.memberId] ?? '')
 
@@ -194,12 +196,22 @@ export function CashoutPanel({
               </div>
               <Input
                 inputMode="numeric"
+                pattern="[0-9]*"
                 value={chips[r.memberId] ?? ''}
                 onChange={(e) => {
-                  setChips((p) => ({ ...p, [r.memberId]: e.target.value }))
+                  const clean = digitsOnly(e.target.value)
+                  setChips((p) => ({ ...p, [r.memberId]: clean }))
                   setSaved((p) => ({ ...p, [r.memberId]: false }))
                 }}
-                onBlur={() => saveChips(r)}
+                onBlur={() => {
+                  // 007 -> 7, but '' stays '' and '0' stays '0'.
+                  const raw = chips[r.memberId] ?? ''
+                  const normalised = raw === '' ? '' : String(Number(raw))
+                  if (normalised !== raw) {
+                    setChips((p) => ({ ...p, [r.memberId]: normalised }))
+                  }
+                  saveChips(r, parsed(normalised) ?? undefined)
+                }}
                 placeholder="chips"
                 aria-label={`${r.name} chip count`}
                 className="w-24"

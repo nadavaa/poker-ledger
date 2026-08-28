@@ -11,6 +11,7 @@ import { LiveRoster } from '@/components/game/live-roster'
 import { CashoutPanel } from '@/components/game/cashout-panel'
 import { SettledView } from '@/components/game/settled-view'
 import { StatusBanner } from '@/components/game/status-banner'
+import { WaitlistPanel } from '@/components/game/waitlist-panel'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
 const BUYIN_COLUMNS =
@@ -409,25 +410,17 @@ export default async function GamePage({
         </form>
       )}
 
-      {waitlist.length > 0 && !settled && !cancelled && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Waitlist ({waitlist.length})
-          </h2>
-          {waitlist.map((s, i) => (
-            <Card key={s.id}>
-              <CardContent className="flex items-center justify-between py-2.5">
-                <span className="text-sm">
-                  {s.group_members?.display_name}
-                  {s.member_id === myMember?.id && (
-                    <span className="text-muted-foreground"> (you)</span>
-                  )}
-                </span>
-                <span className="text-xs text-muted-foreground">#{i + 1}</span>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
+      {!settled && !cancelled && (
+        <WaitlistPanel
+          gameId={gameId}
+          entries={waitlist.map((s) => ({
+            id: s.id,
+            memberId: s.member_id,
+            name: s.group_members?.display_name ?? 'Unknown',
+          }))}
+          isAdmin={runsTheGame}
+          myMemberId={myMember?.id ?? null}
+        />
       )}
 
       {runsTheGame && (

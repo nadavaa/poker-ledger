@@ -536,6 +536,18 @@ export type Database = {
         Args: { p_game_id: string; p_transfers: Json }
         Returns: number
       }
+      promote_to_confirmed: {
+        Args: {
+          p_game_id: string
+          p_member_id: string
+          p_allow_overfill?: boolean
+        }
+        Returns: string
+      }
+      demote_from_confirmed: {
+        Args: { p_game_id: string; p_member_id: string; p_to?: string }
+        Returns: string
+      }
       add_player_to_game: {
         Args: {
           p_game_id: string

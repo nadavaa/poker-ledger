@@ -67,7 +67,7 @@ export default async function GroupPage({
         .eq('group_id', groupId),
       supabase
         .from('member_lifetime')
-        .select('member_id, games_played, lifetime_net_cents')
+        .select('member_id, games_played')
         .eq('group_id', groupId),
     ])
 
@@ -87,11 +87,10 @@ export default async function GroupPage({
     playersByGame.set(t.game_id, (playersByGame.get(t.game_id) ?? 0) + 1)
     if (t.member_id === me?.id) myNetByGame.set(t.game_id, t.net_cents)
   }
-  const statsByMember = new Map(
-    (lifetime ?? []).map((l) => [
-      l.member_id,
-      { played: l.games_played, net: l.lifetime_net_cents },
-    ])
+  // Members tab shows participation, not money. Per-game results stay on the
+  // game page; lifetime P/L stays on the home screen.
+  const gamesPlayedByMember = new Map(
+    (lifetime ?? []).map((l) => [l.member_id, l.games_played])
   )
 
   // Anything not finished is "in flight". A group can run more than one at
@@ -242,7 +241,7 @@ export default async function GroupPage({
               Members ({members?.filter((m) => m.is_active).length ?? 0})
             </h2>
             {members?.map((m) => {
-              const stats = statsByMember.get(m.id)
+              const played = gamesPlayedByMember.get(m.id) ?? 0
               return (
                 <Card key={m.id}>
                   <CardContent className="flex items-center justify-between gap-2 py-3">
@@ -254,7 +253,7 @@ export default async function GroupPage({
                         )}
                       </p>
                       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>{stats?.played ?? 0} games</span>
+                        <span>{played} games</span>
                         <span>·</span>
                         <span>{m.role}</span>
                         {!m.profile_id && (
@@ -270,15 +269,6 @@ export default async function GroupPage({
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span
-                        className={`text-sm font-semibold tabular-nums ${
-                          (stats?.net ?? 0) >= 0
-                            ? 'text-emerald-600'
-                            : 'text-destructive'
-                        }`}
-                      >
-                        {formatCents(stats?.net ?? 0)}
-                      </span>
                       {canManage && !m.profile_id && m.claim_code && (
                         <CopyLinkButton
                           path={`/claim/${m.claim_code}`}

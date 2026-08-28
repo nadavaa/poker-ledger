@@ -470,6 +470,13 @@ Settlement status flow: `pending` → payer taps Mark as Paid → `paid` → pay
 ### Auth / join
 Supabase magic link plus Google OAuth. Skip phone OTP, it needs Twilio and costs money. Invite links look like `/join/[inviteCode]`, and a claim flow at `/claim/[claimCode]` lets an existing unclaimed member attach their account.
 
+### Group screen
+Two tabs, with the active one in the URL so back and shared links work.
+
+**Games.** New Game for any member. Games still in flight pinned at the top, soonest first; history below with date, player count, pot and your net.
+
+**Members.** Display name, games played, and whether the row is claimed. Deliberately no money: lifetime P/L lives on the home screen and per-game results live on the game page, so a shared group screen doesn't put everyone's running balance in front of the room. Owners and admins get Add Player and the copy-claim-link action.
+
 ### App home (multi-group)
 List of every group you belong to, each showing your net for that group and its next scheduled game. A persistent "New Game" button. Groups are separate cards and their numbers never combine.
 
@@ -533,7 +540,7 @@ Removal is for the person who never sat down.
 ### Cashout and settlement — still the same screen
 Both are states of `/games/[gameId]`, not separate routes, for the same reason the admin controls are: one game, one page.
 
-**Counting chips.** Numeric chip entry per player. A discrepancy counter at the top updates live as the admin types and stays red until it hits zero. Each player's running net shows beside their name. Settle is disabled until the count balances; a "Back to the game" escape hatch returns the game to `active` if chips need to keep moving.
+**Counting chips.** Chip entry accepts non-negative integers only — non-digits are stripped as you type rather than accepted and then rejected, pasted text is cleaned instead of refused, and mobile gets the numeric keypad. An empty field means "not counted yet"; `0` is a real entry for a player who busted, and the two are never conflated. A discrepancy counter at the top updates live as the admin types and stays red until it hits zero. Each player's running net shows beside their name. Settle is disabled until the count balances; a "Back to the game" escape hatch returns the game to `active` if chips need to keep moving.
 
 **Settled.** The transfer list rendered as "Nadav pays Gilad $80" rows with a Venmo button on each. Status chips for pending/paid/confirmed. A "Copy summary for WhatsApp" button that generates plain text to paste into the group chat, since that's where the group actually lives.
 
@@ -546,7 +553,7 @@ Display name, Venmo handle, game history, stats.
 
 These are the ones that will actually come up:
 
-1. **Waitlist promotion.** Confirmed player withdraws, lowest-`signup_order` waitlister is auto-promoted. Do this in a Postgres trigger, not application code, so it can't race.
+1. **Waitlist promotion.** Confirmed player withdraws, lowest-`signup_order` waitlister is auto-promoted. Do this in a Postgres trigger, not application code, so it can't race. The admin can also seat a waitlister by hand (`promote_to_confirmed`), before or during the game. That takes the same advisory lock the trigger does and is idempotent, so a manual promote racing a triggered one yields exactly one promotion. The seat limit is a default, not a wall: an admin may go over it after confirming, which sets a transaction-local flag the trigger honours. Promoting into a running game seats the player with nothing staked; the admin taps their buy-in afterwards.
 2. **Mid-game cash out.** Player leaves early, records a cashout while the game is still `active`, and a waitlister takes the seat. The seat is free but the departed player stays in the settlement math.
 3. **Late arrival.** Admin adds someone not on the signup list, before or during the game — either an existing group member or a guest who has never used the app. A guest becomes an unclaimed `group_members` row, so their history is real from the first hand and claimable later. The seat limit still applies: a full table waitlists them. Adding does not stake them; the admin taps their card when they buy in.
 4. **Non-standard buy-in.** Someone buys in for $100 or half a stack. Long-press → custom amount.
@@ -563,6 +570,8 @@ These are the ones that will actually come up:
 15. **Admin isn't playing.** Valid state. Their card doesn't appear in the buy-in grid and they're excluded from settlement math.
 16. **Two games running in one group at once.** Rare, but allowed, and they can have different admins. Nothing in the model prevents it, so make sure the group home doesn't assume a single "next game."
 17. **Non-admin tries to write.** RLS rejects it. Handle the error in the UI with a clear message rather than a silent failure, because the most likely cause is that admin was transferred away while their screen was stale.
+18a. **Admin sends a confirmed player back.** Before the game starts, the admin can move a confirmed player to the waitlist (they go to the back of the line, or the promotion trigger would just re-seat them) or withdraw them. If that player already has buy-ins logged, `demote_from_confirmed` refuses and says to void the buy-ins first — money on the table is a different problem from a roster mistake.
+
 18. **No-show removed by the admin.** Admin removes a confirmed player. The seat frees, the first waitlister is promoted, and every buy-in the removed player had is voided and leaves the pot total — removal means they are not playing. Distinct from edge case 2, where a player who actually played leaves early and stays in the settlement math.
 
 ---
