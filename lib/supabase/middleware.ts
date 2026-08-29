@@ -1,7 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/auth']
+// The PWA shell has to be readable by a browser that has never signed in:
+// the manifest and service worker are fetched before any session exists, and
+// the offline page is what you get when there is no network to sign in with.
+const PUBLIC_PATHS = [
+  '/login',
+  '/auth',
+  '/manifest.webmanifest',
+  '/sw.js',
+  '/icon',
+  '/apple-icon',
+  '/offline',
+]
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
