@@ -32,6 +32,13 @@ select
 -- those checks to end of statement. Being explicit removes the question.
 begin;
 
+-- buyins refuses every DELETE by design — the audit trail is the product, and
+-- the trigger does not make an exception for the person running the wipe. The
+-- cascade from games hits it too, so nothing can be cleared until it's off.
+-- DDL is transactional here: if anything below fails, the whole thing rolls
+-- back and the trigger is still armed.
+alter table public.buyins disable trigger buyins_enforce_append_only;
+
 delete from public.settlements;
 delete from public.game_adjustments;
 delete from public.cashouts;
@@ -41,5 +48,7 @@ delete from public.game_signups;
 delete from public.games;
 delete from public.group_members;
 delete from public.groups;
+
+alter table public.buyins enable trigger buyins_enforce_append_only;
 
 commit;
