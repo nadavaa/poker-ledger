@@ -601,6 +601,13 @@ Both are states of `/games/[gameId]`, not separate routes, for the same reason t
 
 **Settled.** The admin sees the full transfer list as "Nadav pays Gilad $80" rows. A player sees only their own, framed as an action — "Pay Gilad $80", "Collect $45 from Yoni" — each with a Venmo deep link and a copy-to-clipboard fallback, since the URL scheme is undocumented and has changed before. A player with nothing outstanding gets an explicit "You're square for this game" rather than an empty list. Both see the aggregate confirmed count. Status chips for pending/paid/confirmed. A "Copy summary for WhatsApp" button that generates plain text to paste into the group chat, since that's where the group actually lives.
 
+### Avatars
+People and groups both get a photo, in two public-read Storage buckets. Writes are the part that matters and they are storage policies, not hidden buttons: `avatars` accepts a write only under a path prefixed with the writer's own `auth.uid()`, and `group-avatars` only from that group's owner or admin. Paths are `{owner_id}/{uuid}.{ext}` with a fresh uuid every time — nothing is ever overwritten, and the object being replaced is deleted only after the new one is safely referenced.
+
+Photos are resized to 512px webp in the browser before upload; these render as 40px circles and a 4MB phone photo is pure waste. HEIC is accepted but only decodes in Safari, so a browser that can't read it says so plainly rather than failing silently.
+
+`avatar_url` holds either a storage path we wrote or an absolute URL, since Google hands one over at signup — absolute values pass straight through. There is always a fallback: initials on a colour derived from the id, so the same person is the same colour on every device, and a missing, deleted or broken object falls back to it rather than showing a broken image. Unclaimed members have no profile at all and take the same path.
+
 ### Profile
 Display name, Venmo handle, lifetime net per group, and settled-game history. Saving a Venmo handle writes it to the profile *and* to every one of that person's `group_members` rows — a plain member cannot edit their own member row, and the handle has to live there for other players' Venmo buttons to resolve. Balances never merge across groups, so lifetime is one card per group.
 

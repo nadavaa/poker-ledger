@@ -42,6 +42,7 @@ export type Database = {
           id: string
           name: string
           invite_code: string
+          avatar_url: string | null
           chips_per_dollar: number
           default_buyin_cents: number
           default_seat_limit: number
@@ -52,6 +53,7 @@ export type Database = {
           id?: string
           name: string
           invite_code?: string
+          avatar_url?: string | null
           chips_per_dollar?: number
           default_buyin_cents?: number
           default_seat_limit?: number
@@ -62,6 +64,7 @@ export type Database = {
           id?: string
           name?: string
           invite_code?: string
+          avatar_url?: string | null
           chips_per_dollar?: number
           default_buyin_cents?: number
           default_seat_limit?: number

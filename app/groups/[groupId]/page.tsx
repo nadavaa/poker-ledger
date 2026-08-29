@@ -13,6 +13,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { computeStats, runningBalance } from '@/lib/stats'
 import { BalanceChart } from '@/components/group/balance-chart'
 import { GroupTabs } from '@/components/group/group-tabs'
+import { Avatar } from '@/components/avatar'
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -58,7 +59,11 @@ export default async function GroupPage({
         .maybeSingle(),
       supabase
         .from('group_members')
-        .select('id, display_name, role, profile_id, claim_code, is_active')
+        // Left join: an unclaimed member has no profile, so this is null and
+        // the avatar falls back to initials.
+        .select(
+          'id, display_name, role, profile_id, claim_code, is_active, profiles(avatar_url)'
+        )
         .eq('group_id', groupId)
         .order('created_at'),
       supabase
@@ -304,7 +309,14 @@ export default async function GroupPage({
               return (
                 <Card key={m.id}>
                   <CardContent className="flex items-center justify-between gap-2 py-3">
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar
+                        id={m.profile_id ?? m.id}
+                        name={m.display_name}
+                        url={m.profiles?.avatar_url ?? null}
+                        size={40}
+                      />
+                      <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
                         {m.display_name}
                         {m.profile_id === user.id && (
@@ -321,6 +333,7 @@ export default async function GroupPage({
                           </span>
                         )}
                       </p>
+                      </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {canManage && !m.profile_id && m.claim_code && (

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { Avatar } from '@/components/avatar'
 
 export default async function HomePage({
   searchParams,
@@ -24,7 +25,7 @@ export default async function HomePage({
     supabase.from('profiles').select('display_name').eq('id', user.id).single(),
     supabase
       .from('group_members')
-      .select('id, group_id, groups(id, name)')
+      .select('id, group_id, groups(id, name, avatar_url)')
       .eq('profile_id', user.id)
       .eq('is_active', true)
       .order('created_at'),
@@ -122,7 +123,15 @@ export default async function HomePage({
                   <Link key={m.id} href={`/groups/${m.groups.id}`}>
                     <Card className="transition-colors hover:bg-muted/50">
                       <CardContent className="flex items-center justify-between gap-3 py-4">
-                        <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar
+                            id={m.groups.id}
+                            name={m.groups.name}
+                            url={m.groups.avatar_url}
+                            bucket="group-avatars"
+                            size={44}
+                          />
+                          <div className="min-w-0">
                           <p className="truncate text-[0.95rem] font-medium">
                             {m.groups.name}
                           </p>
@@ -132,6 +141,7 @@ export default async function HomePage({
                               ? 'member'
                               : 'members'}
                           </p>
+                          </div>
                         </div>
                         <div className="flex shrink-0 flex-col items-end">
                           <p

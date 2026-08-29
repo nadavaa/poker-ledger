@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
 import { formatCents } from '@/lib/money'
 import { ProfileForm } from '@/components/profile/profile-form'
+import { AvatarUpload } from '@/components/avatar-upload'
 import { Card, CardContent } from '@/components/ui/card'
 
 function formatDay(iso: string) {
@@ -24,7 +25,7 @@ export default async function ProfilePage() {
     await Promise.all([
     supabase
       .from('profiles')
-      .select('display_name')
+      .select('display_name, avatar_url')
       .eq('id', user.id)
       .single(),
     // phone_number isn't granted to anyone on the table, including you.
@@ -71,6 +72,16 @@ export default async function ProfilePage() {
   // Only games I actually played in, newest first.
   const history = (games ?? []).filter((g) => netByGame.has(g.id))
 
+  async function saveAvatar(path: string | null) {
+    'use server'
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: path })
+      .eq('id', user!.id)
+    return { error: error?.message ?? null }
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
       <header>
@@ -81,7 +92,18 @@ export default async function ProfilePage() {
       </header>
 
       <Card>
-        <CardContent className="py-4">
+        <CardContent className="flex flex-col gap-4 py-4">
+          {/* Path is prefixed with the user's auth id, which is exactly what
+              the storage policy checks. */}
+          <AvatarUpload
+            bucket="avatars"
+            ownerId={user.id}
+            entityId={user.id}
+            name={profile?.display_name ?? ''}
+            currentUrl={profile?.avatar_url ?? null}
+            onSaved={saveAvatar}
+          />
+
           <ProfileForm
             userId={user.id}
             initial={{

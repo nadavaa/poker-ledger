@@ -14,6 +14,7 @@ import {
 } from '@/components/group/member-actions'
 import { MemberRoleSelect } from '@/components/group/member-role-select'
 import { DeleteGroup } from '@/components/group/delete-group'
+import { AvatarUpload } from '@/components/avatar-upload'
 
 export default async function EditGroupPage({
   params,
@@ -33,7 +34,7 @@ export default async function EditGroupPage({
     supabase
       .from('groups')
       .select(
-        'id, name, default_buyin_cents, chips_per_dollar, default_seat_limit'
+        'id, name, avatar_url, default_buyin_cents, chips_per_dollar, default_seat_limit'
       )
       .eq('id', groupId)
       .maybeSingle(),
@@ -57,6 +58,16 @@ export default async function EditGroupPage({
   const active = members?.filter((m) => m.is_active) ?? []
   const inactive = members?.filter((m) => !m.is_active) ?? []
   const rejoining = inactive.find((m) => m.id === rejoin)
+
+  async function saveGroupAvatar(path: string | null) {
+    'use server'
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('groups')
+      .update({ avatar_url: path })
+      .eq('id', groupId)
+    return { error: error?.message ?? null }
+  }
 
   async function saveSettings(formData: FormData) {
     'use server'
@@ -152,7 +163,18 @@ export default async function EditGroupPage({
         <CardHeader>
           <CardTitle className="text-base">Settings</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
+          {/* The storage policy checks this group id against owner/admin, so
+              hiding the control is presentation, not the guard. */}
+          <AvatarUpload
+            bucket="group-avatars"
+            ownerId={groupId}
+            entityId={groupId}
+            name={group.name}
+            currentUrl={group.avatar_url}
+            onSaved={saveGroupAvatar}
+          />
+
           <form action={saveSettings} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Group name</Label>
