@@ -53,25 +53,21 @@ function LoginForm() {
 
   return (
     <Card className="w-full max-w-sm">
-      {/* The photo has a white background, so it sits on a light tile rather
-          than bare — otherwise it's a glaring rectangle in dark mode. */}
-      <div className="flex justify-center px-6 pt-6">
-        <div className="overflow-hidden rounded-2xl border border-border bg-white px-3 py-1">
-          <Image
-            src="/lamb.jpg"
-            alt=""
-            width={661}
-            height={360}
-            priority
-            className="h-24 w-auto"
-          />
-        </div>
-      </div>
-
       <CardHeader>
         <CardTitle>Poker Ledger</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {/* Background cut out, so it sits on the card in either theme
+            without a frame around it. */}
+        <Image
+          src="/lamb.png"
+          alt=""
+          width={381}
+          height={246}
+          priority
+          className="mx-auto h-28 w-auto"
+        />
+
         {status === 'sent' ? (
           <p className="text-sm">
             Check your email — we sent a sign-in link to{' '}
