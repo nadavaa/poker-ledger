@@ -69,14 +69,9 @@ export function ActivityFeed({
               {b.note && (
                 <span className="text-muted-foreground"> · {b.note}</span>
               )}
+              {/* Spelled out: a hover tooltip is unreachable on a phone. */}
               {selfLogged && (
-                <span
-                  className="text-muted-foreground"
-                  title="Logged by the admin for themselves"
-                >
-                  {' '}
-                  · self
-                </span>
+                <span className="text-muted-foreground"> · logged own</span>
               )}
             </span>
             <span className="shrink-0 text-xs text-muted-foreground">

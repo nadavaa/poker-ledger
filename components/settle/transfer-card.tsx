@@ -190,6 +190,13 @@ export function TransferCard({
             </p>
           )}
 
+          {canCloseOut && status !== 'confirmed' && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Close out marks this settled if {payeeName} won&apos;t confirm in
+              the app.
+            </p>
+          )}
+
           <p className={`mt-0.5 flex items-center gap-1 text-xs ${line.tone}`}>
             <span aria-hidden className="font-semibold">
               {line.glyph}
@@ -277,6 +284,8 @@ export function TransferCard({
             </Button>
           )}
 
+          {/* What Close out means used to live in a hover title, which no
+              phone can show — on an irreversible money action. */}
           {canCloseOut && status !== 'confirmed' && (
             <Button
               size="sm"
@@ -284,7 +293,6 @@ export function TransferCard({
               className="rounded-xl"
               disabled={pending}
               onClick={() => move('confirmed')}
-              title={`Close this out if ${payeeName} isn't going to confirm in the app`}
             >
               Close out
             </Button>
