@@ -310,6 +310,17 @@ export default async function GamePage({
 
   const chipsPerDollar = Number(game.chips_per_dollar)
 
+  const foodSection =
+    game.status === 'active' || settled ? (
+      <FoodOrders
+        gameId={gameId}
+        players={foodPlayers}
+        orders={foodOrders}
+        myMemberId={myMember?.id ?? null}
+        isGameAdmin={isAdmin}
+      />
+    ) : null
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
       <header className="flex items-start justify-between gap-2">
@@ -349,6 +360,20 @@ export default async function GamePage({
         }
       />
 
+      {/* Directly under the state it ends, rather than below the grid and the
+          feed, where it drifted further away as the night went on. */}
+      {runsTheGame && game.status === 'active' && (
+        <form action={endGame}>
+          <Button
+            variant="outline"
+            className="h-12 w-full rounded-xl text-base"
+            type="submit"
+          >
+            End Game
+          </Button>
+        </form>
+      )}
+
       {errorMessage && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errorMessage}
@@ -360,13 +385,9 @@ export default async function GamePage({
           <CardContent className="flex items-center justify-between gap-2 py-3">
             <span className="text-sm font-medium">{myStatusLabel}</span>
             {mySignup && mySignup.status !== 'withdrawn' ? (
-              stuckInGame ? (
-                // A disabled button with no reason is just a dead end.
-                <span className="max-w-[60%] text-right text-xs text-muted-foreground">
-                  You&apos;re in this game — ask the admin to void your buy-ins
-                  first.
-                </span>
-              ) : (
+              // Nothing where the button was. The RLS policy still refuses the
+              // withdrawal; this only drops the explanation.
+              stuckInGame ? null : (
                 <form action={withdraw}>
                   <Button variant="outline" size="sm" type="submit">
                     Withdraw
@@ -410,6 +431,7 @@ export default async function GamePage({
             initialBuyins={(buyins ?? []) as Buyin[]}
             available={available}
             startedAt={game.started_at}
+            beforeActivity={foodSection}
           />
         ) : (
           <LiveRoster
@@ -420,6 +442,7 @@ export default async function GamePage({
             initialBuyins={(buyins ?? []) as Buyin[]}
             started
             startedAt={game.started_at}
+            beforeActivity={foodSection}
           />
         ))}
 
@@ -457,6 +480,8 @@ export default async function GamePage({
             startedAt={game.started_at}
           />
         ))}
+
+      {settled && foodSection}
 
       {settled && (
         <SettledView
@@ -513,28 +538,6 @@ export default async function GamePage({
             </Card>
           ))}
         </section>
-      )}
-
-      {runsTheGame && game.status === 'active' && (
-        <form action={endGame}>
-          <Button
-            variant="outline"
-            className="h-12 w-full rounded-xl text-base"
-            type="submit"
-          >
-            End game &amp; count chips
-          </Button>
-        </form>
-      )}
-
-      {(game.status === 'active' || settled) && (
-        <FoodOrders
-          gameId={gameId}
-          players={foodPlayers}
-          orders={foodOrders}
-          myMemberId={myMember?.id ?? null}
-          isGameAdmin={isAdmin}
-        />
       )}
 
       {!settled && !cancelled && (

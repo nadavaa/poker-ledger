@@ -20,6 +20,7 @@ export function LiveRoster({
   initialBuyins,
   started,
   startedAt,
+  beforeActivity,
 }: {
   gameId: string
   players: Player[]
@@ -29,6 +30,8 @@ export function LiveRoster({
   /** Before the first hand nobody has staked anything, so show no money. */
   started: boolean
   startedAt: string | null
+  /** Rendered between the roster and the feed — the food order lives here. */
+  beforeActivity?: React.ReactNode
 }) {
   const { buyins, totalsByMember, potCents, potChips } = useGameBuyins(
     gameId,
@@ -95,6 +98,8 @@ export function LiveRoster({
           )
         })}
       </section>
+
+      {beforeActivity}
 
       {started && (
       <section className="flex flex-col gap-2">

@@ -39,6 +39,7 @@ export function BuyInGrid({
   initialBuyins,
   available,
   startedAt,
+  beforeActivity,
 }: {
   gameId: string
   players: Player[]
@@ -48,6 +49,8 @@ export function BuyInGrid({
   initialBuyins: Buyin[]
   available: AvailableMember[]
   startedAt: string | null
+  /** Rendered between the grid and the feed — the food order lives here. */
+  beforeActivity?: React.ReactNode
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -221,6 +224,8 @@ export function BuyInGrid({
       )}
 
       <AddPlayer gameId={gameId} available={available} />
+
+      {beforeActivity}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
