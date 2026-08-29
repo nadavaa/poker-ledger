@@ -237,7 +237,9 @@ export function BuyInGrid({
             </span>
             <button
               disabled={undoPending}
-              className="-my-1 rounded-xl px-3 py-2.5 text-sm font-semibold text-up transition-transform duration-100 active:scale-95 disabled:opacity-50"
+              // The recovery path on the most-tapped screen, so it gets a
+              // full-size target rather than the height its text implies.
+              className="-my-1 flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-up transition-transform duration-100 active:scale-95 disabled:opacity-50"
               onClick={async () => {
                 if (undoPending) return
                 setUndoPending(true)
