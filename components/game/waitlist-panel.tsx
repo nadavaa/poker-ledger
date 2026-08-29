@@ -100,7 +100,7 @@ export function WaitlistPanel({
                 <span className="text-xs">
                   Table is full. Seat {e.name} anyway and go over the limit?
                 </span>
-                <span className="flex shrink-0 gap-1">
+                <span className="flex shrink-0 gap-2">
                   <Button
                     variant="ghost"
                     size="xs"

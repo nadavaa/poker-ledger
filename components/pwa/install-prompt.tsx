@@ -51,7 +51,7 @@ export function InstallPrompt() {
           Opens full screen, no browser bar.
         </span>
       </p>
-      <span className="flex shrink-0 gap-1">
+      <span className="flex shrink-0 gap-2">
         <Button variant="ghost" size="sm" onClick={dismiss}>
           Not now
         </Button>

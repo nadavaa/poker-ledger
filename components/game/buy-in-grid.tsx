@@ -511,7 +511,7 @@ function PlayerSheet({
               {b.voided_at ? (
                 <span className="text-xs text-muted-foreground">voided</span>
               ) : confirmVoid === b.id ? (
-                <span className="flex shrink-0 items-center gap-1">
+                <span className="flex shrink-0 items-center gap-2">
                   <Button
                     variant="ghost"
                     size="xs"

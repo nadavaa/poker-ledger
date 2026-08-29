@@ -121,7 +121,7 @@ export function ScheduledView({
             </span>
             {isAdmin &&
               (confirmRemove === p.memberId ? (
-                <span className="flex gap-1">
+                <span className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="xs"
@@ -139,7 +139,7 @@ export function ScheduledView({
                   </Button>
                 </span>
               ) : (
-                <span className="flex gap-1">
+                <span className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="xs"
