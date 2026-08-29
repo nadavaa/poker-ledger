@@ -20,6 +20,13 @@ import { PotHeader } from './pot-header'
 
 export type Player = { memberId: string; name: string }
 
+function timeOf(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 const LONG_PRESS_MS = 450
 const UNDO_MS = 5000
 
@@ -383,6 +390,9 @@ function PlayerSheet({
   const [note, setNote] = useState('')
   const [invalid, setInvalid] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  // Voiding cannot be taken back, so it takes two taps like every other
+  // destructive action in the app.
+  const [confirmVoid, setConfirmVoid] = useState<string | null>(null)
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -452,7 +462,7 @@ function PlayerSheet({
           </p>
         </form>
 
-        <div className="mt-4 flex flex-col gap-1.5">
+        <div className="mt-4 flex flex-col gap-2">
           <h4 className="text-sm font-medium text-muted-foreground">
             Their buy-ins
           </h4>
@@ -462,21 +472,50 @@ function PlayerSheet({
           {buyins.map((b) => (
             <div
               key={b.id}
-              className="flex items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm"
+              className="flex min-h-12 items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm"
             >
+              {/* The time is what tells four identical $50 rows apart. */}
               <span className={b.voided_at ? 'line-through opacity-50' : ''}>
-                {formatCents(b.amount_cents)}
+                <span className="money font-medium">
+                  {formatCents(b.amount_cents)}
+                </span>
+                <span className="money text-muted-foreground">
+                  {' '}
+                  · {timeOf(b.created_at)}
+                </span>
                 {b.note && (
                   <span className="text-muted-foreground"> · {b.note}</span>
                 )}
               </span>
+
               {b.voided_at ? (
                 <span className="text-xs text-muted-foreground">voided</span>
+              ) : confirmVoid === b.id ? (
+                <span className="flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setConfirmVoid(null)}
+                  >
+                    Keep
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="xs"
+                    onClick={() => {
+                      onVoid(b.id)
+                      setConfirmVoid(null)
+                    }}
+                  >
+                    Void it
+                  </Button>
+                </span>
               ) : (
                 <Button
-                  variant="destructive"
+                  variant="ghost"
                   size="xs"
-                  onClick={() => onVoid(b.id)}
+                  className="shrink-0"
+                  onClick={() => setConfirmVoid(b.id)}
                 >
                   Void
                 </Button>
