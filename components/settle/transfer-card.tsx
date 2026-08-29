@@ -156,7 +156,7 @@ export function TransferCard({
 
   return (
     <Card>
-      <CardContent className="flex items-center justify-between gap-3 py-3">
+      <CardContent className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
         <div className="min-w-0">
           <p className="truncate text-base">
             {isPayer ? (
@@ -209,7 +209,7 @@ export function TransferCard({
           {error && <p className="mt-0.5 text-xs text-down">{error}</p>}
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="ml-auto flex shrink-0 flex-col items-end gap-1.5">
           {role === 'bystander' && (
             <span className="money-display text-xl font-semibold">
               {formatCents(transfer.amountCents)}
