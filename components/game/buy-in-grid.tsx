@@ -334,7 +334,7 @@ function PlayerCard({
 
         <span
           className={`money-display text-[2rem] font-semibold ${
-            staked ? 'text-foreground' : 'text-muted-foreground/50'
+            staked ? 'text-foreground' : 'text-muted-foreground'
           }`}
         >
           {formatCents(total?.cents ?? 0)}
@@ -365,7 +365,7 @@ function PlayerCard({
 function BuyInDots({ count }: { count: number }) {
   if (count === 0) {
     return (
-      <span className="text-xs text-muted-foreground/70">tap to buy in</span>
+      <span className="text-xs text-muted-foreground">tap to buy in</span>
     )
   }
   if (count > 6) {
