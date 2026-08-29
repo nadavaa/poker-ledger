@@ -309,35 +309,55 @@ function PlayerCard({
   }
 
   return (
-    <button
-      type="button"
-      // No confirmation dialog: speed matters more than accuracy, because
-      // void exists. Feedback is on pointer-down, never on release.
-      onPointerDown={start}
-      onPointerUp={() => cancel(true)}
-      onPointerLeave={() => cancel(false)}
-      onPointerCancel={() => cancel(false)}
-      onContextMenu={(e) => e.preventDefault()}
-      className={`flex min-h-[7.5rem] touch-manipulation select-none flex-col justify-between rounded-2xl border p-3.5 text-left transition-[transform,background-color,border-color] duration-100 ease-out active:scale-[0.97] ${
-        staked
-          ? 'border-border bg-card active:bg-muted'
-          : 'border-dashed border-border/70 bg-card/40 active:bg-muted/60'
-      }`}
-    >
-      <span className="line-clamp-1 text-[0.9rem] font-medium text-foreground/90">
-        {player.name}
-      </span>
-
-      <span
-        className={`money-display text-[2rem] font-semibold ${
-          staked ? 'text-foreground' : 'text-muted-foreground/50'
+    // The card is the tap target; the dots are a second, smaller one. Siblings
+    // rather than nested, since a button inside a button is invalid and the
+    // inner one would swallow the card's press handlers.
+    <div className="relative">
+      <button
+        type="button"
+        // No confirmation dialog: speed matters more than accuracy, because
+        // void exists. Feedback is on pointer-down, never on release.
+        onPointerDown={start}
+        onPointerUp={() => cancel(true)}
+        onPointerLeave={() => cancel(false)}
+        onPointerCancel={() => cancel(false)}
+        onContextMenu={(e) => e.preventDefault()}
+        className={`flex min-h-[7.5rem] w-full touch-manipulation select-none flex-col justify-between rounded-2xl border p-3.5 text-left transition-[transform,background-color,border-color] duration-100 ease-out active:scale-[0.97] ${
+          staked
+            ? 'border-border bg-card active:bg-muted'
+            : 'border-dashed border-border/70 bg-card/40 active:bg-muted/60'
         }`}
       >
-        {formatCents(total?.cents ?? 0)}
-      </span>
+        <span className="line-clamp-1 pr-8 text-[0.9rem] font-medium text-foreground/90">
+          {player.name}
+        </span>
 
-      <BuyInDots count={count} />
-    </button>
+        <span
+          className={`money-display text-[2rem] font-semibold ${
+            staked ? 'text-foreground' : 'text-muted-foreground/50'
+          }`}
+        >
+          {formatCents(total?.cents ?? 0)}
+        </span>
+
+        <BuyInDots count={count} />
+      </button>
+
+      {/* Without this, a custom amount, a note and voiding are reachable only
+          by holding the card, with nothing on screen saying so. */}
+      <button
+        type="button"
+        onClick={onLongPress}
+        aria-label={`More options for ${player.name}`}
+        className="absolute right-1 top-1 flex size-11 touch-manipulation items-center justify-center rounded-xl text-muted-foreground transition-transform duration-100 active:scale-90 active:bg-muted"
+      >
+        <svg viewBox="0 0 20 20" aria-hidden className="size-5 fill-current">
+          <circle cx="4" cy="10" r="1.6" />
+          <circle cx="10" cy="10" r="1.6" />
+          <circle cx="16" cy="10" r="1.6" />
+        </svg>
+      </button>
+    </div>
   )
 }
 
