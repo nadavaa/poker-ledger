@@ -1,6 +1,10 @@
 'use client'
 
+'use client'
+
+import { useState } from 'react'
 import { formatCents } from '@/lib/money'
+import { Button } from '@/components/ui/button'
 import type { Buyin } from './use-game-buyins'
 
 function time(iso: string) {
@@ -18,11 +22,18 @@ export function ActivityFeed({
   buyins,
   names,
   adminMemberId,
+  /** Keeps the page a bounded length; the feed runs all night otherwise. */
+  limit = 8,
 }: {
   buyins: Buyin[]
   names: Map<string, string>
   adminMemberId: string
+  limit?: number
 }) {
+  const [showAll, setShowAll] = useState(false)
+  const shown = showAll ? buyins : buyins.slice(0, limit)
+  const hidden = buyins.length - shown.length
+
   if (buyins.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
@@ -32,8 +43,9 @@ export function ActivityFeed({
   }
 
   return (
+    <>
     <ul className="flex flex-col gap-1.5">
-      {buyins.map((b) => {
+      {shown.map((b) => {
         // The admin logging their own buy-in gets a marker. Nobody will cheat;
         // the reason nobody will is that the log makes it pointless.
         const selfLogged =
@@ -78,5 +90,16 @@ export function ActivityFeed({
         )
       })}
     </ul>
+    {hidden > 0 && (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        onClick={() => setShowAll(true)}
+      >
+        Show {hidden} earlier
+      </Button>
+    )}
+    </>
   )
 }
