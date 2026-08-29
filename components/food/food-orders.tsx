@@ -376,7 +376,7 @@ function OrderForm({
             return (
               <div
                 key={p.memberId}
-                className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5"
+                className="flex min-h-14 items-center gap-2 rounded-lg border border-border px-3 py-2"
               >
                 <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
                   <input
@@ -406,7 +406,7 @@ function OrderForm({
                     }
                     placeholder="even"
                     aria-label={`Set amount for ${p.name}`}
-                    className="h-8 w-24 text-center"
+                    className="w-28 text-center"
                   />
                 )}
               </div>
