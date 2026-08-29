@@ -158,7 +158,7 @@ export function TransferCard({
     <Card>
       <CardContent className="flex items-center justify-between gap-3 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm">
+          <p className="truncate text-base">
             {isPayer ? (
               <>
                 <span className="font-medium">Pay {payeeName}</span>{' '}
@@ -197,7 +197,9 @@ export function TransferCard({
             </p>
           )}
 
-          <p className={`mt-0.5 flex items-center gap-1 text-xs ${line.tone}`}>
+          <p
+            className={`mt-1 flex items-center gap-1 text-[0.8125rem] ${line.tone}`}
+          >
             <span aria-hidden className="font-semibold">
               {line.glyph}
             </span>

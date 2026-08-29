@@ -55,7 +55,7 @@ export function ActivityFeed({
         return (
           <li
             key={b.id}
-            className={`flex items-baseline justify-between gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm ${
+            className={`flex items-baseline justify-between gap-2 rounded-xl border border-border/70 px-3 py-2.5 text-base ${
               b.voided_at ? 'opacity-45' : ''
             }`}
           >
@@ -74,7 +74,7 @@ export function ActivityFeed({
                 <span className="text-muted-foreground"> · logged own</span>
               )}
             </span>
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
               {b.voided_at
                 ? `voided${b.void_reason ? ` · ${b.void_reason}` : ''}`
                 : `${time(b.created_at)} · by ${
