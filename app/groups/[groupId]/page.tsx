@@ -166,10 +166,16 @@ export default async function GroupPage({
         </div>
       </header>
 
-      <GroupTabs key={activeTab} groupId={groupId} active={activeTab} />
+      {/* Distinct key prefixes: two siblings sharing a key breaks React's
+          reconciliation and strands the old node in the DOM. */}
+      <GroupTabs
+        key={`tabs-${activeTab}`}
+        groupId={groupId}
+        active={activeTab}
+      />
 
       <div
-        key={activeTab}
+        key={`panel-${activeTab}`}
         className="flex animate-[tab-in_220ms_cubic-bezier(0.23,1,0.32,1)] flex-col gap-4"
       >
       {activeTab === 'stats' ? (
