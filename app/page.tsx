@@ -99,11 +99,6 @@ export default async function HomePage({
             Profile
           </Button>
           <ThemeToggle />
-          <form action={signOut}>
-            <Button variant="ghost" size="sm" type="submit">
-              Sign out
-            </Button>
-          </form>
         </div>
       </header>
 
@@ -209,6 +204,13 @@ export default async function HomePage({
           </Card>
         </section>
       )}
+      {/* Away from everything else: it used to sit 8px from Profile, and in an
+          installed PWA a mis-tap means signing back in with Google mid-game. */}
+      <form action={signOut} className="mt-2 flex justify-center">
+        <Button variant="ghost" size="sm" type="submit">
+          Sign out
+        </Button>
+      </form>
     </main>
   )
 }
