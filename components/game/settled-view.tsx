@@ -208,16 +208,31 @@ export function SettledView({
             )
           }
 
-          return (isAdmin ? transfers : outstanding).map((t) => (
-            <TransferCard
-              key={`${t.id}:${t.status}`}
-              transfer={t}
-              role={settlementRole(t, myMemberId)}
-              names={names}
-              paymentSources={paymentSources}
-              venmoNote={venmoNote}
-              isGameAdmin={isAdmin}
-            />
+          const shown = isAdmin ? transfers : outstanding
+          // Poker and food stay separate line items, even between the same
+          // two people: they are two different debts.
+          const groups: { label: string; rows: typeof shown }[] = [
+            { label: 'Poker', rows: shown.filter((t) => t.kind !== 'food') },
+            { label: 'Food', rows: shown.filter((t) => t.kind === 'food') },
+          ].filter((g) => g.rows.length > 0)
+
+          return groups.map((g) => (
+            <div key={g.label} className="flex flex-col gap-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                {g.label}
+              </p>
+              {g.rows.map((t) => (
+                <TransferCard
+                  key={`${t.id}:${t.status}`}
+                  transfer={t}
+                  role={settlementRole(t, myMemberId)}
+                  names={names}
+                  paymentSources={paymentSources}
+                  venmoNote={venmoNote}
+                  isGameAdmin={isAdmin}
+                />
+              ))}
+            </div>
           ))
         })()}
 

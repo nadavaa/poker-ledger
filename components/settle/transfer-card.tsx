@@ -19,6 +19,7 @@ export type TransferRow = {
   status: string
   confirmedAt: string | null
   confirmedByMemberId: string | null
+  kind: 'poker' | 'food'
 }
 
 function formatDay(iso: string) {

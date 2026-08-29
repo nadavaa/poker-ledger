@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
 import { centsToChips, formatCents } from '@/lib/money'
 import type { PaymentSources } from '@/lib/payment'
+import { FoodOrders, type FoodOrder } from '@/components/food/food-orders'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BuyInGrid } from '@/components/game/buy-in-grid'
@@ -86,6 +87,7 @@ export default async function GamePage({
     { data: adjustments },
     { data: progressRows },
     { data: paymentRows },
+    { data: foodRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -114,7 +116,7 @@ export default async function GamePage({
     supabase
       .from('settlements')
       .select(
-        'id, from_member_id, to_member_id, amount_cents, status, confirmed_at, confirmed_by_member_id'
+        'id, from_member_id, to_member_id, amount_cents, status, confirmed_at, confirmed_by_member_id, kind'
       )
       .eq('game_id', gameId)
       .order('amount_cents', { ascending: false }),
@@ -132,6 +134,15 @@ export default async function GamePage({
     settled
       ? supabase.rpc('game_payment_details', { p_game_id: gameId })
       : Promise.resolve({ data: null }),
+    // RLS returns only orders this viewer is part of, or all of them if they
+    // run the game.
+    supabase
+      .from('food_orders')
+      .select(
+        'id, paid_by_member_id, description, total_cents, created_by_member_id, food_order_shares(member_id, share_cents, is_fixed)'
+      )
+      .eq('game_id', gameId)
+      .order('created_at'),
   ])
 
   const progress = progressRows?.[0] ?? { total: 0, confirmed: 0 }
@@ -150,6 +161,23 @@ export default async function GamePage({
   const players = confirmed.map((s) => ({
     memberId: s.member_id,
     name: s.group_members?.display_name ?? 'Unknown',
+  }))
+  const foodPlayers = confirmed.map((s) => ({
+    memberId: s.member_id,
+    name: s.group_members?.display_name ?? 'Unknown',
+    signupOrder: s.signup_order,
+  }))
+  const foodOrders: FoodOrder[] = (foodRows ?? []).map((o) => ({
+    id: o.id,
+    paidByMemberId: o.paid_by_member_id,
+    description: o.description,
+    totalCents: o.total_cents,
+    createdByMemberId: o.created_by_member_id,
+    shares: (o.food_order_shares ?? []).map((sh) => ({
+      memberId: sh.member_id,
+      shareCents: sh.share_cents,
+      isFixed: sh.is_fixed,
+    })),
   }))
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
   const paymentSources = new Map<string, PaymentSources>(
@@ -436,6 +464,7 @@ export default async function GamePage({
             status: s.status,
             confirmedAt: s.confirmed_at,
             confirmedByMemberId: s.confirmed_by_member_id,
+            kind: s.kind,
           }))}
           adjustments={(adjustments ?? []).map((a) => ({
             id: a.id,
@@ -482,6 +511,16 @@ export default async function GamePage({
             End game &amp; count chips
           </Button>
         </form>
+      )}
+
+      {(game.status === 'active' || settled) && (
+        <FoodOrders
+          gameId={gameId}
+          players={foodPlayers}
+          orders={foodOrders}
+          myMemberId={myMember?.id ?? null}
+          isGameAdmin={isAdmin}
+        />
       )}
 
       {!settled && !cancelled && (

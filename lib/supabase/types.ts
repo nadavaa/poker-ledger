@@ -373,6 +373,61 @@ export type Database = {
         }
         Relationships: []
       }
+      food_orders: {
+        Row: {
+          id: string
+          game_id: string
+          paid_by_member_id: string
+          description: string | null
+          total_cents: number
+          created_by_member_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          paid_by_member_id: string
+          description?: string | null
+          total_cents: number
+          created_by_member_id: string
+          created_at?: string
+        }
+        Update: {
+          description?: string | null
+          total_cents?: number
+          paid_by_member_id?: string
+        }
+        Relationships: []
+      }
+      food_order_shares: {
+        Row: {
+          id: string
+          food_order_id: string
+          member_id: string
+          share_cents: number
+          is_fixed: boolean
+        }
+        Insert: {
+          id?: string
+          food_order_id: string
+          member_id: string
+          share_cents: number
+          is_fixed?: boolean
+        }
+        Update: {
+          share_cents?: number
+          is_fixed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'food_order_shares_food_order_id_fkey'
+            columns: ['food_order_id']
+            isOneToOne: false
+            referencedRelation: 'food_orders'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       settlements: {
         Row: {
           id: string
@@ -385,6 +440,8 @@ export type Database = {
           confirmed_at: string | null
           confirmed_by_member_id: string | null
           created_at: string
+          kind: Database['public']['Enums']['settlement_kind']
+          food_order_id: string | null
         }
         Insert: {
           id?: string
@@ -610,6 +667,33 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_food_order: {
+        Args: {
+          p_game_id: string
+          p_order_id: string | null
+          p_paid_by: string
+          p_description: string | null
+          p_total_cents: number
+          p_shares: Json
+        }
+        Returns: string
+      }
+      food_order_confirmed_payers: {
+        Args: { p_order_id: string }
+        Returns: { display_name: string; amount_cents: number }[]
+      }
+      delete_food_order: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      can_see_food_order: {
+        Args: { oid: string }
+        Returns: boolean
+      }
+      can_edit_food_order: {
+        Args: { oid: string }
+        Returns: boolean
+      }
       delete_group: {
         Args: { p_group_id: string }
         Returns: undefined
@@ -669,6 +753,7 @@ export type Database = {
     }
     Enums: {
       settlement_status: 'pending' | 'paid' | 'confirmed' | 'deferred'
+      settlement_kind: 'poker' | 'food'
       member_role: 'owner' | 'admin' | 'member'
       game_status:
         | 'scheduled'

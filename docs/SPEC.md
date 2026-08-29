@@ -447,6 +447,35 @@ Also hand-write these cases: everyone breaks even, one big winner and eight lose
 
 ---
 
+## 6.4 Food orders
+
+One person fronts the delivery and everyone who ate pays them back. A game can
+hold several — the late-night second order is the normal case.
+
+**It never touches the poker maths.** Food produces its own `settlements` rows
+with `kind = 'food'`, and `settle_game()` only ever deletes and rewrites the
+`poker` rows, so re-settling a game leaves food debts alone and adding an order
+to an already-settled game creates food rows without reopening the poker
+settlement. Two people can owe each other in both directions at once, as two
+separate line items, which is correct: "you won $80 at cards" and "you owe me
+$25 for the pizza" are different conversations.
+
+**The split is exact.** `lib/split.ts` is pure like `settle.ts`: fixed amounts
+come off the top, the remainder divides evenly, and indivisible cents go one
+each to the earliest signups. Shares sum to the total exactly — never round
+each share independently, or the receipt stops matching. `save_food_order()`
+re-checks the sum, so a bad payload can't write a split that doesn't add up.
+
+Blocked: fixed shares over the total, an all-fixed split that misses the total,
+nobody selected, a total of zero or less. Allowed with a warning: fixed shares
+using up the whole total, leaving the others at nothing.
+
+**Visibility follows the settlement rule.** Only participants and the game
+admin can see an order at all. Participants see the full breakdown so they can
+check their share against the receipt. Editing or deleting is limited to
+whoever added it or the game admin, and is refused once any of its settlements
+is confirmed — the screen names who has already paid.
+
 ## 7. Money movement
 
 No money passes through the app. You compute who owes whom, deep-link into Venmo with the amount prefilled, and track confirmation state. This keeps you entirely out of money transmitter territory, which is where a Stripe Connect integration would drag you.
