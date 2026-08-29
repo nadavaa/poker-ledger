@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,21 @@ function LoginForm() {
 
   return (
     <Card className="w-full max-w-sm">
+      {/* The photo has a white background, so it sits on a light tile rather
+          than bare — otherwise it's a glaring rectangle in dark mode. */}
+      <div className="flex justify-center px-6 pt-6">
+        <div className="overflow-hidden rounded-2xl border border-border bg-white px-3 py-1">
+          <Image
+            src="/lamb.jpg"
+            alt=""
+            width={661}
+            height={360}
+            priority
+            className="h-24 w-auto"
+          />
+        </div>
+      </div>
+
       <CardHeader>
         <CardTitle>Poker Ledger</CardTitle>
       </CardHeader>
