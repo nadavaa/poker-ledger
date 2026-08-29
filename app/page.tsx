@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/supabase/auth'
 import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,13 +17,8 @@ export default async function HomePage({
   const { error: errorMessage } = await searchParams
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const user = await getSessionUser(supabase)
+  if (!user) redirect('/login')
 
   const [{ data: profile }, { data: memberships }] = await Promise.all([
     supabase.from('profiles').select('display_name').eq('id', user.id).single(),

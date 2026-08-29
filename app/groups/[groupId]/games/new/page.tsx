@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/supabase/auth'
 import { dollarsToCents } from '@/lib/money'
 import { NewGameForm } from './new-game-form'
 
@@ -15,9 +16,7 @@ export default async function NewGamePage({
   const { error: errorMessage } = await searchParams
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
   // The group comes from the route now; RLS hides groups you don't belong to.

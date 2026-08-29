@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/supabase/auth'
 import { centsToChips, formatCents } from '@/lib/money'
 import { resolveVenmoHandle } from '@/lib/venmo'
 import { Button } from '@/components/ui/button'
@@ -55,9 +56,7 @@ export default async function GamePage({
   const { error: errorMessage } = await searchParams
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
   const { data: game } = await supabase
@@ -71,11 +70,21 @@ export default async function GamePage({
   // RLS hides games in groups you don't belong to.
   if (!game) notFound()
 
+  // Status is known now, which is all the remaining queries needed to know.
+  // They used to run in three more waves behind this one; there is no
+  // dependency between them, so they go together.
+  const counting = game.status === 'reconciling'
+  const settled = game.status === 'settled'
+  const cancelled = game.status === 'cancelled'
+
   const [
     { data: signups },
     { data: members },
     { data: buyins },
     { data: totals },
+    { data: settlements },
+    { data: adjustments },
+    { data: progressRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -83,8 +92,12 @@ export default async function GamePage({
       .eq('game_id', gameId)
       .order('signup_order'),
     supabase
+      // The profile handle comes back embedded rather than as its own round
+      // trip; group mates can read each other's profiles.
       .from('group_members')
-      .select('id, display_name, profile_id, is_active, role, venmo_handle')
+      .select(
+        'id, display_name, profile_id, is_active, role, venmo_handle, profiles(venmo_handle)'
+      )
       .eq('group_id', game.group_id)
       .eq('is_active', true)
       .order('display_name'),
@@ -99,13 +112,6 @@ export default async function GamePage({
         'member_id, display_name, buyin_cents, buyin_chips, cashout_cents, cashout_chips, adjustment_cents, net_cents'
       )
       .eq('game_id', gameId),
-  ])
-
-  const counting = game.status === 'reconciling'
-  const settled = game.status === 'settled'
-  const cancelled = game.status === 'cancelled'
-
-  const [{ data: settlements }, { data: adjustments }] = await Promise.all([
     supabase
       .from('settlements')
       .select(
@@ -119,27 +125,12 @@ export default async function GamePage({
           .select('id, member_id, amount_cents, reason')
           .eq('game_id', gameId)
       : Promise.resolve({ data: null }),
+    settled
+      ? supabase.rpc('game_settlement_progress', { p_game_id: gameId })
+      : Promise.resolve({ data: null }),
   ])
 
-  const { data: progressRows } = settled
-    ? await supabase.rpc('game_settlement_progress', { p_game_id: gameId })
-    : { data: null }
   const progress = progressRows?.[0] ?? { total: 0, confirmed: 0 }
-
-  // Most people set their handle on their profile, not on a member row, so
-  // the member value is only an override.
-  const profileIds = (members ?? [])
-    .map((m) => m.profile_id)
-    .filter((id): id is string => Boolean(id))
-  const { data: memberProfiles } = profileIds.length
-    ? await supabase
-        .from('profiles')
-        .select('id, venmo_handle')
-        .in('id', profileIds)
-    : { data: [] }
-  const profileHandle = new Map(
-    (memberProfiles ?? []).map((p) => [p.id, p.venmo_handle])
-  )
 
   const myMember = members?.find((m) => m.profile_id === user.id) ?? null
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
@@ -160,10 +151,7 @@ export default async function GamePage({
   const venmoOf = new Map(
     (members ?? []).map((m) => [
       m.id,
-      resolveVenmoHandle(
-        m.venmo_handle,
-        m.profile_id ? profileHandle.get(m.profile_id) : null
-      ),
+      resolveVenmoHandle(m.venmo_handle, m.profiles?.venmo_handle),
     ])
   )
 
