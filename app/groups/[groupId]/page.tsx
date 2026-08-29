@@ -11,6 +11,7 @@ import { MyStats } from '@/components/group/my-stats'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { computeStats, runningBalance } from '@/lib/stats'
 import { BalanceChart } from '@/components/group/balance-chart'
+import { GroupTabs } from '@/components/group/group-tabs'
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -138,14 +139,16 @@ export default async function GroupPage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header className="flex items-center justify-between gap-2">
+      <header className="flex flex-col gap-3">
         <div>
           <Link href="/" className="text-xs text-muted-foreground">
             &larr; All groups
           </Link>
-          <h1 className="text-lg font-semibold">{group.name}</h1>
+          <h1 className="text-lg font-semibold tracking-tight">{group.name}</h1>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Their own row: crowding these beside the title wrapped the group
+            name onto a second line on a phone. */}
+        <div className="flex flex-wrap items-center gap-2">
           {canManage && (
             <Button
               variant="outline"
@@ -164,43 +167,12 @@ export default async function GroupPage({
         </div>
       </header>
 
-      {/* Tabs live in the URL so back and shared links land where you expect. */}
-      <nav className="flex gap-1 rounded-2xl bg-muted/60 p-1">
-        <Link
-          href={`/groups/${groupId}?tab=games`}
-          aria-current={activeTab === 'games' ? 'page' : undefined}
-          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm transition-colors ${
-            activeTab === 'games'
-              ? 'bg-card font-semibold text-foreground shadow-sm'
-              : 'text-muted-foreground'
-          }`}
-        >
-          Games
-        </Link>
-        <Link
-          href={`/groups/${groupId}?tab=members`}
-          aria-current={activeTab === 'members' ? 'page' : undefined}
-          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm transition-colors ${
-            activeTab === 'members'
-              ? 'bg-card font-semibold text-foreground shadow-sm'
-              : 'text-muted-foreground'
-          }`}
-        >
-          Members
-        </Link>
-        <Link
-          href={`/groups/${groupId}?tab=stats`}
-          aria-current={activeTab === 'stats' ? 'page' : undefined}
-          className={`flex-1 rounded-xl px-3 py-2 text-center text-sm transition-colors ${
-            activeTab === 'stats'
-              ? 'bg-card font-semibold text-foreground shadow-sm'
-              : 'text-muted-foreground'
-          }`}
-        >
-          My Stats
-        </Link>
-      </nav>
+      <GroupTabs key={activeTab} groupId={groupId} active={activeTab} />
 
+      <div
+        key={activeTab}
+        className="flex animate-[tab-in_220ms_cubic-bezier(0.23,1,0.32,1)] flex-col gap-4"
+      >
       {activeTab === 'stats' ? (
         <>
           <MyStats stats={myStats} />
@@ -386,6 +358,7 @@ export default async function GroupPage({
           )}
         </>
       )}
+      </div>
     </main>
   )
 }
