@@ -36,7 +36,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-pressed={dark}
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="flex size-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition-[transform,color,background-color] duration-100 active:scale-95 active:bg-muted"
+      className="flex size-11 items-center justify-center rounded-xl border border-border text-muted-foreground transition-[transform,color,background-color] duration-100 active:scale-95 active:bg-muted"
     >
       {dark ? (
         // Moon

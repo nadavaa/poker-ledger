@@ -8,11 +8,11 @@ export default function Loading() {
         <div className="flex gap-2">
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-28" />
-          <Skeleton className="size-9" />
+          <Skeleton className="size-11" />
         </div>
       </div>
       {/* Same height as the real segmented control, so nothing shifts. */}
-      <Skeleton className="h-[2.75rem] rounded-2xl" />
+      <Skeleton className="h-[3.25rem] rounded-2xl" />
       <Skeleton className="h-12 rounded-xl" />
       <SkeletonRows count={3} className="h-[4.5rem]" />
     </main>

@@ -47,7 +47,7 @@ export function GroupTabs({
           scroll={false}
           aria-current={active === t.key ? 'page' : undefined}
           onClick={() => setOptimistic(t.key)}
-          className={`relative z-10 flex-1 rounded-xl px-3 py-2 text-center text-sm transition-[color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] ${
+          className={`relative z-10 flex-1 rounded-xl px-3 py-3 text-center text-sm transition-[color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] ${
             optimistic === t.key
               ? 'font-semibold text-foreground'
               : 'text-muted-foreground'
