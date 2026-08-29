@@ -651,6 +651,7 @@ PWA manifest and service worker, install prompt, offline write queue, charts of 
   venmo.ts
 /supabase
   /migrations
+  reset-test-data.sql   -- wipes game data, kept out of migrations on purpose
 ```
 
 Two rules that will save you pain: all currency conversion lives in `money.ts` and nowhere else, and `settle.ts` has zero imports from Supabase.
