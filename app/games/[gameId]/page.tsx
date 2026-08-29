@@ -205,6 +205,12 @@ export default async function GamePage({
     .map((m) => ({ id: m.id, name: m.display_name }))
 
   const liveBuyins = (buyins ?? []).filter((b) => !b.voided_at)
+  // Once your money is in the pot you can't take yourself out of the game;
+  // the policy enforces it, this only decides what to draw.
+  const myLiveBuyins = myMember
+    ? liveBuyins.filter((b) => b.member_id === myMember.id).length
+    : 0
+  const stuckInGame = game.status === 'active' && myLiveBuyins > 0
   const blockingSettlements = (settlements ?? []).filter(
     (s) => s.status === 'pending' || s.status === 'paid'
   )
@@ -354,11 +360,19 @@ export default async function GamePage({
           <CardContent className="flex items-center justify-between gap-2 py-3">
             <span className="text-sm font-medium">{myStatusLabel}</span>
             {mySignup && mySignup.status !== 'withdrawn' ? (
-              <form action={withdraw}>
-                <Button variant="outline" size="sm" type="submit">
-                  Withdraw
-                </Button>
-              </form>
+              stuckInGame ? (
+                // A disabled button with no reason is just a dead end.
+                <span className="max-w-[60%] text-right text-xs text-muted-foreground">
+                  You&apos;re in this game — ask the admin to void your buy-ins
+                  first.
+                </span>
+              ) : (
+                <form action={withdraw}>
+                  <Button variant="outline" size="sm" type="submit">
+                    Withdraw
+                  </Button>
+                </form>
+              )
             ) : (
               <form action={joinGame}>
                 <Button size="sm" type="submit">

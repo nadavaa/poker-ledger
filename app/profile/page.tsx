@@ -1,14 +1,10 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
 import { formatCents } from '@/lib/money'
-import { formatPhone } from '@/lib/payment'
-import { Button } from '@/components/ui/button'
+import { ProfileForm } from '@/components/profile/profile-form'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 function formatDay(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -18,12 +14,7 @@ function formatDay(iso: string) {
   })
 }
 
-export default async function ProfilePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string; saved?: string }>
-}) {
-  const { error: errorMessage, saved } = await searchParams
+export default async function ProfilePage() {
   const supabase = await createClient()
 
   const user = await getSessionUser(supabase)
@@ -80,38 +71,6 @@ export default async function ProfilePage({
   // Only games I actually played in, newest first.
   const history = (games ?? []).filter((g) => netByGame.has(g.id))
 
-  async function saveProfile(formData: FormData) {
-    'use server'
-    const supabase = await createClient()
-    const name = String(formData.get('display_name') ?? '').trim()
-    const handle = String(formData.get('venmo_handle') ?? '').trim()
-    const phone = String(formData.get('phone_number') ?? '').trim()
-    const preferred = String(formData.get('preferred') ?? '').trim()
-
-    if (name) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ display_name: name })
-        .eq('id', user!.id)
-      if (error) {
-        redirect(`/profile?error=${encodeURIComponent(error.message)}`)
-      }
-    }
-
-    // Goes to the profile and to every member row, so what other players see
-    // actually resolves. The phone is normalised to E.164 in the database.
-    const { error } = await supabase.rpc('set_my_payment_details', {
-      p_venmo_handle: handle || null,
-      p_phone: phone || null,
-      p_preferred: preferred || null,
-    })
-    if (error) {
-      redirect(`/profile?error=${encodeURIComponent(error.message)}`)
-    }
-    revalidatePath('/profile')
-    redirect('/profile?saved=1')
-  }
-
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
       <header>
@@ -121,83 +80,17 @@ export default async function ProfilePage({
         <h1 className="text-lg font-semibold tracking-tight">Profile</h1>
       </header>
 
-      {errorMessage && (
-        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
-          {errorMessage}
-        </p>
-      )}
-      {saved && (
-        <p className="rounded-xl bg-up-soft px-3 py-2 text-sm text-up">
-          Saved.
-        </p>
-      )}
-
       <Card>
         <CardContent className="py-4">
-          <form action={saveProfile} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="display_name">Display name</Label>
-              <Input
-                id="display_name"
-                name="display_name"
-                required
-                maxLength={80}
-                defaultValue={profile?.display_name ?? ''}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="venmo_handle">Venmo handle</Label>
-              <Input
-                id="venmo_handle"
-                name="venmo_handle"
-                maxLength={60}
-                placeholder="your-venmo"
-                defaultValue={payment?.venmo_handle ?? ''}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone_number">Phone for Zelle</Label>
-              <Input
-                id="phone_number"
-                name="phone_number"
-                type="tel"
-                inputMode="tel"
-                maxLength={20}
-                placeholder="(555) 123-4567"
-                defaultValue={
-                  payment?.phone_number
-                    ? formatPhone(payment.phone_number)
-                    : ''
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Only shown to someone who owes you money from a settled game,
-                and to that game&apos;s admin. Never on the members list.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="preferred">Preferred method</Label>
-              <select
-                id="preferred"
-                name="preferred"
-                defaultValue={payment?.preferred_payment_method ?? ''}
-                className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
-              >
-                <option value="">No preference</option>
-                <option value="venmo">Venmo</option>
-                <option value="zelle">Zelle</option>
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Whichever you pick shows first when someone pays you. Fill in
-                either, both, or neither.
-              </p>
-            </div>
-            <Button className="h-11 rounded-xl" type="submit">
-              Save
-            </Button>
-          </form>
+          <ProfileForm
+            userId={user.id}
+            initial={{
+              displayName: profile?.display_name ?? '',
+              venmoHandle: payment?.venmo_handle ?? null,
+              phone: payment?.phone_number ?? null,
+              preferred: payment?.preferred_payment_method ?? null,
+            }}
+          />
         </CardContent>
       </Card>
 

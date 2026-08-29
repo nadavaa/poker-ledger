@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { formatPhone, resolvePaymentOptions } from './payment'
+import { formatPhone, parseUsPhone, resolvePaymentOptions } from './payment'
 
 const VENMO = 'gilad'
-const PHONE = '+15551234567'
+const PHONE = '+15552345678'
 
 describe('resolvePaymentOptions', () => {
   it('offers venmo alone when that is all there is', () => {
@@ -92,10 +92,44 @@ describe('resolvePaymentOptions', () => {
 
 describe('formatPhone', () => {
   it('renders E.164 as a US number', () => {
-    expect(formatPhone('+15551234567')).toBe('(555) 123-4567')
+    expect(formatPhone('+15552345678')).toBe('(555) 234-5678')
   })
 
   it('leaves anything unexpected alone', () => {
     expect(formatPhone('+442071234567')).toBe('+442071234567')
+  })
+})
+
+describe('parseUsPhone', () => {
+  it('normalises anything a person might type to E.164', () => {
+    for (const typed of [
+      '5552345678',
+      '(555) 234-5678',
+      '555-234-5678',
+      '+1 555 234 5678',
+      '1 (555) 234 5678',
+    ]) {
+      expect(parseUsPhone(typed)).toEqual({ value: '+15552345678', valid: true })
+    }
+  })
+
+  it('treats an empty field as valid and unset', () => {
+    expect(parseUsPhone('')).toEqual({ value: null, valid: true })
+    expect(parseUsPhone('   ')).toEqual({ value: null, valid: true })
+    expect(parseUsPhone(null)).toEqual({ value: null, valid: true })
+  })
+
+  it('rejects wrong lengths and impossible codes', () => {
+    expect(parseUsPhone('12345').valid).toBe(false)
+    expect(parseUsPhone('555123456789').valid).toBe(false)
+    expect(parseUsPhone('0551234567').valid).toBe(false) // area code starts 0
+    expect(parseUsPhone('1551234567').valid).toBe(false) // area code starts 1
+    expect(parseUsPhone('5550234567').valid).toBe(false) // exchange starts 0
+  })
+
+  it('round-trips with formatPhone', () => {
+    const { value } = parseUsPhone('(555) 234-5678')
+    expect(formatPhone(value!)).toBe('(555) 234-5678')
+    expect(parseUsPhone(formatPhone(value!)).value).toBe(value)
   })
 })

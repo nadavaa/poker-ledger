@@ -64,6 +64,34 @@ export function resolvePaymentOptions({
   return { primary: ordered[0], secondary: ordered[1] ?? null }
 }
 
+export type PhoneParse = {
+  /** E.164, or null when the field is empty. */
+  value: string | null
+  /** False only for input that is present but not a US number. */
+  valid: boolean
+}
+
+/**
+ * The client-side twin of normalize_us_phone() in Postgres. Kept in step with
+ * it deliberately: the database is what actually stores the number, but the
+ * form has to compare a typed "(555) 123-4567" against a stored
+ * "+15551234567" without calling out to decide whether anything changed.
+ */
+export function parseUsPhone(raw: string | null | undefined): PhoneParse {
+  const digits = (raw ?? '').replace(/\D/g, '')
+  if (digits === '') return { value: null, valid: true }
+
+  const local = digits.length === 11 && digits.startsWith('1')
+    ? digits.slice(1)
+    : digits
+  if (local.length !== 10) return { value: null, valid: false }
+  // Neither the area code nor the exchange may start with 0 or 1.
+  if ('01'.includes(local[0]) || '01'.includes(local[3])) {
+    return { value: null, valid: false }
+  }
+  return { value: `+1${local}`, valid: true }
+}
+
 /** Phone numbers are stored in E.164; this only guards against blanks. */
 function normalizePhone(raw: string | null | undefined): string | null {
   const trimmed = raw?.trim()

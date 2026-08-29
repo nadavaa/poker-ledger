@@ -686,6 +686,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
+      can_withdraw_from_game: {
+        Args: { gid: string; mid: string }
+        Returns: boolean
+      }
       can_see_food_order: {
         Args: { oid: string }
         Returns: boolean
