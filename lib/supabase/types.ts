@@ -571,6 +571,25 @@ export type Database = {
         Args: { p_member_id: string }
         Returns: undefined
       }
+      set_member_role: {
+        Args: {
+          p_member_id: string
+          p_role: Database['public']['Enums']['member_role']
+        }
+        Returns: undefined
+      }
+      delete_group: {
+        Args: { p_group_id: string }
+        Returns: undefined
+      }
+      group_delete_preview: {
+        Args: { p_group_id: string }
+        Returns: {
+          members: number
+          games: number
+          open_settlements: number
+        }[]
+      }
       is_group_owner: {
         Args: { gid: string }
         Returns: boolean

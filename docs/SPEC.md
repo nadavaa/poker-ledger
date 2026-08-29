@@ -485,7 +485,10 @@ Undo is available only while the row is `paid`. Once the payee confirms, the row
 Supabase magic link plus Google OAuth. Skip phone OTP, it needs Twilio and costs money. Invite links look like `/join/[inviteCode]`, and a claim flow at `/claim/[claimCode]` lets an existing unclaimed member attach their account.
 
 ### Edit group
-Owner/admin only. Group name and the defaults for the *next* game — buy-in, chip ratio, seat limit — plus member management: add, remove, and an "Inactive members" section, collapsed, with Reactivate. Changing a default never touches an existing game: `create_game` snapshots buy-in, ratio and seat limit onto the `games` row, and every screen reads the game's own columns thereafter. The group defaults are read in exactly one place, prefilling the new-game form.
+Owner/admin only. **Roles and deletion are the owner's alone** — an admin managing the roster is not the same as an admin promoting themselves. A group can hold any number of owners; `role` lives on each member row with nothing forcing it unique, so this was always possible and only needed a control. The database refuses to let the last owner step down, because a group with no owner can neither be administered nor deleted.
+
+**Deleting a group** takes every game, buy-in, cashout and settlement in it. Owners only, behind a typed confirmation stating the counts, and it warns when payments are still outstanding — it does not block, since a defunct group whose debts will never be settled would otherwise be undeletable. This is the one path that destroys buy-ins: the append-only trigger permits a DELETE only under a transaction-local flag that `delete_group()` alone sets, so the audit trail still cannot be *edited*, only destroyed wholesale and deliberately.
+ Group name and the defaults for the *next* game — buy-in, chip ratio, seat limit — plus member management: add, remove, and an "Inactive members" section, collapsed, with Reactivate. Changing a default never touches an existing game: `create_game` snapshots buy-in, ratio and seat limit onto the `games` row, and every screen reads the game's own columns thereafter. The group defaults are read in exactly one place, prefilling the new-game form.
 
 ### Group screen
 Two tabs, with the active one in the URL so back and shared links work.

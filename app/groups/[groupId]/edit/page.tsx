@@ -12,6 +12,8 @@ import {
   RemoveMemberButton,
   ReactivateMemberButton,
 } from '@/components/group/member-actions'
+import { MemberRoleSelect } from '@/components/group/member-role-select'
+import { DeleteGroup } from '@/components/group/delete-group'
 
 export default async function EditGroupPage({
   params,
@@ -49,6 +51,8 @@ export default async function EditGroupPage({
   if (me?.role !== 'owner' && me?.role !== 'admin') {
     redirect(`/groups/${groupId}`)
   }
+  // Roles and deletion are the owner's, not an admin's.
+  const isOwner = me.role === 'owner'
 
   const active = members?.filter((m) => m.is_active) ?? []
   const inactive = members?.filter((m) => !m.is_active) ?? []
@@ -222,14 +226,29 @@ export default async function EditGroupPage({
           >
             <span className="min-w-0 text-sm">
               <span className="font-medium">{m.display_name}</span>
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                {m.role}
-                {!m.profile_id && ' · unclaimed'}
-              </span>
+              {!m.profile_id && (
+                <span className="ml-1.5 text-xs text-muted-foreground">
+                  unclaimed
+                </span>
+              )}
+              {!isOwner && (
+                <span className="ml-1.5 text-xs text-muted-foreground">
+                  {m.role}
+                </span>
+              )}
             </span>
-            {m.role !== 'owner' && (
-              <RemoveMemberButton memberId={m.id} name={m.display_name} />
-            )}
+            <span className="flex items-center gap-2">
+              {isOwner ? (
+                <MemberRoleSelect
+                  memberId={m.id}
+                  role={m.role}
+                  name={m.display_name}
+                />
+              ) : null}
+              {m.role !== 'owner' && (
+                <RemoveMemberButton memberId={m.id} name={m.display_name} />
+              )}
+            </span>
           </div>
         ))}
       </section>
@@ -291,6 +310,7 @@ export default async function EditGroupPage({
           </div>
         </details>
       )}
+      {isOwner && <DeleteGroup groupId={groupId} groupName={group.name} />}
     </main>
   )
 }
