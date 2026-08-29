@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
 import { centsToChips, formatCents } from '@/lib/money'
-import { resolveVenmoHandle } from '@/lib/venmo'
+import type { PaymentSources } from '@/lib/payment'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BuyInGrid } from '@/components/game/buy-in-grid'
@@ -85,6 +85,7 @@ export default async function GamePage({
     { data: settlements },
     { data: adjustments },
     { data: progressRows },
+    { data: paymentRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -95,9 +96,7 @@ export default async function GamePage({
       // The profile handle comes back embedded rather than as its own round
       // trip; group mates can read each other's profiles.
       .from('group_members')
-      .select(
-        'id, display_name, profile_id, is_active, role, venmo_handle, profiles(venmo_handle)'
-      )
+      .select('id, display_name, profile_id, is_active, role')
       .eq('group_id', game.group_id)
       .eq('is_active', true)
       .order('display_name'),
@@ -128,6 +127,11 @@ export default async function GamePage({
     settled
       ? supabase.rpc('game_settlement_progress', { p_game_id: gameId })
       : Promise.resolve({ data: null }),
+    // Contact details come back only for settlements this viewer may act on;
+    // phone numbers are not readable from the tables at all.
+    settled
+      ? supabase.rpc('game_payment_details', { p_game_id: gameId })
+      : Promise.resolve({ data: null }),
   ])
 
   const progress = progressRows?.[0] ?? { total: 0, confirmed: 0 }
@@ -148,10 +152,16 @@ export default async function GamePage({
     name: s.group_members?.display_name ?? 'Unknown',
   }))
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
-  const venmoOf = new Map(
-    (members ?? []).map((m) => [
-      m.id,
-      resolveVenmoHandle(m.venmo_handle, m.profiles?.venmo_handle),
+  const paymentSources = new Map<string, PaymentSources>(
+    (paymentRows ?? []).map((r) => [
+      r.settlement_id,
+      {
+        memberVenmo: r.member_venmo,
+        profileVenmo: r.profile_venmo,
+        memberPhone: r.member_phone,
+        profilePhone: r.profile_phone,
+        preferred: r.preferred,
+      },
     ])
   )
 
@@ -434,7 +444,7 @@ export default async function GamePage({
             reason: a.reason,
           }))}
           names={nameOf}
-          venmoHandles={venmoOf}
+          paymentSources={paymentSources}
           myMemberId={myMember?.id ?? null}
           isAdmin={isAdmin}
           progress={progress}

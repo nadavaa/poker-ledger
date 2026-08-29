@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
 import { formatCents } from '@/lib/money'
+import { formatPhone } from '@/lib/payment'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -28,12 +29,15 @@ export default async function ProfilePage({
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: memberships }] = await Promise.all([
+  const [{ data: profile }, { data: payment }, { data: memberships }] =
+    await Promise.all([
     supabase
       .from('profiles')
-      .select('display_name, venmo_handle')
+      .select('display_name')
       .eq('id', user.id)
       .single(),
+    // phone_number isn't granted to anyone on the table, including you.
+    supabase.rpc('my_payment_details').maybeSingle(),
     supabase
       .from('group_members')
       .select('id, group_id, groups(name)')
@@ -81,6 +85,8 @@ export default async function ProfilePage({
     const supabase = await createClient()
     const name = String(formData.get('display_name') ?? '').trim()
     const handle = String(formData.get('venmo_handle') ?? '').trim()
+    const phone = String(formData.get('phone_number') ?? '').trim()
+    const preferred = String(formData.get('preferred') ?? '').trim()
 
     if (name) {
       const { error } = await supabase
@@ -92,10 +98,12 @@ export default async function ProfilePage({
       }
     }
 
-    // Goes to the profile and to every member row, so the Venmo buttons other
-    // players see actually resolve to a handle.
-    const { error } = await supabase.rpc('set_my_venmo_handle', {
-      p_handle: handle,
+    // Goes to the profile and to every member row, so what other players see
+    // actually resolves. The phone is normalised to E.164 in the database.
+    const { error } = await supabase.rpc('set_my_payment_details', {
+      p_venmo_handle: handle || null,
+      p_phone: phone || null,
+      p_preferred: preferred || null,
     })
     if (error) {
       redirect(`/profile?error=${encodeURIComponent(error.message)}`)
@@ -144,12 +152,46 @@ export default async function ProfilePage({
                 name="venmo_handle"
                 maxLength={60}
                 placeholder="your-venmo"
-                defaultValue={profile?.venmo_handle ?? ''}
+                defaultValue={payment?.venmo_handle ?? ''}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="phone_number">Phone for Zelle</Label>
+              <Input
+                id="phone_number"
+                name="phone_number"
+                type="tel"
+                inputMode="tel"
+                maxLength={20}
+                placeholder="(555) 123-4567"
+                defaultValue={
+                  payment?.phone_number
+                    ? formatPhone(payment.phone_number)
+                    : ''
+                }
               />
               <p className="text-xs text-muted-foreground">
-                Used to prefill the Venmo link when someone owes you. Leave it
-                blank and they&apos;ll get your name and the amount to copy
-                instead.
+                Only shown to someone who owes you money from a settled game,
+                and to that game&apos;s admin. Never on the members list.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="preferred">Preferred method</Label>
+              <select
+                id="preferred"
+                name="preferred"
+                defaultValue={payment?.preferred_payment_method ?? ''}
+                className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
+              >
+                <option value="">No preference</option>
+                <option value="venmo">Venmo</option>
+                <option value="zelle">Zelle</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Whichever you pick shows first when someone pays you. Fill in
+                either, both, or neither.
               </p>
             </div>
             <Button className="h-11 rounded-xl" type="submit">

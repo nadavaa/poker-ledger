@@ -463,6 +463,12 @@ export function venmoLink(handle: string, cents: number, note: string) {
 }
 ```
 
+**Zelle has no deep link.** It lives inside each bank's own app with no public URL scheme, so there is nothing to open. The payer gets the payee's number as selectable text with a copy button and a line saying to send it in their banking app. Do not invent a link.
+
+**A phone number is more sensitive than a Venmo handle.** A handle is a payment alias; a number reaches you. So `phone_number` is granted to nobody: it is absent from the column grants on both `profiles` and `group_members`, which means no query by any signed-in user can read it. RLS cannot help here — it filters rows, not columns — so the enforcement is the missing privilege, plus `game_payment_details()`, a security-definer function that returns contact details only for settlements where the caller is the payer or the game admin. Phone numbers never appear on the Members tab or anywhere in group browsing.
+
+Numbers are normalised to E.164 on save and validated as US, so one canonical format is stored and the raw input never is. Resolution follows the same rule as the Venmo handle: the group member row overrides the profile. A stated preference only picks the order — someone who prefers Zelle but has only a Venmo handle still gets a Venmo button, because a preference is not a reason to show the payer nothing.
+
 Caveats to build around: these URL schemes are undocumented and Venmo has changed them before. Always render a copy-to-clipboard fallback showing handle and amount as plain text, and always allow "mark as paid" independent of whether the link worked. Treat the deep link as a convenience, not a dependency.
 
 Settlement status flow: `pending` → payer taps Mark as Paid → `paid` → payee taps Confirm Received → `confirmed`. Add a `deferred` status for "I'll get you next week," which rolls the balance into the next game's settlement inputs (Phase 6).

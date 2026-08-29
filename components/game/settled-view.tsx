@@ -45,7 +45,7 @@ export function SettledView({
   transfers,
   adjustments,
   names,
-  venmoHandles,
+  paymentSources,
   myMemberId,
   isAdmin,
   progress,
@@ -59,7 +59,7 @@ export function SettledView({
   transfers: TransferRow[]
   adjustments: AdjustmentRow[]
   names: Map<string, string>
-  venmoHandles: Map<string, string | null>
+  paymentSources: Map<string, import('@/lib/payment').PaymentSources>
   myMemberId: string | null
   isAdmin: boolean
   progress: SettlementProgress
@@ -214,7 +214,7 @@ export function SettledView({
               transfer={t}
               role={settlementRole(t, myMemberId)}
               names={names}
-              venmoHandles={venmoHandles}
+              paymentSources={paymentSources}
               venmoNote={venmoNote}
               isGameAdmin={isAdmin}
             />

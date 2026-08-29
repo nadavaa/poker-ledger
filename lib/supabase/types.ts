@@ -542,6 +542,38 @@ export type Database = {
         Args: { pid: string }
         Returns: boolean
       }
+      normalize_us_phone: {
+        Args: { raw: string }
+        Returns: string | null
+      }
+      my_payment_details: {
+        Args: Record<string, never>
+        Returns: {
+          venmo_handle: string | null
+          phone_number: string | null
+          preferred_payment_method: string | null
+        }[]
+      }
+      set_my_payment_details: {
+        Args: {
+          p_venmo_handle: string | null
+          p_phone: string | null
+          p_preferred: string | null
+        }
+        Returns: undefined
+      }
+      game_payment_details: {
+        Args: { p_game_id: string }
+        Returns: {
+          settlement_id: string
+          payee_member_id: string
+          member_venmo: string | null
+          profile_venmo: string | null
+          member_phone: string | null
+          profile_phone: string | null
+          preferred: string | null
+        }[]
+      }
       set_my_venmo_handle: {
         Args: { p_handle: string }
         Returns: undefined

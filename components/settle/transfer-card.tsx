@@ -8,6 +8,8 @@ import { canPay, type SettlementRole } from '@/lib/settlements'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { VenmoButton } from '@/components/settle/venmo-button'
+import { ZelleDetails } from '@/components/settle/zelle-details'
+import { resolvePaymentOptions, type PaymentSources } from '@/lib/payment'
 
 export type TransferRow = {
   id: string
@@ -86,14 +88,15 @@ export function TransferCard({
   transfer,
   role,
   names,
-  venmoHandles,
+  paymentSources,
   venmoNote,
   isGameAdmin,
 }: {
   transfer: TransferRow
   role: SettlementRole
   names: Map<string, string>
-  venmoHandles: Map<string, string | null>
+  /** Keyed by settlement id; only present for rows the viewer may act on. */
+  paymentSources: Map<string, PaymentSources>
   venmoNote: string
   isGameAdmin: boolean
 }) {
@@ -106,7 +109,9 @@ export function TransferCard({
 
   const payerName = names.get(transfer.fromMemberId) ?? 'Someone'
   const payeeName = names.get(transfer.toMemberId) ?? 'someone'
-  const payeeHandle = venmoHandles.get(transfer.toMemberId) ?? null
+  const { primary, secondary } = resolvePaymentOptions(
+    paymentSources.get(transfer.id) ?? {}
+  )
 
   const isPayer = canPay(role)
   const isPayee = role === 'payee'
@@ -176,18 +181,13 @@ export function TransferCard({
             )}
           </p>
 
-          {/* The handle is the payer's fallback when the link doesn't land,
-              so it goes away with the link. */}
-          {showVenmo &&
-            (payeeHandle ? (
-              <p className="money select-text text-xs text-muted-foreground">
-                @{payeeHandle}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                No Venmo handle on file
-              </p>
-            ))}
+          {/* Only while there is still a payment to make, and only for the
+              person making it. */}
+          {showVenmo && !primary && (
+            <p className="text-xs text-muted-foreground">
+              No payment method on file
+            </p>
+          )}
 
           <p className={`mt-0.5 flex items-center gap-1 text-xs ${line.tone}`}>
             <span aria-hidden className="font-semibold">
@@ -206,13 +206,38 @@ export function TransferCard({
             </span>
           )}
 
-          {showVenmo && (
-            <VenmoButton
-              handle={payeeHandle}
-              amountCents={transfer.amountCents}
-              note={venmoNote}
-              payeeName={payeeName}
-            />
+          {showVenmo && primary && (
+            <>
+              {primary.method === 'venmo' ? (
+                <VenmoButton
+                  handle={primary.value}
+                  amountCents={transfer.amountCents}
+                  note={venmoNote}
+                  payeeName={payeeName}
+                />
+              ) : (
+                <ZelleDetails phone={primary.value} payeeName={payeeName} />
+              )}
+
+              {/* The other method they have on file, offered quietly. */}
+              {secondary &&
+                (secondary.method === 'venmo' ? (
+                  <a
+                    href={`https://venmo.com/${secondary.value}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    Venmo @{secondary.value}
+                  </a>
+                ) : (
+                  <ZelleDetails
+                    phone={secondary.value}
+                    payeeName={payeeName}
+                    secondary
+                  />
+                ))}
+            </>
           )}
 
           {isPayer && status === 'pending' && (
