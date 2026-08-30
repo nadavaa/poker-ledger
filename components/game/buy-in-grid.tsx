@@ -17,6 +17,7 @@ import {
 } from '@/lib/offline-queue'
 import { AddPlayer, type AvailableMember } from './add-player'
 import { PotHeader } from './pot-header'
+import { CollapsibleSection } from '@/components/collapsible-section'
 
 export type Player = { memberId: string; name: string }
 
@@ -227,16 +228,14 @@ export function BuyInGrid({
 
       {beforeActivity}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          Activity
-        </h2>
+      <CollapsibleSection title="Activity">
         <ActivityFeed
           buyins={buyins}
           names={names}
           adminMemberId={adminMemberId}
+          myMemberId={adminMemberId}
         />
-      </section>
+      </CollapsibleSection>
 
       {undo && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center pb-safe">

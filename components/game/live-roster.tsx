@@ -6,6 +6,7 @@ import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
 import { PotHeader } from './pot-header'
+import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Player } from './buy-in-grid'
 
 /**
@@ -102,16 +103,14 @@ export function LiveRoster({
       {beforeActivity}
 
       {started && (
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          Activity
-        </h2>
-        <ActivityFeed
-          buyins={buyins}
-          names={names}
-          adminMemberId={adminMemberId}
-        />
-      </section>
+        <CollapsibleSection title="Activity">
+          <ActivityFeed
+            buyins={buyins}
+            names={names}
+            adminMemberId={adminMemberId}
+            myMemberId={myMemberId}
+          />
+        </CollapsibleSection>
       )}
     </div>
   )

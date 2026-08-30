@@ -6,7 +6,6 @@ import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { Avatar } from '@/components/avatar'
 
@@ -22,7 +21,11 @@ export default async function HomePage({
   if (!user) redirect('/login')
 
   const [{ data: profile }, { data: memberships }] = await Promise.all([
-    supabase.from('profiles').select('display_name').eq('id', user.id).single(),
+    supabase
+      .from('profiles')
+      .select('display_name, avatar_url')
+      .eq('id', user.id)
+      .single(),
     supabase
       .from('group_members')
       .select('id, group_id, groups(id, name, avatar_url)')
@@ -84,9 +87,17 @@ export default async function HomePage({
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 p-4">
       <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">Signed in as</p>
-          <h1 className="text-lg font-semibold">
+        {/* No label, and no placeholder: without a photo the name simply sits
+            where it would, rather than beside an empty circle. */}
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar
+            id={user.id}
+            name={profile?.display_name ?? user.email}
+            url={profile?.avatar_url ?? null}
+            size={40}
+            fallback="none"
+          />
+          <h1 className="truncate text-lg font-semibold">
             {profile?.display_name ?? user.email}
           </h1>
         </div>
@@ -94,12 +105,11 @@ export default async function HomePage({
           <Button
             variant="ghost"
             size="sm"
-            render={<Link href="/profile" />}
+            render={<Link href="/settings" />}
             nativeButton={false}
           >
-            Profile
+            Settings
           </Button>
-          <ThemeToggle />
         </div>
       </header>
 

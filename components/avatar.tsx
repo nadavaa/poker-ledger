@@ -15,6 +15,7 @@ export function Avatar({
   url,
   bucket = 'avatars',
   size = 40,
+  fallback = 'initials',
   className = '',
 }: {
   /** Drives the fallback colour, so it must be stable for the entity. */
@@ -23,12 +24,17 @@ export function Avatar({
   url: string | null | undefined
   bucket?: 'avatars' | 'group-avatars'
   size?: number
+  /** 'none' renders nothing at all when there's no photo — no circle, no
+   *  reserved space. */
+  fallback?: 'initials' | 'none'
   className?: string
 }) {
   // An avatar_url can outlive its object; falling back beats a broken icon.
   const [failed, setFailed] = useState(false)
   const src = failed ? null : avatarSrc(url, bucket)
   const { background, foreground } = avatarColor(id)
+
+  if (!src && fallback === 'none') return null
 
   return (
     <span

@@ -22,12 +22,14 @@ export function ActivityFeed({
   buyins,
   names,
   adminMemberId,
+  myMemberId,
   /** Keeps the page a bounded length; the feed runs all night otherwise. */
   limit = 8,
 }: {
   buyins: Buyin[]
   names: Map<string, string>
   adminMemberId: string
+  myMemberId?: string | null
   limit?: number
 }) {
   const [showAll, setShowAll] = useState(false)
@@ -77,9 +79,12 @@ export function ActivityFeed({
             <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
               {b.voided_at
                 ? `voided${b.void_reason ? ` · ${b.void_reason}` : ''}`
-                : `${time(b.created_at)} · by ${
-                    names.get(b.created_by_member_id) ?? 'admin'
-                  }`}
+                : b.created_by_member_id === myMemberId
+                  ? // You logged it. Who logged it only matters when it wasn't you.
+                    time(b.created_at)
+                  : `${time(b.created_at)} · by ${
+                      names.get(b.created_by_member_id) ?? 'admin'
+                    }`}
             </span>
           </li>
         )

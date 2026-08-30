@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { MyStats } from '@/components/group/my-stats'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { computeStats, runningBalance } from '@/lib/stats'
 import { BalanceChart } from '@/components/group/balance-chart'
 import { GroupTabs } from '@/components/group/group-tabs'
@@ -167,7 +166,6 @@ export default async function GroupPage({
             path={`/join/${group.invite_code}`}
             label="Copy invite"
           />
-          <ThemeToggle />
         </div>
       </header>
 

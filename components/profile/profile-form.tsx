@@ -171,8 +171,7 @@ export function ProfileForm({
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          Only shown to someone who owes you money from a settled game, and to
-          that game&apos;s admin. Never on the members list.
+          Only shown to someone who owes you money when Zelle is preferred.
         </p>
       </div>
 
@@ -188,10 +187,6 @@ export function ProfileForm({
           <option value="venmo">Venmo</option>
           <option value="zelle">Zelle</option>
         </select>
-        <p className="text-xs text-muted-foreground">
-          Whichever you pick shows first when someone pays you. Fill in either,
-          both, or neither.
-        </p>
       </div>
 
       {error && <p className="text-sm text-down">{error}</p>}

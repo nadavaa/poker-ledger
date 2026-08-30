@@ -16,7 +16,7 @@ import { SettledView } from '@/components/game/settled-view'
 import { StatusBanner } from '@/components/game/status-banner'
 import { WaitlistPanel } from '@/components/game/waitlist-panel'
 import { DangerZone } from '@/components/game/danger-zone'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
 
 const BUYIN_COLUMNS =
@@ -323,7 +323,7 @@ export default async function GamePage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header className="flex items-start justify-between gap-2">
+      <header>
         <div className="min-w-0">
           <Link
             href={`/groups/${game.group_id}`}
@@ -339,8 +339,6 @@ export default async function GamePage({
             {game.location && ` · ${game.location}`}
           </p>
         </div>
-        {/* Reachable from the table, where you actually want to go dark. */}
-        <ThemeToggle />
       </header>
 
       <StatusBanner
@@ -463,9 +461,12 @@ export default async function GamePage({
                   t.cashout_chips === null ? null : String(t.cashout_chips),
               }))}
             />
+            {/* An escape hatch, not a primary action. reopen_game() is admin
+                only, refuses anything but a game being counted, and touches
+                nothing but status — so chip counts already entered survive. */}
             <form action={reopenGame}>
-              <Button variant="ghost" size="sm" type="submit">
-                Back to the game
+              <Button variant="outline" size="sm" type="submit">
+                Resume Game
               </Button>
             </form>
           </>
@@ -554,11 +555,8 @@ export default async function GamePage({
       )}
 
       {(isAdmin || isGroupOwner) && (
-        <details className="rounded-lg border border-border px-3 py-2">
-          <summary className="cursor-pointer text-sm text-muted-foreground">
-            Game settings
-          </summary>
-          <div className="flex flex-col gap-3 pt-3">
+        <CollapsibleSection title="Game settings">
+          <>
             {runsTheGame && (
             <form action={handOff} className="flex flex-col gap-2">
               <label className="text-sm font-medium" htmlFor="to_member_id">
@@ -619,8 +617,8 @@ export default async function GamePage({
               canDelete={canDelete}
               canCancel={canCancel}
             />
-          </div>
-        </details>
+          </>
+        </CollapsibleSection>
       )}
     </main>
   )
