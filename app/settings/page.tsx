@@ -86,20 +86,16 @@ export default async function SettingsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header>
-        <Link href="/" className="text-xs text-muted-foreground">
-          &larr; All groups
-        </Link>
-        <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
+      <header className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Link href="/" className="text-xs text-muted-foreground">
+            &larr; All groups
+          </Link>
+          <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
+        </div>
+        {/* The one place the theme control lives, rather than in every header. */}
+        <ThemeToggle />
       </header>
-
-      {/* The one place the theme control lives, rather than in every header. */}
-      <Card>
-        <CardContent className="flex items-center justify-between gap-3 py-3">
-          <span className="text-sm font-medium">Appearance</span>
-          <ThemeToggle />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardContent className="flex flex-col gap-4 py-4">
