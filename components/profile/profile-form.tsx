@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useDirtyForm } from '@/components/use-dirty-form'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatPhone, parseUsPhone } from '@/lib/payment'
@@ -40,15 +41,6 @@ function normalize(f: Fields): Normalized {
   }
 }
 
-function same(a: Normalized, b: Normalized) {
-  return (
-    a.displayName === b.displayName &&
-    a.venmo === b.venmo &&
-    a.phone === b.phone &&
-    a.preferred === b.preferred
-  )
-}
-
 function toFields(v: ProfileValues): Fields {
   return {
     displayName: v.displayName,
@@ -68,27 +60,24 @@ export function ProfileForm({
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
-  const [fields, setFields] = useState<Fields>(() => toFields(initial))
-  // What's stored, normalized. Reset after a successful save so the button
-  // greys out again instead of staying live.
-  const [baseline, setBaseline] = useState<Normalized>(() =>
-    normalize(toFields(initial))
-  )
-  const [pending, setPending] = useState(false)
+  const {
+    fields,
+    current,
+    set,
+    pending,
+    setPending,
+    commit,
+    canSave,
+  } = useDirtyForm<Fields>({
+    initial: toFields(initial),
+    normalize,
+    isValid: (f) =>
+      f.displayName.trim() !== '' && parseUsPhone(f.phone).valid,
+  })
+
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
-
-  const current = normalize(fields)
   const phoneValid = parseUsPhone(fields.phone).valid
-
-  const dirty = !same(current, baseline)
-  const valid = current.displayName !== '' && phoneValid
-  const canSave = dirty && valid && !pending
-
-  function set(key: keyof Fields, value: string) {
-    setSaved(false)
-    setFields((f) => ({ ...f, [key]: value }))
-  }
 
   async function save() {
     if (!canSave) return
@@ -118,7 +107,7 @@ export function ProfileForm({
       return
     }
 
-    setBaseline(current)
+    commit()
     setSaved(true)
     router.refresh()
   }
@@ -136,7 +125,10 @@ export function ProfileForm({
         <Input
           id="display_name"
           value={fields.displayName}
-          onChange={(e) => set('displayName', e.target.value)}
+          onChange={(e) => {
+            setSaved(false)
+            set('displayName', e.target.value)
+          }}
           maxLength={80}
           aria-invalid={current.displayName === ''}
         />
@@ -147,7 +139,10 @@ export function ProfileForm({
         <Input
           id="venmo_handle"
           value={fields.venmo}
-          onChange={(e) => set('venmo', e.target.value)}
+          onChange={(e) => {
+            setSaved(false)
+            set('venmo', e.target.value)
+          }}
           maxLength={60}
           placeholder="your-venmo"
         />
@@ -160,7 +155,10 @@ export function ProfileForm({
           type="tel"
           inputMode="tel"
           value={fields.phone}
-          onChange={(e) => set('phone', e.target.value)}
+          onChange={(e) => {
+            setSaved(false)
+            set('phone', e.target.value)
+          }}
           maxLength={20}
           placeholder="(555) 234-5678"
           aria-invalid={!phoneValid}
@@ -180,7 +178,10 @@ export function ProfileForm({
         <select
           id="preferred"
           value={fields.preferred}
-          onChange={(e) => set('preferred', e.target.value)}
+          onChange={(e) => {
+            setSaved(false)
+            set('preferred', e.target.value)
+          }}
           className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
         >
           <option value="">No preference</option>
@@ -190,7 +191,7 @@ export function ProfileForm({
       </div>
 
       {error && <p className="text-sm text-down">{error}</p>}
-      {saved && !dirty && <p className="text-sm text-up">Saved.</p>}
+      {saved && !canSave && <p className="text-sm text-up">Saved.</p>}
 
       <Button className="h-11 rounded-xl" type="submit" disabled={!canSave}>
         {pending ? 'Saving…' : 'Save'}

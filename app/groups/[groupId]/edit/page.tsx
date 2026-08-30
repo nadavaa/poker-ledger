@@ -3,16 +3,15 @@ import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
-import { centsToDollars, dollarsToCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   RemoveMemberButton,
   ReactivateMemberButton,
 } from '@/components/group/member-actions'
-import { MemberRoleSelect } from '@/components/group/member-role-select'
+import { MemberRoleMenu } from '@/components/group/member-role-menu'
+import { GroupSettingsForm } from '@/components/group/group-settings-form'
 import { DeleteGroup } from '@/components/group/delete-group'
 import { AvatarUpload } from '@/components/avatar-upload'
 
@@ -67,41 +66,6 @@ export default async function EditGroupPage({
       .update({ avatar_url: path })
       .eq('id', groupId)
     return { error: error?.message ?? null }
-  }
-
-  async function saveSettings(formData: FormData) {
-    'use server'
-    const supabase = await createClient()
-    const name = String(formData.get('name') ?? '').trim()
-    const seats = Number(formData.get('default_seat_limit'))
-    const ratio = Number(formData.get('chips_per_dollar'))
-
-    let buyinCents: number
-    try {
-      buyinCents = dollarsToCents(String(formData.get('default_buyin') ?? ''))
-    } catch {
-      redirect(`/groups/${groupId}/edit?error=Enter+a+valid+buy-in+amount`)
-    }
-
-    // These are defaults for the *next* game. Existing games snapshotted
-    // their own values at creation and are unaffected.
-    const { error } = await supabase
-      .from('groups')
-      .update({
-        name,
-        default_buyin_cents: buyinCents,
-        chips_per_dollar: ratio,
-        default_seat_limit: seats,
-      })
-      .eq('id', groupId)
-
-    if (error) {
-      redirect(
-        `/groups/${groupId}/edit?error=${encodeURIComponent(error.message)}`
-      )
-    }
-    revalidatePath(`/groups/${groupId}`)
-    redirect(`/groups/${groupId}/edit?saved=1`)
   }
 
   async function addMember(formData: FormData) {
@@ -175,65 +139,15 @@ export default async function EditGroupPage({
             onSaved={saveGroupAvatar}
           />
 
-          <form action={saveSettings} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name">Group name</Label>
-              <Input
-                id="name"
-                name="name"
-                required
-                maxLength={80}
-                defaultValue={group.name}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="default_seat_limit">Seats</Label>
-                <Input
-                  id="default_seat_limit"
-                  name="default_seat_limit"
-                  type="number"
-                  min={2}
-                  max={50}
-                  required
-                  defaultValue={group.default_seat_limit}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="default_buyin">Buy-in $</Label>
-                <Input
-                  id="default_buyin"
-                  name="default_buyin"
-                  inputMode="decimal"
-                  required
-                  defaultValue={centsToDollars(group.default_buyin_cents)}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="chips_per_dollar">Chips/$</Label>
-                <Input
-                  id="chips_per_dollar"
-                  name="chips_per_dollar"
-                  type="number"
-                  step="0.25"
-                  min={0.25}
-                  required
-                  defaultValue={group.chips_per_dollar}
-                />
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              These are the starting values for the next game you create.
-              Games already scheduled or played keep the numbers they were
-              created with.
-            </p>
-
-            <Button className="h-11 rounded-xl" type="submit">
-              Save settings
-            </Button>
-          </form>
+          <GroupSettingsForm
+            groupId={groupId}
+            initial={{
+              name: group.name,
+              seatLimit: group.default_seat_limit,
+              buyinCents: group.default_buyin_cents,
+              chipsPerDollar: Number(group.chips_per_dollar),
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -246,27 +160,28 @@ export default async function EditGroupPage({
             key={m.id}
             className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2.5"
           >
-            <span className="min-w-0 text-sm">
-              <span className="font-medium">{m.display_name}</span>
-              {!m.profile_id && (
-                <span className="ml-1.5 text-xs text-muted-foreground">
-                  unclaimed
+            {isOwner ? (
+              <MemberRoleMenu
+                memberId={m.id}
+                role={m.role}
+                name={m.display_name}
+              >
+                <span className="block min-w-0 truncate text-sm">
+                  <span className="font-medium">{m.display_name}</span>
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    {m.role}
+                  </span>
                 </span>
-              )}
-              {!isOwner && (
+              </MemberRoleMenu>
+            ) : (
+              <span className="min-w-0 truncate text-sm">
+                <span className="font-medium">{m.display_name}</span>
                 <span className="ml-1.5 text-xs text-muted-foreground">
                   {m.role}
                 </span>
-              )}
-            </span>
+              </span>
+            )}
             <span className="flex items-center gap-2">
-              {isOwner ? (
-                <MemberRoleSelect
-                  memberId={m.id}
-                  role={m.role}
-                  name={m.display_name}
-                />
-              ) : null}
               {m.role !== 'owner' && (
                 <RemoveMemberButton memberId={m.id} name={m.display_name} />
               )}

@@ -482,8 +482,6 @@ export default async function GamePage({
           />
         ))}
 
-      {settled && foodSection}
-
       {settled && (
         <SettledView
           rows={(totals ?? []).map((t) => ({
@@ -523,6 +521,7 @@ export default async function GamePage({
           )}`}
           startedAt={game.started_at}
           settledAt={game.settled_at}
+          beforeSettlements={foodSection}
         />
       )}
 

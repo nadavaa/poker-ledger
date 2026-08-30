@@ -57,27 +57,21 @@ export function DeleteGroup({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-down/30 bg-down-soft p-3.5">
-      <h3 className="text-sm font-semibold text-down">Delete group</h3>
-
+    <div className="flex flex-col gap-2">
       {!preview ? (
-        <>
-          <p className="text-xs text-muted-foreground">
-            Removes the group and everything in it — every game, buy-in,
-            cashout and settlement, for every player. This cannot be undone.
-          </p>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="self-start rounded-xl"
-            disabled={pending}
-            onClick={open}
-          >
-            Delete this group
-          </Button>
-        </>
+        // Just the button. Everything it used to explain is in the
+        // confirmation, which still makes you type the name.
+        <Button
+          variant="destructive"
+          className="h-11 w-full rounded-xl"
+          disabled={pending}
+          onClick={open}
+        >
+          Delete group
+        </Button>
       ) : (
-        <>
+        <div className="flex flex-col gap-2 rounded-2xl border border-down/30 bg-down-soft p-3.5">
+          <h3 className="text-sm font-semibold text-down">Delete group</h3>
           <p className="text-xs text-muted-foreground">
             This will permanently delete {preview.members}{' '}
             {preview.members === 1 ? 'member' : 'members'} and {preview.games}{' '}
@@ -127,7 +121,7 @@ export function DeleteGroup({
               {pending ? 'Deleting…' : 'Delete group'}
             </Button>
           </div>
-        </>
+        </div>
       )}
 
       {error && <p className="text-sm text-down">{error}</p>}

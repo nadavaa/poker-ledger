@@ -325,11 +325,6 @@ export default async function GroupPage({
                         <span>{played} games</span>
                         <span>·</span>
                         <span>{m.role}</span>
-                        {!m.profile_id && (
-                          <span className="rounded bg-muted px-1.5 py-0.5">
-                            unclaimed
-                          </span>
-                        )}
                       </p>
                       </div>
                     </div>

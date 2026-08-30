@@ -53,6 +53,7 @@ export function SettledView({
   venmoNote,
   startedAt,
   settledAt,
+  beforeSettlements,
 }: {
   rows: ResultRow[]
   /** RLS already limits this to rows the viewer is party to, unless admin. */
@@ -68,6 +69,8 @@ export function SettledView({
   venmoNote: string
   startedAt: string | null
   settledAt: string | null
+  /** Sits between the scoreboard and the payments — the food order. */
+  beforeSettlements?: React.ReactNode
 }) {
   const potCents = rows.reduce((s, r) => s + r.buyinCents, 0)
   const potChips = rows.reduce((s, r) => s + r.buyinChips, 0)
@@ -169,6 +172,8 @@ export function SettledView({
           ))}
         </section>
       )}
+
+      {beforeSettlements}
 
       <section className="flex flex-col gap-2">
         <h2 className="flex items-baseline justify-between gap-2 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">

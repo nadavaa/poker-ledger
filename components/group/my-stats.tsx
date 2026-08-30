@@ -10,13 +10,26 @@ function day(iso: string) {
   })
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+}: {
+  label: string
+  value: string
+  /** Sits under the value rather than beside it, so a date can't wrap the
+   *  amount onto its own line. */
+  sub?: string
+}) {
   return (
     <div className="rounded-2xl border border-border bg-card px-3.5 py-3">
       <p className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
         {label}
       </p>
       <p className="money mt-1 text-[0.95rem] font-semibold">{value}</p>
+      {sub && (
+        <p className="money text-xs text-muted-foreground">{sub}</p>
+      )}
     </div>
   )
 }
@@ -80,11 +93,13 @@ export function MyStats({ stats }: { stats: Stats | null }) {
         />
         <Stat
           label="Best game"
-          value={`${formatCents(stats.best.netCents)} · ${day(stats.best.scheduledAt)}`}
+          value={formatCents(stats.best.netCents)}
+          sub={day(stats.best.scheduledAt)}
         />
         <Stat
           label="Worst game"
-          value={`${formatCents(stats.worst.netCents)} · ${day(stats.worst.scheduledAt)}`}
+          value={formatCents(stats.worst.netCents)}
+          sub={day(stats.worst.scheduledAt)}
         />
         <Stat label="Current streak" value={streakLabel(stats.currentStreak)} />
         <Stat
@@ -96,7 +111,7 @@ export function MyStats({ stats }: { stats: Stats | null }) {
           value={String(stats.longestWinStreak)}
         />
         <Stat
-          label="Longest losing streak"
+          label="Longest lose streak"
           value={String(stats.longestLossStreak)}
         />
       </div>
