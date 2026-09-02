@@ -7,6 +7,8 @@ import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { useSignupRefresh } from './use-signup-refresh'
 import { AddPlayer, type AvailableMember } from './add-player'
+import { Avatar } from '@/components/avatar'
+import { PlayerRowMenu } from './player-row-menu'
 import type { Player } from './buy-in-grid'
 
 /**
@@ -21,6 +23,7 @@ export function ScheduledView({
   defaultBuyinCents,
   myMemberId,
   isAdmin,
+  liveBuyinsByMember,
 }: {
   gameId: string
   players: Player[]
@@ -29,6 +32,9 @@ export function ScheduledView({
   defaultBuyinCents: number
   myMemberId: string | null
   isAdmin: boolean
+  /** Live buy-ins per player: the menu explains rather than offering a dead
+   *  option when there's money in the pot. */
+  liveBuyinsByMember?: Map<string, number>
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -37,34 +43,12 @@ export function ScheduledView({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-  const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
-  const [busy, setBusy] = useState<string | null>(null)
   // Most people are usually there; the admin unchecks whoever isn't.
   const [here, setHere] = useState<Set<string>>(
     () => new Set(players.map((p) => p.memberId))
   )
 
   const seatsLeft = Math.max(seatLimit - players.length, 0)
-
-  /** Send a confirmed player back to the waitlist, or off the game entirely.
-   *  Refuses if they already have buy-ins — that's a money problem, not a
-   *  roster one. */
-  async function demote(memberId: string, to: 'waitlist' | 'withdrawn') {
-    setError(null)
-    setBusy(memberId)
-    const { error } = await supabase.rpc('demote_from_confirmed', {
-      p_game_id: gameId,
-      p_member_id: memberId,
-      p_to: to,
-    })
-    setBusy(null)
-    if (error) {
-      setError(error.message)
-      return
-    }
-    setConfirmRemove(null)
-    router.refresh()
-  }
 
   async function start() {
     setError(null)
@@ -105,58 +89,34 @@ export function ScheduledView({
         {players.length === 0 && (
           <p className="text-sm text-muted-foreground">Nobody yet.</p>
         )}
-        {players.map((p, i) => (
+        {players.map((p) => (
           <div
             key={p.memberId}
             className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2.5"
           >
-            <span className="flex items-center gap-2.5 text-sm">
-              <span className="money flex size-6 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
-                {i + 1}
+            <span className="flex min-w-0 items-center gap-2.5 text-sm">
+              {/* Was the signup position, which nobody needed to read. */}
+              <Avatar
+                id={p.profileId ?? p.memberId}
+                name={p.name}
+                url={p.avatarUrl ?? null}
+                size={32}
+              />
+              <span className="truncate">
+                {p.name}
+                {p.memberId === myMemberId && (
+                  <span className="text-muted-foreground"> (you)</span>
+                )}
               </span>
-              {p.name}
-              {p.memberId === myMemberId && (
-                <span className="text-muted-foreground"> (you)</span>
-              )}
             </span>
-            {isAdmin &&
-              (confirmRemove === p.memberId ? (
-                <span className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setConfirmRemove(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="xs"
-                    disabled={busy === p.memberId}
-                    onClick={() => demote(p.memberId, 'withdrawn')}
-                  >
-                    Remove
-                  </Button>
-                </span>
-              ) : (
-                <span className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    disabled={busy === p.memberId}
-                    onClick={() => demote(p.memberId, 'waitlist')}
-                  >
-                    To waitlist
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setConfirmRemove(p.memberId)}
-                  >
-                    Remove
-                  </Button>
-                </span>
-              ))}
+            {isAdmin && (
+              <PlayerRowMenu
+                gameId={gameId}
+                memberId={p.memberId}
+                name={p.name}
+                liveBuyins={liveBuyinsByMember?.get(p.memberId) ?? 0}
+              />
+            )}
           </div>
         ))}
       </section>

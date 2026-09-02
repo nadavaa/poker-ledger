@@ -7,6 +7,7 @@ import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
 import { PotHeader } from './pot-header'
 import { CollapsibleSection } from '@/components/collapsible-section'
+import { Avatar } from '@/components/avatar'
 import type { Player } from './buy-in-grid'
 
 /**
@@ -75,13 +76,19 @@ export function LiveRoster({
           return (
             <Card key={p.memberId}>
               <CardContent className="flex items-center justify-between gap-2 py-3">
-                <span className="text-sm">
-                  {p.name}
+                <span className="flex min-w-0 items-center gap-2.5 text-sm">
+                  <Avatar
+                    id={p.profileId ?? p.memberId}
+                    name={p.name}
+                    url={p.avatarUrl ?? null}
+                    size={32}
+                  />
+                  <span className="truncate">{p.name}</span>
                   {p.memberId === myMemberId && (
-                    <span className="text-muted-foreground"> (you)</span>
+                    <span className="text-muted-foreground">(you)</span>
                   )}
                   {p.memberId === adminMemberId && (
-                    <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                       admin
                     </span>
                   )}

@@ -19,7 +19,13 @@ import { AddPlayer, type AvailableMember } from './add-player'
 import { PotHeader } from './pot-header'
 import { CollapsibleSection } from '@/components/collapsible-section'
 
-export type Player = { memberId: string; name: string }
+export type Player = {
+  memberId: string
+  name: string
+  /** For the avatar: the profile drives the photo, the id drives the colour. */
+  profileId?: string | null
+  avatarUrl?: string | null
+}
 
 function timeOf(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, {

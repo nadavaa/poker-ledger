@@ -93,7 +93,7 @@ export default async function GamePage({
     supabase
       .from('game_signups')
       .select(
-        'id, member_id, status, signup_order, group_members(display_name, profiles(display_name))'
+        'id, member_id, status, signup_order, group_members(display_name, profile_id, profiles(display_name, avatar_url))'
       )
       .eq('game_id', gameId)
       .order('signup_order'),
@@ -178,6 +178,8 @@ export default async function GamePage({
   const players = confirmed.map((s) => ({
     memberId: s.member_id,
     name: signupName(s),
+    profileId: s.group_members?.profile_id ?? null,
+    avatarUrl: s.group_members?.profiles?.avatar_url ?? null,
   }))
   const foodPlayers = confirmed.map((s) => ({
     memberId: s.member_id,
@@ -236,6 +238,13 @@ export default async function GamePage({
     ? liveBuyins.filter((b) => b.member_id === myMember.id).length
     : 0
   const stuckInGame = game.status === 'active' && myLiveBuyins > 0
+  const liveBuyinsByMember = new Map<string, number>()
+  for (const b of liveBuyins) {
+    liveBuyinsByMember.set(
+      b.member_id,
+      (liveBuyinsByMember.get(b.member_id) ?? 0) + 1
+    )
+  }
   const blockingSettlements = (settlements ?? []).filter(
     (s) => s.status === 'pending' || s.status === 'paid'
   )
@@ -440,6 +449,7 @@ export default async function GamePage({
           defaultBuyinCents={game.default_buyin_cents}
           myMemberId={myMember?.id ?? null}
           isAdmin={isAdmin}
+          liveBuyinsByMember={liveBuyinsByMember}
         />
       )}
 
