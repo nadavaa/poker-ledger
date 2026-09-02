@@ -31,11 +31,12 @@ declare global {
  *
  * Anything returning null is out of scope — settings, edit pages, the new-game
  * form, tab switches — and gets no slide at all rather than a guessed
- * direction. The game level (2) is added once Home <-> Group is confirmed.
+ * direction.
  */
 function depthOf(pathname: string): number | null {
   if (pathname === '/') return 0
   if (/^\/groups\/[^/]+$/.test(pathname)) return 1
+  if (/^\/games\/[^/]+$/.test(pathname)) return 2
   return null
 }
 

@@ -357,7 +357,7 @@ export default async function GamePage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header>
+      <header className="page-header">
         <div className="min-w-0">
           <Link
             href={`/groups/${game.group_id}`}
