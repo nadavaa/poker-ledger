@@ -18,6 +18,7 @@ import { WaitlistPanel } from '@/components/game/waitlist-panel'
 import { DangerZone } from '@/components/game/danger-zone'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
+import { resolveDisplayName } from '@/lib/names'
 
 const BUYIN_COLUMNS =
   'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
@@ -91,14 +92,18 @@ export default async function GamePage({
   ] = await Promise.all([
     supabase
       .from('game_signups')
-      .select('id, member_id, status, signup_order, group_members(display_name)')
+      .select(
+        'id, member_id, status, signup_order, group_members(display_name, profiles(display_name))'
+      )
       .eq('game_id', gameId)
       .order('signup_order'),
     supabase
       // The profile handle comes back embedded rather than as its own round
       // trip; group mates can read each other's profiles.
       .from('group_members')
-      .select('id, display_name, profile_id, is_active, role')
+      .select(
+        'id, display_name, profile_id, is_active, role, profiles(display_name)'
+      )
       .eq('group_id', game.group_id)
       .eq('is_active', true)
       .order('display_name'),
@@ -158,13 +163,19 @@ export default async function GamePage({
   const runsTheGame = isAdmin && isOpen
   const overdue = isOverdue(game.status, game.scheduled_at)
 
+  const signupName = (s: (typeof confirmed)[number]) =>
+    resolveDisplayName(
+      s.group_members?.display_name,
+      s.group_members?.profiles?.display_name
+    )
+
   const players = confirmed.map((s) => ({
     memberId: s.member_id,
-    name: s.group_members?.display_name ?? 'Unknown',
+    name: signupName(s),
   }))
   const foodPlayers = confirmed.map((s) => ({
     memberId: s.member_id,
-    name: s.group_members?.display_name ?? 'Unknown',
+    name: signupName(s),
     signupOrder: s.signup_order,
   }))
   const foodOrders: FoodOrder[] = (foodRows ?? []).map((o) => ({
@@ -179,7 +190,12 @@ export default async function GamePage({
       isFixed: sh.is_fixed,
     })),
   }))
-  const nameOf = new Map((members ?? []).map((m) => [m.id, m.display_name]))
+  const nameOf = new Map(
+    (members ?? []).map((m) => [
+      m.id,
+      resolveDisplayName(m.display_name, m.profiles?.display_name),
+    ])
+  )
   const paymentSources = new Map<string, PaymentSources>(
     (paymentRows ?? []).map((r) => [
       r.settlement_id,
@@ -202,7 +218,10 @@ export default async function GamePage({
   )
   const available = (members ?? [])
     .filter((m) => !taken.has(m.id))
-    .map((m) => ({ id: m.id, name: m.display_name }))
+    .map((m) => ({
+      id: m.id,
+      name: resolveDisplayName(m.display_name, m.profiles?.display_name),
+    }))
 
   const liveBuyins = (buyins ?? []).filter((b) => !b.voided_at)
   // Once your money is in the pot you can't take yourself out of the game;
@@ -533,7 +552,7 @@ export default async function GamePage({
           {confirmed.map((s) => (
             <Card key={s.id}>
               <CardContent className="py-2.5 text-sm">
-                {s.group_members?.display_name}
+                {signupName(s)}
               </CardContent>
             </Card>
           ))}
@@ -546,7 +565,7 @@ export default async function GamePage({
           entries={waitlist.map((s) => ({
             id: s.id,
             memberId: s.member_id,
-            name: s.group_members?.display_name ?? 'Unknown',
+            name: signupName(s),
           }))}
           isAdmin={runsTheGame}
           myMemberId={myMember?.id ?? null}

@@ -12,6 +12,7 @@ import {
 } from '@/components/group/member-actions'
 import { MemberRoleMenu } from '@/components/group/member-role-menu'
 import { GroupSettingsForm } from '@/components/group/group-settings-form'
+import { resolveDisplayName } from '@/lib/names'
 import { DeleteGroup } from '@/components/group/delete-group'
 import { AvatarUpload } from '@/components/avatar-upload'
 
@@ -39,7 +40,7 @@ export default async function EditGroupPage({
       .maybeSingle(),
     supabase
       .from('group_members')
-      .select('id, display_name, role, profile_id, is_active')
+      .select('id, display_name, role, profile_id, is_active, profiles(display_name)')
       .eq('group_id', groupId)
       .order('display_name'),
   ])
@@ -164,10 +165,10 @@ export default async function EditGroupPage({
               <MemberRoleMenu
                 memberId={m.id}
                 role={m.role}
-                name={m.display_name}
+                name={resolveDisplayName(m.display_name, m.profiles?.display_name)}
               >
                 <span className="block min-w-0 truncate text-sm">
-                  <span className="font-medium">{m.display_name}</span>
+                  <span className="font-medium">{resolveDisplayName(m.display_name, m.profiles?.display_name)}</span>
                   <span className="ml-1.5 text-xs text-muted-foreground">
                     {m.role}
                   </span>
@@ -175,7 +176,7 @@ export default async function EditGroupPage({
               </MemberRoleMenu>
             ) : (
               <span className="min-w-0 truncate text-sm">
-                <span className="font-medium">{m.display_name}</span>
+                <span className="font-medium">{resolveDisplayName(m.display_name, m.profiles?.display_name)}</span>
                 <span className="ml-1.5 text-xs text-muted-foreground">
                   {m.role}
                 </span>
@@ -183,7 +184,7 @@ export default async function EditGroupPage({
             )}
             <span className="flex items-center gap-2">
               {m.role !== 'owner' && (
-                <RemoveMemberButton memberId={m.id} name={m.display_name} />
+                <RemoveMemberButton memberId={m.id} name={resolveDisplayName(m.display_name, m.profiles?.display_name)} />
               )}
             </span>
           </div>
@@ -237,10 +238,10 @@ export default async function EditGroupPage({
                 key={m.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2.5"
               >
-                <span className="text-sm">{m.display_name}</span>
+                <span className="text-sm">{resolveDisplayName(m.display_name, m.profiles?.display_name)}</span>
                 <ReactivateMemberButton
                   memberId={m.id}
-                  name={m.display_name}
+                  name={resolveDisplayName(m.display_name, m.profiles?.display_name)}
                 />
               </div>
             ))}
