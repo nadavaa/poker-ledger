@@ -143,7 +143,7 @@ export default async function GroupPage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header className="flex flex-col gap-3">
+      <header className="page-header flex flex-col gap-3">
         <div>
           <Link href="/" className="text-xs text-muted-foreground">
             &larr; All groups

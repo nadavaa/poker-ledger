@@ -89,7 +89,7 @@ export default async function HomePage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 p-4">
-      <header className="flex items-center justify-between">
+      <header className="page-header flex items-center justify-between">
         {/* No label, and no placeholder: without a photo the name simply sits
             where it would, rather than beside an empty circle. */}
         <div className="flex min-w-0 items-center gap-3">

@@ -233,3 +233,56 @@
     @apply font-sans;
   }
 }
+/* ============ Hierarchy navigation ============
+   Going deeper slides in from the right; going back slides out to the right,
+   along the same path it arrived on. Only set while a navigation between two
+   in-scope levels is running — everything else keeps the browser default. */
+
+@keyframes nav-enter-from-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes nav-exit-to-left {
+  from { transform: translateX(0); opacity: 1; }
+  /* The outgoing screen shifts and dims rather than sitting still. That
+     parallax is what reads as depth rather than as a slide. */
+  to { transform: translateX(-25%); opacity: 0.6; }
+}
+@keyframes nav-enter-from-left {
+  from { transform: translateX(-25%); opacity: 0.6; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes nav-exit-to-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+:root[data-nav='push']::view-transition-old(root) {
+  animation: nav-exit-to-left 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+:root[data-nav='push']::view-transition-new(root) {
+  animation: nav-enter-from-right 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  z-index: 1; /* the arriving screen covers the one it came from */
+}
+
+:root[data-nav='pop']::view-transition-old(root) {
+  animation: nav-exit-to-right 260ms cubic-bezier(0.55, 0, 1, 0.45) both;
+  z-index: 1; /* the leaving screen slides off, revealing what's underneath */
+}
+:root[data-nav='pop']::view-transition-new(root) {
+  animation: nav-enter-from-left 260ms cubic-bezier(0.55, 0, 1, 0.45) both;
+}
+
+/* The page header cross-fades in place instead of travelling with the
+   content. */
+.page-header {
+  view-transition-name: page-header;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
