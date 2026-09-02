@@ -108,6 +108,7 @@ export default async function SettingsPage() {
             name={profile?.display_name ?? ''}
             currentUrl={profile?.avatar_url ?? null}
             onSaved={saveAvatar}
+            variant="menu"
           />
 
           <ProfileForm

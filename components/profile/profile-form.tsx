@@ -46,7 +46,14 @@ function toFields(v: ProfileValues): Fields {
     displayName: v.displayName,
     venmo: v.venmoHandle ?? '',
     phone: v.phone ? formatPhone(v.phone) : '',
-    preferred: v.preferred ?? '',
+    // Two options only, so a null preference has to resolve to one of them:
+    // whichever they already have, and Venmo when they have neither.
+    preferred:
+      v.preferred === 'venmo' || v.preferred === 'zelle'
+        ? v.preferred
+        : v.phone && !v.venmoHandle
+          ? 'zelle'
+          : 'venmo',
   }
 }
 
@@ -72,7 +79,11 @@ export function ProfileForm({
     initial: toFields(initial),
     normalize,
     isValid: (f) =>
-      f.displayName.trim() !== '' && parseUsPhone(f.phone).valid,
+      f.displayName.trim() !== '' &&
+      // Only judge the phone while it's the field on screen. Otherwise a bad
+      // number typed under Zelle would keep Save dead after switching to
+      // Venmo, with nothing visible explaining why.
+      (f.preferred !== 'zelle' || parseUsPhone(f.phone).valid),
   })
 
   const [error, setError] = useState<string | null>(null)
@@ -135,45 +146,6 @@ export function ProfileForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="venmo_handle">Venmo handle</Label>
-        <Input
-          id="venmo_handle"
-          value={fields.venmo}
-          onChange={(e) => {
-            setSaved(false)
-            set('venmo', e.target.value)
-          }}
-          maxLength={60}
-          placeholder="your-venmo"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="phone_number">Phone for Zelle</Label>
-        <Input
-          id="phone_number"
-          type="tel"
-          inputMode="tel"
-          value={fields.phone}
-          onChange={(e) => {
-            setSaved(false)
-            set('phone', e.target.value)
-          }}
-          maxLength={20}
-          placeholder="(555) 234-5678"
-          aria-invalid={!phoneValid}
-        />
-        {!phoneValid && (
-          <p className="text-xs text-down">
-            That doesn&apos;t look like a US phone number.
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Only shown to someone who owes you money when Zelle is preferred.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
         <Label htmlFor="preferred">Preferred method</Label>
         <select
           id="preferred"
@@ -182,13 +154,57 @@ export function ProfileForm({
             setSaved(false)
             set('preferred', e.target.value)
           }}
-          className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
+          className="h-11 rounded-lg border border-border bg-background px-3.5 text-sm"
         >
-          <option value="">No preference</option>
           <option value="venmo">Venmo</option>
           <option value="zelle">Zelle</option>
         </select>
       </div>
+
+      {/* The other value stays in state and is still saved — switching hides a
+          field, it never clears what's stored. */}
+      {fields.preferred === 'venmo' && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="venmo_handle">Venmo handle</Label>
+          <Input
+            id="venmo_handle"
+            value={fields.venmo}
+            onChange={(e) => {
+              setSaved(false)
+              set('venmo', e.target.value)
+            }}
+            maxLength={60}
+            placeholder="your-venmo"
+          />
+        </div>
+      )}
+
+      {fields.preferred === 'zelle' && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="phone_number">Phone for Zelle</Label>
+          <Input
+            id="phone_number"
+            type="tel"
+            inputMode="tel"
+            value={fields.phone}
+            onChange={(e) => {
+              setSaved(false)
+              set('phone', e.target.value)
+            }}
+            maxLength={20}
+            placeholder="(555) 234-5678"
+            aria-invalid={!phoneValid}
+          />
+          {!phoneValid && (
+            <p className="text-xs text-down">
+              That doesn&apos;t look like a US phone number.
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Only shown to someone who owes you money when Zelle is preferred.
+          </p>
+        </div>
+      )}
 
       {error && <p className="text-sm text-down">{error}</p>}
       {saved && !canSave && <p className="text-sm text-up">Saved.</p>}

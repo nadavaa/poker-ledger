@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { storagePath } from '@/lib/avatar'
 import { Avatar } from '@/components/avatar'
 import { Button } from '@/components/ui/button'
+import { ActionSheet, DotsButton } from '@/components/action-sheet'
 
 const MAX_BYTES = 5 * 1024 * 1024
 const MAX_EDGE = 512
@@ -24,6 +25,7 @@ export function AvatarUpload({
   name,
   currentUrl,
   onSaved,
+  variant = 'buttons',
 }: {
   bucket: 'avatars' | 'group-avatars'
   /** First path segment. The storage policy checks this. */
@@ -33,6 +35,9 @@ export function AvatarUpload({
   currentUrl: string | null
   /** Persists the new value (or null) wherever it belongs. */
   onSaved: (path: string | null) => Promise<{ error: string | null }>
+  /** 'menu' tucks the actions behind a dots button; 'buttons' keeps them
+   *  visible, which is what a dedicated onboarding step wants. */
+  variant?: 'buttons' | 'menu'
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -41,6 +46,7 @@ export function AvatarUpload({
   const [stage, setStage] = useState<Stage>('idle')
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const busy = stage !== 'idle'
 
@@ -161,28 +167,76 @@ export function AvatarUpload({
       )}
 
       <div className="flex min-w-0 flex-col gap-1.5">
-        <div className="flex flex-wrap gap-2">
+        {variant === 'menu' ? (
+          <div className="flex items-center gap-2">
+            {busy && (
+              <span className="text-sm text-muted-foreground">
+                {label[stage]}
+              </span>
+            )}
+            <DotsButton
+              label="Photo options"
+              onClick={() => setMenuOpen(true)}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => fileInput.current?.click()}
+            >
+              {label[stage]}
+            </Button>
+            {currentUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                onClick={removePhoto}
+              >
+                Remove photo
+              </Button>
+            )}
+          </div>
+        )}
+
+        <ActionSheet
+          open={menuOpen}
+          title="Photo"
+          onClose={() => setMenuOpen(false)}
+        >
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            className="h-11 justify-start rounded-xl"
             disabled={busy}
-            onClick={() => fileInput.current?.click()}
+            onClick={() => {
+              setMenuOpen(false)
+              fileInput.current?.click()
+            }}
           >
-            {label[stage]}
+            {currentUrl ? 'Change photo' : 'Add photo'}
           </Button>
+          {/* No photo means nothing to remove — no dead item. */}
           {currentUrl && (
             <Button
               type="button"
-              variant="ghost"
-              size="sm"
+              variant="destructive"
+              className="h-11 justify-start rounded-xl"
               disabled={busy}
-              onClick={removePhoto}
+              onClick={() => {
+                setMenuOpen(false)
+                removePhoto()
+              }}
             >
               Remove photo
             </Button>
           )}
-        </div>
+        </ActionSheet>
 
         {busy && (
           <p className="text-xs text-muted-foreground">
