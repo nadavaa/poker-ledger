@@ -54,6 +54,7 @@ export function SettledView({
   startedAt,
   settledAt,
   beforeSettlements,
+  needsPaymentMethod = false,
 }: {
   rows: ResultRow[]
   /** RLS already limits this to rows the viewer is party to, unless admin. */
@@ -71,6 +72,8 @@ export function SettledView({
   settledAt: string | null
   /** Sits between the scoreboard and the payments — the food order. */
   beforeSettlements?: React.ReactNode
+  /** Owed money with no way to be paid. */
+  needsPaymentMethod?: boolean
 }) {
   const potCents = rows.reduce((s, r) => s + r.buyinCents, 0)
   const potChips = rows.reduce((s, r) => s + r.buyinChips, 0)
@@ -171,6 +174,24 @@ export function SettledView({
             </div>
           ))}
         </section>
+      )}
+
+      {needsPaymentMethod && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-pending/30 bg-pending-soft p-3.5">
+          <p className="text-sm font-medium text-pending">
+            You&apos;re owed money for this game
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Nobody can pay you yet — add a Venmo handle or a phone for Zelle
+            and it shows up on their screen.
+          </p>
+          <a
+            href="/settings"
+            className="text-sm font-semibold text-pending underline-offset-2 hover:underline"
+          >
+            Add a payment method
+          </a>
+        </div>
       )}
 
       {beforeSettlements}

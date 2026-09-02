@@ -20,6 +20,7 @@ export type Database = {
           avatar_url: string | null
           venmo_handle: string | null
           created_at: string
+          onboarding_completed_at: string | null
         }
         Insert: {
           id: string
@@ -601,6 +602,10 @@ export type Database = {
       shares_a_group_with: {
         Args: { pid: string }
         Returns: boolean
+      }
+      complete_onboarding: {
+        Args: Record<string, never>
+        Returns: undefined
       }
       normalize_us_phone: {
         Args: { raw: string }

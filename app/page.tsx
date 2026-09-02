@@ -23,7 +23,7 @@ export default async function HomePage({
   const [{ data: profile }, { data: memberships }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('display_name, avatar_url')
+      .select('display_name, avatar_url, onboarding_completed_at')
       .eq('id', user.id)
       .single(),
     supabase
@@ -33,6 +33,9 @@ export default async function HomePage({
       .eq('is_active', true)
       .order('created_at'),
   ])
+
+  // New account, or one that closed the browser mid-flow.
+  if (profile && !profile.onboarding_completed_at) redirect('/welcome')
 
   const groupIds = (memberships ?? []).map((m) => m.group_id)
   const myMemberIds = (memberships ?? []).map((m) => m.id)

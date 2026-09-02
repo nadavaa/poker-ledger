@@ -152,6 +152,12 @@ export default async function GamePage({
 
   const progress = progressRows?.[0] ?? { total: 0, confirmed: 0 }
 
+  // Asked at the moment it matters, rather than during signup: somebody owes
+  // you money and there's nowhere for them to send it.
+  const { data: myPayment } = settled
+    ? await supabase.rpc('my_payment_details').maybeSingle()
+    : { data: null }
+
   const myMember = members?.find((m) => m.profile_id === user.id) ?? null
   const confirmed = signups?.filter((s) => s.status === 'confirmed') ?? []
   const waitlist = signups?.filter((s) => s.status === 'waitlist') ?? []
@@ -541,6 +547,14 @@ export default async function GamePage({
           startedAt={game.started_at}
           settledAt={game.settled_at}
           beforeSettlements={foodSection}
+          needsPaymentMethod={
+            !!myMember &&
+            !myPayment?.venmo_handle &&
+            !myPayment?.phone_number &&
+            (settlements ?? []).some(
+              (t) => t.to_member_id === myMember.id && t.status !== 'confirmed'
+            )
+          }
         />
       )}
 
