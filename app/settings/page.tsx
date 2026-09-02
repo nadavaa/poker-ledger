@@ -86,7 +86,7 @@ export default async function SettingsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header className="flex items-start justify-between gap-2">
+      <header className="page-header flex items-start justify-between gap-2">
         <div className="min-w-0">
           <Link href="/" className="text-xs text-muted-foreground">
             &larr; All groups

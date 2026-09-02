@@ -40,6 +40,8 @@ function depthOf(pathname: string): number | null {
   return null
 }
 
+const SETTINGS = '/settings'
+
 type Pending = { path: string; resolve: () => void } | null
 
 export function NavTransitions() {
@@ -71,8 +73,19 @@ export function NavTransitions() {
 
     const root = document.documentElement
 
-    function direction(to: number | null): 'push' | 'pop' | null {
-      const from = depthOf(currentPath.current)
+    function direction(toPath: string): 'push' | 'pop' | null {
+      const fromPath = currentPath.current
+      if (toPath === fromPath) return null
+
+      // Settings sits outside the hierarchy, so depth would get it wrong —
+      // returning to a game would compute as a push and animate backwards.
+      // It always arrives from the right and always leaves to the right,
+      // whatever it was opened from.
+      if (toPath === SETTINGS) return 'push'
+      if (fromPath === SETTINGS) return 'pop'
+
+      const from = depthOf(fromPath)
+      const to = depthOf(toPath)
       if (from === null || to === null || from === to) return null
       return to > from ? 'push' : 'pop'
     }
@@ -135,7 +148,7 @@ export function NavTransitions() {
       const url = new URL(anchor.href, location.href)
       if (url.origin !== location.origin) return
 
-      const dir = direction(depthOf(url.pathname))
+      const dir = direction(url.pathname)
       if (!dir) return
 
       event.preventDefault()
@@ -150,7 +163,7 @@ export function NavTransitions() {
       const url = new URL(e.destination.url)
       if (url.origin !== location.origin) return
 
-      const dir = direction(depthOf(url.pathname))
+      const dir = direction(url.pathname)
       if (!dir) return
 
       // Not intercepted: the browser and Next still perform the traversal.
