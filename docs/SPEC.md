@@ -614,6 +614,31 @@ chips minus chips already cashed out, in both units. If cashed-out chips ever
 exceed the pot, that is provably a miscount and the header says so
 immediately.
 
+**Edit the game.** In Game settings, for the game admin only. What may be
+edited depends on what the game is doing, and that rule cannot live in a
+policy — RLS filters rows, not columns, and WITH CHECK cannot see the old row
+to know what changed. So the policy on `games` says who (the admin, never on a
+settled or cancelled game) and a BEFORE trigger says what.
+
+Scheduled: everything — name, date and time, location, seats, buy-in, chip
+ratio. Active: name and location only. Seats, buy-in, chip ratio and start
+time are frozen because every buy-in already in the pot was priced against
+them; changing the chip ratio mid-game would silently rewrite what every stack
+on the table is worth. Locked fields are greyed out with the reason beside
+them rather than hidden, so the admin can see the value they can't change.
+Settled or cancelled: nothing.
+
+Raising the seat limit on a scheduled game promotes waitlisted players in
+order to fill the new seats. Lowering it below the confirmed count is refused
+rather than demoting somebody automatically — who loses a seat is a decision
+about people, not a number. A past date warns and saves anyway: games do get
+logged after the fact.
+
+Every change writes a `game_edits` row from the trigger, which is what puts
+"Nadav changed the start time to 8:30 PM" in the activity feed. Editing a
+game's defaults changes the game row and nothing else — the snapshots on
+existing buyins, cashouts and settlements are never touched.
+
 **Share the game.** On a scheduled or active game, a Share button hands over
 a link to `/games/[gameId]/join` plus WhatsApp-ready text, because that is
 where it gets pasted. The link does the whole job in one transaction

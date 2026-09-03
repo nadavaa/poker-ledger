@@ -7,6 +7,28 @@ import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import type { Buyin } from './use-game-buyins'
 import type { CashoutRecord } from '@/lib/table'
+import { describeEdit } from '@/lib/game-edit'
+
+export type GameEditEntry = {
+  id: string
+  field: string
+  oldValue: string | null
+  newValue: string | null
+  editedByMemberId: string | null
+  createdAt: string
+}
+
+function when(iso: string) {
+  // Postgres hands back "2026-09-06 20:30:00+00"; not every engine parses a
+  // space where the T should be.
+  return new Date(iso.replace(' ', 'T')).toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
 
 function time(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, {
@@ -22,6 +44,7 @@ function time(iso: string) {
 export function ActivityFeed({
   buyins,
   cashouts = [],
+  edits = [],
   names,
   adminMemberId,
   myMemberId,
@@ -31,6 +54,8 @@ export function ActivityFeed({
   buyins: Buyin[]
   /** Leaving the table is a money event too, so it belongs in the log. */
   cashouts?: CashoutRecord[]
+  /** The time moved, the venue moved — players find out here, not in the chat. */
+  edits?: GameEditEntry[]
   names: Map<string, string>
   adminMemberId: string
   myMemberId?: string | null
@@ -41,10 +66,26 @@ export function ActivityFeed({
   // One list, newest first: a buy-in logged after someone left has to read as
   // having happened after they left.
   const entries = [
-    ...buyins.map((b) => ({ at: b.created_at, buyin: b, cashout: null })),
+    ...buyins.map((b) => ({
+      at: b.created_at,
+      buyin: b,
+      cashout: null,
+      edit: null,
+    })),
     ...cashouts
       .filter((c) => c.leftTable)
-      .map((c) => ({ at: c.recordedAt, buyin: null, cashout: c })),
+      .map((c) => ({
+        at: c.recordedAt,
+        buyin: null,
+        cashout: c,
+        edit: null,
+      })),
+    ...edits.map((e) => ({
+      at: e.createdAt,
+      buyin: null,
+      cashout: null,
+      edit: e,
+    })),
   ].sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0))
 
   const shown = showAll ? entries : entries.slice(0, limit)
@@ -62,6 +103,34 @@ export function ActivityFeed({
     <>
     <ul className="flex flex-col gap-1.5">
       {shown.map((e) => {
+        if (e.edit) {
+          const ed = e.edit
+          return (
+            <li
+              key={`edit:${ed.id}`}
+              className="flex items-baseline justify-between gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2.5 text-base"
+            >
+              <span className="text-muted-foreground">
+                {describeEdit(
+                  {
+                    field: ed.field,
+                    oldValue: ed.oldValue,
+                    newValue: ed.newValue,
+                    editedByName:
+                      (ed.editedByMemberId &&
+                        names.get(ed.editedByMemberId)) ||
+                      'The admin',
+                  },
+                  { money: formatCents, when }
+                )}
+              </span>
+              <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
+                {time(ed.createdAt)}
+              </span>
+            </li>
+          )
+        }
+
         if (e.cashout) {
           const c = e.cashout
           return (

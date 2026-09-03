@@ -12,7 +12,7 @@ import {
 } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ActivityFeed } from './activity-feed'
+import { ActivityFeed, type GameEditEntry } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
 import {
@@ -59,6 +59,7 @@ export function BuyInGrid({
   available,
   startedAt,
   initialCashouts,
+  edits = [],
   beforeActivity,
 }: {
   gameId: string
@@ -71,6 +72,8 @@ export function BuyInGrid({
   startedAt: string | null
   /** Who has already left with their chips. */
   initialCashouts: CashoutRecord[]
+  /** Game edits — the time or the venue moved. */
+  edits?: GameEditEntry[]
   /** Rendered between the grid and the feed — the food order lives here. */
   beforeActivity?: React.ReactNode
 }) {
@@ -335,6 +338,7 @@ export function BuyInGrid({
         <ActivityFeed
           buyins={buyins}
           cashouts={cashouts}
+          edits={edits}
           names={names}
           adminMemberId={adminMemberId}
           myMemberId={adminMemberId}

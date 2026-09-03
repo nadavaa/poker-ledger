@@ -328,6 +328,28 @@ export type Database = {
           },
         ]
       }
+      game_edits: {
+        Row: {
+          id: string
+          game_id: string
+          edited_by_member_id: string | null
+          field: string
+          old_value: string | null
+          new_value: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          game_id: string
+          edited_by_member_id?: string | null
+          field: string
+          old_value?: string | null
+          new_value?: string | null
+          created_at?: string
+        }
+        Update: Record<string, never>
+        Relationships: []
+      }
       cashouts: {
         Row: {
           id: string

@@ -2,7 +2,7 @@
 
 import { formatCents } from '@/lib/money'
 import { Card, CardContent } from '@/components/ui/card'
-import { ActivityFeed } from './activity-feed'
+import { ActivityFeed, type GameEditEntry } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
 import { PotHeader } from './pot-header'
@@ -22,6 +22,7 @@ export function LiveRoster({
   myMemberId,
   initialBuyins,
   cashouts = [],
+  edits = [],
   started,
   startedAt,
   beforeActivity,
@@ -33,6 +34,8 @@ export function LiveRoster({
   initialBuyins: Buyin[]
   /** Who has left the table; shown in the feed like a buy-in is. */
   cashouts?: CashoutRecord[]
+  /** Game edits — the time or the venue moved. */
+  edits?: GameEditEntry[]
   /** Before the first hand nobody has staked anything, so show no money. */
   started: boolean
   startedAt: string | null
@@ -118,6 +121,7 @@ export function LiveRoster({
           <ActivityFeed
             buyins={buyins}
             cashouts={cashouts}
+            edits={edits}
             names={names}
             adminMemberId={adminMemberId}
             myMemberId={myMemberId}
