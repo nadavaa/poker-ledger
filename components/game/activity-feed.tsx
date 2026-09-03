@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import type { Buyin } from './use-game-buyins'
+import type { CashoutRecord } from '@/lib/table'
 
 function time(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, {
@@ -20,6 +21,7 @@ function time(iso: string) {
  */
 export function ActivityFeed({
   buyins,
+  cashouts = [],
   names,
   adminMemberId,
   myMemberId,
@@ -27,16 +29,28 @@ export function ActivityFeed({
   limit = 8,
 }: {
   buyins: Buyin[]
+  /** Leaving the table is a money event too, so it belongs in the log. */
+  cashouts?: CashoutRecord[]
   names: Map<string, string>
   adminMemberId: string
   myMemberId?: string | null
   limit?: number
 }) {
   const [showAll, setShowAll] = useState(false)
-  const shown = showAll ? buyins : buyins.slice(0, limit)
-  const hidden = buyins.length - shown.length
 
-  if (buyins.length === 0) {
+  // One list, newest first: a buy-in logged after someone left has to read as
+  // having happened after they left.
+  const entries = [
+    ...buyins.map((b) => ({ at: b.created_at, buyin: b, cashout: null })),
+    ...cashouts
+      .filter((c) => c.leftTable)
+      .map((c) => ({ at: c.recordedAt, buyin: null, cashout: c })),
+  ].sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0))
+
+  const shown = showAll ? entries : entries.slice(0, limit)
+  const hidden = entries.length - shown.length
+
+  if (entries.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
         No buy-ins yet.
@@ -47,7 +61,31 @@ export function ActivityFeed({
   return (
     <>
     <ul className="flex flex-col gap-1.5">
-      {shown.map((b) => {
+      {shown.map((e) => {
+        if (e.cashout) {
+          const c = e.cashout
+          return (
+            <li
+              key={`cashout:${c.memberId}`}
+              className="flex items-baseline justify-between gap-2 rounded-xl border border-dashed border-border/70 px-3 py-2.5 text-base"
+            >
+              <span>
+                <span className="font-medium">
+                  {names.get(c.memberId) ?? 'Unknown'}
+                </span>{' '}
+                <span className="text-muted-foreground">cashed out</span>{' '}
+                <span className="money font-semibold">
+                  {c.chips.toLocaleString()} chips
+                </span>
+              </span>
+              <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
+                {time(c.recordedAt)}
+              </span>
+            </li>
+          )
+        }
+
+        const b = e.buyin!
         // The admin logging their own buy-in gets a marker. Nobody will cheat;
         // the reason nobody will is that the log makes it pointless.
         const selfLogged =

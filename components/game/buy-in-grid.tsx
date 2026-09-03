@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { centsToChips, centsToDollars, dollarsToCents, formatCents } from '@/lib/money'
+import {
+  centsToChips,
+  centsToDollars,
+  chipsToCents,
+  dollarsToCents,
+  formatCents,
+} from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ActivityFeed } from './activity-feed'
@@ -18,6 +24,12 @@ import {
 import { AddPlayer, type AvailableMember } from './add-player'
 import { PotHeader } from './pot-header'
 import { CollapsibleSection } from '@/components/collapsible-section'
+import {
+  cashoutFor,
+  hasLeftTable,
+  tableState,
+  type CashoutRecord,
+} from '@/lib/table'
 
 export type Player = {
   memberId: string
@@ -46,6 +58,7 @@ export function BuyInGrid({
   initialBuyins,
   available,
   startedAt,
+  initialCashouts,
   beforeActivity,
 }: {
   gameId: string
@@ -56,6 +69,8 @@ export function BuyInGrid({
   initialBuyins: Buyin[]
   available: AvailableMember[]
   startedAt: string | null
+  /** Who has already left with their chips. */
+  initialCashouts: CashoutRecord[]
   /** Rendered between the grid and the feed — the food order lives here. */
   beforeActivity?: React.ReactNode
 }) {
@@ -76,6 +91,27 @@ export function BuyInGrid({
   } | null>(null)
   const [undoPending, setUndoPending] = useState(false)
   const [sheet, setSheet] = useState<Player | null>(null)
+
+  // Seeded from the server and moved optimistically, so cashing someone out
+  // dims their card and updates the header on the tap rather than a round
+  // trip later. The server's answer wins as soon as it arrives.
+  const [cashouts, setCashouts] = useState(initialCashouts)
+  const serverSig = initialCashouts
+    .map((c) => `${c.memberId}:${c.chips}:${c.leftTable}`)
+    .join(',')
+  const [seenSig, setSeenSig] = useState(serverSig)
+  if (seenSig !== serverSig) {
+    setSeenSig(serverSig)
+    setCashouts(initialCashouts)
+  }
+
+  const anyoneLeft = cashouts.some((c) => c.leftTable)
+  const onTable = tableState({
+    potChips,
+    potCents,
+    cashouts,
+    chipsPerDollar,
+  })
 
   const names = new Map(players.map((p) => [p.memberId, p.name]))
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -174,6 +210,47 @@ export function BuyInGrid({
     merge([data as Buyin])
   }
 
+  async function cashOut(player: Player, chips: number) {
+    setError(null)
+    const { error } = await supabase.rpc('record_cashout', {
+      p_game_id: gameId,
+      p_member_id: player.memberId,
+      p_chips: chips,
+    })
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setCashouts((prev) => [
+      ...prev.filter((c) => c.memberId !== player.memberId),
+      {
+        memberId: player.memberId,
+        chips,
+        recordedAt: new Date().toISOString(),
+        leftTable: true,
+      },
+    ])
+    setSheet(null)
+    router.refresh()
+  }
+
+  async function undoCashOut(player: Player) {
+    setError(null)
+    const { error } = await supabase.rpc('undo_cashout', {
+      p_game_id: gameId,
+      p_member_id: player.memberId,
+    })
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setCashouts((prev) =>
+      prev.filter((c) => c.memberId !== player.memberId)
+    )
+    setSheet(null)
+    router.refresh()
+  }
+
   async function removePlayer(player: Player) {
     setError(null)
     // Freeing the seat is all this does; the promotion trigger pulls up the
@@ -198,6 +275,15 @@ export function BuyInGrid({
         potCents={potCents}
         potChips={potChips}
         startedAt={startedAt}
+        onTable={
+          anyoneLeft
+            ? {
+                chips: onTable.chipsOnTable,
+                cents: onTable.centsOnTable,
+                overdrawn: onTable.overdrawn,
+              }
+            : undefined
+        }
       />
 
       {error && (
@@ -219,6 +305,17 @@ export function BuyInGrid({
             key={p.memberId}
             player={p}
             total={totalsByMember.get(p.memberId)}
+            cashedOut={
+              hasLeftTable(p.memberId, cashouts)
+                ? {
+                    chips: cashoutFor(p.memberId, cashouts)?.chips ?? 0,
+                    cents: chipsToCents(
+                      cashoutFor(p.memberId, cashouts)?.chips ?? 0,
+                      chipsPerDollar
+                    ),
+                  }
+                : null
+            }
             onTap={() => addBuyin(p, defaultBuyinCents)}
             onLongPress={() => setSheet(p)}
           />
@@ -237,6 +334,7 @@ export function BuyInGrid({
       <CollapsibleSection title="Activity">
         <ActivityFeed
           buyins={buyins}
+          cashouts={cashouts}
           names={names}
           adminMemberId={adminMemberId}
           myMemberId={adminMemberId}
@@ -278,10 +376,13 @@ export function BuyInGrid({
           chipsPerDollar={chipsPerDollar}
           defaultBuyinCents={defaultBuyinCents}
           buyins={buyins.filter((b) => b.member_id === sheet.memberId)}
+          cashout={cashoutFor(sheet.memberId, cashouts)}
           onClose={() => setSheet(null)}
           onAdd={(cents, note) => addBuyin(sheet, cents, note)}
           onVoid={(id) => voidBuyin(id, 'admin correction')}
           onRemove={() => removePlayer(sheet)}
+          onCashOut={(chips) => cashOut(sheet, chips)}
+          onUndoCashOut={() => undoCashOut(sheet)}
         />
       )}
     </div>
@@ -291,11 +392,14 @@ export function BuyInGrid({
 function PlayerCard({
   player,
   total,
+  cashedOut,
   onTap,
   onLongPress,
 }: {
   player: Player
   total?: { cents: number; count: number }
+  /** Left the game with this much; no more buy-ins for them. */
+  cashedOut: { chips: number; cents: number } | null
   onTap: () => void
   onLongPress: () => void
 }) {
@@ -315,7 +419,9 @@ function PlayerCard({
   function cancel(commitTap: boolean) {
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
-    if (commitTap && !fired.current) onTap()
+    // The database refuses a buy-in for someone who cashed out. The card
+    // says so rather than firing a tap that comes back as an error.
+    if (commitTap && !fired.current && !cashedOut) onTap()
   }
 
   return (
@@ -332,26 +438,47 @@ function PlayerCard({
         onPointerLeave={() => cancel(false)}
         onPointerCancel={() => cancel(false)}
         onContextMenu={(e) => e.preventDefault()}
-        className={`flex min-h-[7.5rem] w-full touch-manipulation select-none flex-col justify-between rounded-2xl border p-3.5 text-left transition-[transform,background-color,border-color] duration-100 ease-out active:scale-[0.97] ${
-          staked
-            ? 'border-border bg-card active:bg-muted'
-            : 'border-dashed border-border/70 bg-card/40 active:bg-muted/60'
+        aria-disabled={!!cashedOut}
+        className={`flex min-h-[7.5rem] w-full touch-manipulation select-none flex-col justify-between rounded-2xl border p-3.5 text-left transition-[transform,background-color,border-color] duration-100 ease-out ${
+          cashedOut
+            ? 'border-border/60 bg-card/30 opacity-60'
+            : staked
+              ? 'border-border bg-card active:scale-[0.97] active:bg-muted'
+              : 'border-dashed border-border/70 bg-card/40 active:scale-[0.97] active:bg-muted/60'
         }`}
       >
         <span className="line-clamp-1 pr-8 text-[0.9rem] font-medium text-foreground/90">
           {player.name}
         </span>
 
-        <span
-          className={`money-display text-[2rem] font-semibold ${
-            staked ? 'text-foreground' : 'text-muted-foreground'
-          }`}
-        >
-          {formatCents(total?.cents ?? 0)}
-        </span>
+        {cashedOut ? (
+          <>
+            {/* What they left with, in both units — the dollar figure is
+                what the settlement will use. */}
+            <span className="money-display text-[2rem] font-semibold text-muted-foreground">
+              {formatCents(cashedOut.cents)}
+            </span>
+            {/* Never colour alone: dimming is reinforced by the word. */}
+            <span className="money flex items-center gap-1 text-xs text-muted-foreground">
+              <span aria-hidden>✓</span>
+              Cashed out · {cashedOut.chips.toLocaleString()} chips
+            </span>
+          </>
+        ) : (
+          <>
+            <span
+              className={`money-display text-[2rem] font-semibold ${
+                staked ? 'text-foreground' : 'text-muted-foreground'
+              }`}
+            >
+              {formatCents(total?.cents ?? 0)}
+            </span>
 
-        <BuyInDots count={count} />
+            <BuyInDots count={count} />
+          </>
+        )}
       </button>
+
 
       {/* Without this, a custom amount, a note and voiding are reachable only
           by holding the card, with nothing on screen saying so. */}
@@ -402,24 +529,33 @@ function PlayerSheet({
   chipsPerDollar,
   defaultBuyinCents,
   buyins,
+  cashout,
   onClose,
   onAdd,
   onVoid,
   onRemove,
+  onCashOut,
+  onUndoCashOut,
 }: {
   player: Player
   chipsPerDollar: number
   defaultBuyinCents: number
   buyins: Buyin[]
+  cashout: CashoutRecord | null
   onClose: () => void
   onAdd: (cents: number, note?: string) => void
   onVoid: (id: string) => void
   onRemove: () => void
+  onCashOut: (chips: number) => void
+  onUndoCashOut: () => void
 }) {
   const [amount, setAmount] = useState(centsToDollars(defaultBuyinCents))
   const [note, setNote] = useState('')
   const [invalid, setInvalid] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [cashingOut, setCashingOut] = useState(false)
+  const [chipsOut, setChipsOut] = useState('')
+  const gone = !!cashout?.leftTable
   // Voiding cannot be taken back, so it takes two taps like every other
   // destructive action in the app.
   const [confirmVoid, setConfirmVoid] = useState<string | null>(null)
@@ -457,6 +593,32 @@ function PlayerSheet({
           </Button>
         </div>
 
+        {gone ? (
+          <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-3">
+            <p className="text-sm font-medium">
+              <span aria-hidden>✓</span> Cashed out{' '}
+              <span className="money">
+                {cashout!.chips.toLocaleString()} chips
+              </span>{' '}
+              <span className="text-muted-foreground">
+                · {formatCents(chipsToCents(cashout!.chips, chipsPerDollar))}
+              </span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Recorded {timeOf(cashout!.recordedAt)}. They can&apos;t buy in
+              again until this is undone, and the count carries into the
+              final settlement.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="self-start rounded-xl"
+              onClick={onUndoCashOut}
+            >
+              Undo cash out
+            </Button>
+          </div>
+        ) : (
         <form onSubmit={submit} className="mt-3 flex flex-col gap-2">
           <div className="flex gap-2">
             <Input
@@ -491,6 +653,73 @@ function PlayerSheet({
             })()}
           </p>
         </form>
+        )}
+
+        {/* Between buying in and being removed: they played, they're leaving,
+            and their chips count. */}
+        {!gone && (
+          <div className="mt-3 border-t border-border pt-3">
+            {cashingOut ? (
+              <form
+                className="flex flex-col gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (chipsOut === '') return
+                  onCashOut(Number(chipsOut))
+                }}
+              >
+                <label
+                  htmlFor={`chips-out-${player.memberId}`}
+                  className="text-sm font-medium"
+                >
+                  Chips they&apos;re leaving with
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    id={`chips-out-${player.memberId}`}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={chipsOut}
+                    // Digits only, stripped as you type — the same rule as
+                    // the end-game counting screen.
+                    onChange={(e) =>
+                      setChipsOut(e.target.value.replace(/\D/g, ''))
+                    }
+                    placeholder="0"
+                    className="money h-11 text-center !text-lg font-semibold"
+                  />
+                  <Button type="submit" disabled={chipsOut === ''}>
+                    Cash out
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setCashingOut(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {chipsOut === ''
+                    ? '0 is a real count — it means they busted.'
+                    : `${formatCents(
+                        chipsToCents(Number(chipsOut), chipsPerDollar)
+                      )} · frees their seat for the waitlist`}
+                </p>
+              </form>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => setCashingOut(true)}
+              >
+                Cash out
+              </Button>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 flex flex-col gap-2">
           <h4 className="text-sm font-medium text-muted-foreground">

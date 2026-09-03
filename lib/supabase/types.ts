@@ -337,6 +337,7 @@ export type Database = {
           amount_cents: number
           recorded_at: string
           recorded_by_member_id: string
+          left_table: boolean
         }
         Insert: {
           id?: string
@@ -346,6 +347,7 @@ export type Database = {
           amount_cents: number
           recorded_at?: string
           recorded_by_member_id: string
+          left_table?: boolean
         }
         Update: {
           chips?: number
@@ -585,6 +587,10 @@ export type Database = {
       }
       record_cashout: {
         Args: { p_game_id: string; p_member_id: string; p_chips: number }
+        Returns: undefined
+      }
+      undo_cashout: {
+        Args: { p_game_id: string; p_member_id: string }
         Returns: undefined
       }
       resolve_discrepancy: {

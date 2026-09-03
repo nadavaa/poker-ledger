@@ -6,6 +6,7 @@ import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
 import { PotHeader } from './pot-header'
+import type { CashoutRecord } from '@/lib/table'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import { Avatar } from '@/components/avatar'
 import type { Player } from './buy-in-grid'
@@ -20,6 +21,7 @@ export function LiveRoster({
   adminMemberId,
   myMemberId,
   initialBuyins,
+  cashouts = [],
   started,
   startedAt,
   beforeActivity,
@@ -29,6 +31,8 @@ export function LiveRoster({
   adminMemberId: string
   myMemberId: string | null
   initialBuyins: Buyin[]
+  /** Who has left the table; shown in the feed like a buy-in is. */
+  cashouts?: CashoutRecord[]
   /** Before the first hand nobody has staked anything, so show no money. */
   started: boolean
   startedAt: string | null
@@ -113,6 +117,7 @@ export function LiveRoster({
         <CollapsibleSection title="Activity">
           <ActivityFeed
             buyins={buyins}
+            cashouts={cashouts}
             names={names}
             adminMemberId={adminMemberId}
             myMemberId={myMemberId}

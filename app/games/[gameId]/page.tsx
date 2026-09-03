@@ -12,6 +12,11 @@ import { BuyInGrid } from '@/components/game/buy-in-grid'
 import { ScheduledView } from '@/components/game/scheduled-view'
 import { LiveRoster } from '@/components/game/live-roster'
 import { CashoutPanel } from '@/components/game/cashout-panel'
+import {
+  cashoutFor,
+  hasLeftTable,
+  type CashoutRecord,
+} from '@/lib/table'
 import { SettledView } from '@/components/game/settled-view'
 import { StatusBanner } from '@/components/game/status-banner'
 import { WaitlistPanel } from '@/components/game/waitlist-panel'
@@ -88,6 +93,7 @@ export default async function GamePage({
     { data: adjustments },
     { data: paymentRows },
     { data: foodRows },
+    { data: cashoutRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -144,7 +150,20 @@ export default async function GamePage({
       )
       .eq('game_id', gameId)
       .order('created_at'),
+    // Who has already cashed out. Needed while the game is still running —
+    // it decides who can be bought in for and how much is left on the table.
+    supabase
+      .from('cashouts')
+      .select('member_id, chips, recorded_at, left_table')
+      .eq('game_id', gameId),
   ])
+
+  const cashouts: CashoutRecord[] = (cashoutRows ?? []).map((c) => ({
+    memberId: c.member_id,
+    chips: c.chips,
+    recordedAt: c.recorded_at,
+    leftTable: c.left_table,
+  }))
 
   // Asked at the moment it matters, rather than during signup: somebody owes
   // you money and there's nowhere for them to send it.
@@ -458,6 +477,7 @@ export default async function GamePage({
             initialBuyins={(buyins ?? []) as Buyin[]}
             available={available}
             startedAt={game.started_at}
+            initialCashouts={cashouts}
             beforeActivity={foodSection}
           />
         ) : (
@@ -467,6 +487,7 @@ export default async function GamePage({
             adminMemberId={game.admin_member_id}
             myMemberId={myMember?.id ?? null}
             initialBuyins={(buyins ?? []) as Buyin[]}
+            cashouts={cashouts}
             started
             startedAt={game.started_at}
             beforeActivity={foodSection}
@@ -488,6 +509,9 @@ export default async function GamePage({
                 adjustmentCents: t.adjustment_cents,
                 chips:
                   t.cashout_chips === null ? null : String(t.cashout_chips),
+                recordedAt:
+                  cashoutFor(t.member_id, cashouts)?.recordedAt ?? null,
+                leftTable: hasLeftTable(t.member_id, cashouts),
               }))}
             />
             {/* An escape hatch, not a primary action. reopen_game() is admin

@@ -38,10 +38,18 @@ export function PotHeader({
   potCents,
   potChips,
   startedAt,
+  onTable,
 }: {
   potCents: number
   potChips: number
   startedAt: string | null
+  /** Shown once somebody has cashed out and left with part of the pot. */
+  onTable?: {
+    chips: number
+    cents: number
+    /** More chips paid out than were ever bought in. */
+    overdrawn: boolean
+  }
 }) {
   const now = useNow()
 
@@ -72,6 +80,33 @@ export function PotHeader({
           </span>
         </div>
       </div>
+
+      {/* The pot is still every buy-in ever made. This is the part of it
+          that hasn't walked out the door. */}
+      {onTable && (
+        <div
+          className={`mt-2 flex items-baseline justify-between gap-3 rounded-xl px-3 py-1.5 ${
+            onTable.overdrawn
+              ? 'bg-down-soft text-down'
+              : 'bg-muted/60 text-muted-foreground'
+          }`}
+        >
+          <span className="text-[0.7rem] font-medium uppercase tracking-[0.08em]">
+            {onTable.overdrawn ? '! Cashed out over pot' : 'On the table'}
+          </span>
+          <span className="money text-sm font-semibold">
+            {onTable.chips.toLocaleString()} chips ·{' '}
+            {formatCents(onTable.cents)}
+          </span>
+        </div>
+      )}
+
+      {onTable?.overdrawn && (
+        <p className="mt-1.5 rounded-xl bg-down-soft px-3 py-2 text-xs text-down">
+          More chips have been cashed out than were bought in. One of the
+          counts is wrong — fix it now, not at 1am.
+        </p>
+      )}
 
       {/* Scroll edge, not a hard rule: content fades under the chrome. */}
       <div

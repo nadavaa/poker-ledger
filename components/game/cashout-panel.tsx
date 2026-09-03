@@ -14,6 +14,17 @@ export type NetRow = {
   buyinChips: number
   adjustmentCents: number
   chips: string | null // what's already recorded
+  /** When that count was taken, if it was. */
+  recordedAt: string | null
+  /** They cashed out mid-game and left; this count is hours old. */
+  leftTable: boolean
+}
+
+function timeOf(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 /**
@@ -182,7 +193,17 @@ export function CashoutPanel({
               }`}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[0.9rem] font-medium">{r.name}</p>
+                <p className="flex items-center gap-1.5 truncate text-[0.9rem] font-medium">
+                  {r.name}
+                  {/* Not blank, and not to be re-counted: this stack was
+                      counted when they left. Still editable. */}
+                  {r.leftTable && (
+                    <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                      ✓ cashed out
+                      {r.recordedAt ? ` ${timeOf(r.recordedAt)}` : ''}
+                    </span>
+                  )}
+                </p>
                 <p className="money mt-0.5 text-xs text-muted-foreground">
                   in {r.buyinChips.toLocaleString()} ·{' '}
                   {formatCents(r.buyinCents)}

@@ -590,6 +590,30 @@ started. This is deliberately not the same event as cashing out early: a
 player who played and left records a cashout and stays in the settlement math.
 Removal is for the person who never sat down.
 
+**Cash out mid-game.** From the same three-dot menu, while the game is
+active: count the chips they're leaving with and record them. It writes an
+ordinary `cashouts` row — the same one the end-game counting screen writes —
+so reconciliation, `game_nets()` and `settle_game()` need to know nothing
+about it. The row carries `left_table`, set only when the count is taken while
+the game is still active, and that flag does three things: it frees their seat
+so the waitlist promotes into it, it blocks further buy-ins for them
+(`buyins_before_insert` raises, so a stale screen can't get around it), and it
+brings their count to the counting screen already entered rather than blank.
+A count of 0 is a real count: they busted.
+
+Undo exists because someone announces they're leaving and then stays for one
+more hand. It deletes the row — there is nothing to audit about a cash out
+that didn't happen — and is refused once the game is being counted, where the
+chip field is the right place to fix a number. It is also refused if the
+waitlist has already taken the seat, since silently over-seating the game
+would break the only invariant the waitlist has.
+
+The pot is unchanged by a cash out; it is the sum of the buy-ins and always
+will be. What the active screen adds is a second figure, **on the table**: pot
+chips minus chips already cashed out, in both units. If cashed-out chips ever
+exceed the pot, that is provably a miscount and the header says so
+immediately.
+
 **Hand off admin.** Buried in a menu, not a primary button. Pick any active group member, confirm, done. The new admin gets the write access and the old one loses it immediately.
 
 **The admin's own buy-ins render differently in the activity feed.** One person having sole write access to everyone's money is a trust concession, and the control on it is visibility, not permission. Every player sees a live feed of every buy-in with a timestamp and who logged it, and the admin logging their own gets a subtle marker. Nobody will ever cheat, but the reason nobody will is that the log makes it pointless.
