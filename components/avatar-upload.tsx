@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { storagePath } from '@/lib/avatar'
 import { Avatar } from '@/components/avatar'
 import { Button } from '@/components/ui/button'
-import { ActionSheet, DotsButton } from '@/components/action-sheet'
+import { DotsButton } from '@/components/action-sheet'
+import { PopoverMenu, PopoverMenuItem } from '@/components/popover-menu'
 
 const MAX_BYTES = 5 * 1024 * 1024
 const MAX_EDGE = 512
@@ -42,6 +43,7 @@ export function AvatarUpload({
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const fileInput = useRef<HTMLInputElement>(null)
+  const menuAnchor = useRef<HTMLSpanElement>(null)
 
   const [stage, setStage] = useState<Stage>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -174,10 +176,12 @@ export function AvatarUpload({
                 {label[stage]}
               </span>
             )}
-            <DotsButton
-              label="Photo options"
-              onClick={() => setMenuOpen(true)}
-            />
+            <span ref={menuAnchor} className="inline-flex">
+              <DotsButton
+                label="Photo options"
+                onClick={() => setMenuOpen((v) => !v)}
+              />
+            </span>
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -204,15 +208,13 @@ export function AvatarUpload({
           </div>
         )}
 
-        <ActionSheet
+        <PopoverMenu
           open={menuOpen}
-          title="Photo"
+          anchorRef={menuAnchor}
           onClose={() => setMenuOpen(false)}
+          label="Photo options"
         >
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 justify-start rounded-xl"
+          <PopoverMenuItem
             disabled={busy}
             onClick={() => {
               setMenuOpen(false)
@@ -220,13 +222,11 @@ export function AvatarUpload({
             }}
           >
             {currentUrl ? 'Change photo' : 'Add photo'}
-          </Button>
+          </PopoverMenuItem>
           {/* No photo means nothing to remove — no dead item. */}
           {currentUrl && (
-            <Button
-              type="button"
-              variant="destructive"
-              className="h-11 justify-start rounded-xl"
+            <PopoverMenuItem
+              destructive
               disabled={busy}
               onClick={() => {
                 setMenuOpen(false)
@@ -234,9 +234,9 @@ export function AvatarUpload({
               }}
             >
               Remove photo
-            </Button>
+            </PopoverMenuItem>
           )}
-        </ActionSheet>
+        </PopoverMenu>
 
         {busy && (
           <p className="text-xs text-muted-foreground">
