@@ -1,11 +1,8 @@
 import { formatCents } from '@/lib/money'
 import { CopySummary } from '@/components/settle/copy-summary'
-import {
-  TransferCard,
-  type TransferRow,
-} from '@/components/settle/transfer-card'
+import { type TransferRow } from '@/components/settle/transfer-card'
+import { SettlementSection } from '@/components/settle/settlement-section'
 import { gameSummary } from '@/lib/summary'
-import { settlementRole } from '@/lib/settlements'
 
 export type ResultRow = {
   memberId: string
@@ -19,8 +16,6 @@ export type ResultRow = {
 }
 
 export type { TransferRow }
-
-export type SettlementProgress = { total: number; confirmed: number }
 
 export type AdjustmentRow = {
   id: string
@@ -48,7 +43,6 @@ export function SettledView({
   paymentSources,
   myMemberId,
   isAdmin,
-  progress,
   gameLabel,
   venmoNote,
   startedAt,
@@ -64,7 +58,6 @@ export function SettledView({
   paymentSources: Map<string, import('@/lib/payment').PaymentSources>
   myMemberId: string | null
   isAdmin: boolean
-  progress: SettlementProgress
   gameLabel: string
   /** What Venmo shows in the note field: which crew, which night. */
   venmoNote: string
@@ -197,70 +190,14 @@ export function SettledView({
       {beforeSettlements}
 
       <section className="flex flex-col gap-2">
-        <h2 className="flex items-baseline justify-between gap-2 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          <span>{isAdmin ? 'Who pays who' : 'Your settlements'}</span>
-          {/* Counts only — enough to know the game is closed out, without
-              revealing who is still carrying a debt. */}
-          <span className="money normal-case tracking-normal">
-            {progress.confirmed} of {progress.total} confirmed
-          </span>
-        </h2>
-
-        {(() => {
-          // RLS already scopes this: an admin receives every transfer, a
-          // player only their own. What each row shows is decided per
-          // transfer, never by whether the viewer runs the game.
-          const outstanding = transfers.filter((t) => t.status !== 'confirmed')
-
-          if (isAdmin && transfers.length === 0) {
-            return (
-              <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
-                Everyone came out even. Nothing to pay.
-              </p>
-            )
-          }
-
-          if (!isAdmin && outstanding.length === 0) {
-            return (
-              <div className="rounded-2xl border border-up/30 bg-up-soft px-4 py-6 text-center">
-                <p className="flex items-center justify-center gap-2 text-sm font-semibold text-up">
-                  <span aria-hidden>✓</span>
-                  You&apos;re square for this game
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Nothing to pay and nothing to collect.
-                </p>
-              </div>
-            )
-          }
-
-          const shown = isAdmin ? transfers : outstanding
-          // Poker and food stay separate line items, even between the same
-          // two people: they are two different debts.
-          const groups: { label: string; rows: typeof shown }[] = [
-            { label: 'Poker', rows: shown.filter((t) => t.kind !== 'food') },
-            { label: 'Food', rows: shown.filter((t) => t.kind === 'food') },
-          ].filter((g) => g.rows.length > 0)
-
-          return groups.map((g) => (
-            <div key={g.label} className="flex flex-col gap-2">
-              <p className="text-xs font-medium text-muted-foreground">
-                {g.label}
-              </p>
-              {g.rows.map((t) => (
-                <TransferCard
-                  key={`${t.id}:${t.status}`}
-                  transfer={t}
-                  role={settlementRole(t, myMemberId)}
-                  names={names}
-                  paymentSources={paymentSources}
-                  venmoNote={venmoNote}
-                  isGameAdmin={isAdmin}
-                />
-              ))}
-            </div>
-          ))
-        })()}
+        <SettlementSection
+          transfers={transfers}
+          names={names}
+          paymentSources={paymentSources}
+          venmoNote={venmoNote}
+          myMemberId={myMemberId}
+          isAdmin={isAdmin}
+        />
 
         {isAdmin && transfers.length > 0 && (
           <CopySummary

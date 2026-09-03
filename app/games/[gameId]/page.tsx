@@ -86,7 +86,6 @@ export default async function GamePage({
     { data: totals },
     { data: settlements },
     { data: adjustments },
-    { data: progressRows },
     { data: paymentRows },
     { data: foodRows },
   ] = await Promise.all([
@@ -131,9 +130,6 @@ export default async function GamePage({
           .select('id, member_id, amount_cents, reason')
           .eq('game_id', gameId)
       : Promise.resolve({ data: null }),
-    settled
-      ? supabase.rpc('game_settlement_progress', { p_game_id: gameId })
-      : Promise.resolve({ data: null }),
     // Contact details come back only for settlements this viewer may act on;
     // phone numbers are not readable from the tables at all.
     settled
@@ -149,8 +145,6 @@ export default async function GamePage({
       .eq('game_id', gameId)
       .order('created_at'),
   ])
-
-  const progress = progressRows?.[0] ?? { total: 0, confirmed: 0 }
 
   // Asked at the moment it matters, rather than during signup: somebody owes
   // you money and there's nowhere for them to send it.
@@ -549,7 +543,6 @@ export default async function GamePage({
           paymentSources={paymentSources}
           myMemberId={myMember?.id ?? null}
           isAdmin={isAdmin}
-          progress={progress}
           gameLabel={gameLabel}
           venmoNote={`${game.groups?.name ?? 'Poker'} · ${formatDay(
             game.scheduled_at

@@ -1,8 +1,5 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { formatCents } from '@/lib/money'
 import { canPay, type SettlementRole } from '@/lib/settlements'
 import { Button } from '@/components/ui/button'
@@ -75,10 +72,9 @@ function statusLine({
 }
 
 /**
- * One transfer, drawn for whoever is looking at it, and holding its own
- * status so a tap redraws the row immediately rather than after the server
- * round trip. The parent keys this on the server status, so a refresh that
- * disagrees replaces the component outright.
+ * One transfer, drawn for whoever is looking at it. Status is controlled by
+ * the parent, which applies the tap optimistically and owns the write — the
+ * count above the list has to move at the same moment this row does.
  *
  * The payer gets the Venmo link only while there is still a payment to make;
  * the payee gets "Confirm received" and no link, because settlement is
@@ -92,6 +88,9 @@ export function TransferCard({
   paymentSources,
   venmoNote,
   isGameAdmin,
+  pending,
+  error,
+  onMove,
 }: {
   transfer: TransferRow
   role: SettlementRole
@@ -100,13 +99,12 @@ export function TransferCard({
   paymentSources: Map<string, PaymentSources>
   venmoNote: string
   isGameAdmin: boolean
+  /** A write for this row is in flight. */
+  pending: boolean
+  error: string | null
+  onMove: (next: 'paid' | 'pending' | 'confirmed') => void
 }) {
-  const supabase = useMemo(() => createClient(), [])
-  const router = useRouter()
-
-  const [status, setStatus] = useState(transfer.status)
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const status = transfer.status
 
   const payerName = names.get(transfer.fromMemberId) ?? 'Someone'
   const payeeName = names.get(transfer.toMemberId) ?? 'someone'
@@ -121,24 +119,6 @@ export function TransferCard({
   const canCloseOut = isGameAdmin && !isPayer && !isPayee
   // The link is only useful while there is still a payment to send.
   const showVenmo = isPayer && status === 'pending'
-
-  async function move(next: 'paid' | 'pending' | 'confirmed') {
-    const previous = status
-    setError(null)
-    setPending(true)
-    setStatus(next) // optimistic: the row redraws on tap
-    const { error } = await supabase
-      .from('settlements')
-      .update({ status: next })
-      .eq('id', transfer.id)
-    setPending(false)
-    if (error) {
-      setStatus(previous)
-      setError(error.message)
-      return
-    }
-    router.refresh()
-  }
 
   const closedOutBy =
     transfer.confirmedByMemberId &&
@@ -256,7 +236,7 @@ export function TransferCard({
               variant="outline"
               className="rounded-xl"
               disabled={pending}
-              onClick={() => move('paid')}
+              onClick={() => onMove('paid')}
             >
               Mark as paid
             </Button>
@@ -269,7 +249,7 @@ export function TransferCard({
               size="sm"
               variant="ghost"
               disabled={pending}
-              onClick={() => move('pending')}
+              onClick={() => onMove('pending')}
             >
               Undo
             </Button>
@@ -280,7 +260,7 @@ export function TransferCard({
               size="sm"
               className="rounded-xl"
               disabled={pending}
-              onClick={() => move('confirmed')}
+              onClick={() => onMove('confirmed')}
             >
               Confirm received
             </Button>
@@ -294,7 +274,7 @@ export function TransferCard({
               variant="outline"
               className="rounded-xl"
               disabled={pending}
-              onClick={() => move('confirmed')}
+              onClick={() => onMove('confirmed')}
             >
               Close out
             </Button>
