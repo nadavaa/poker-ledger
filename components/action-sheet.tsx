@@ -1,11 +1,17 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 
 /**
- * The bottom sheet the role menu introduced, pulled out so anything hidden
- * behind a long-press or a dots button opens the same way.
+ * The bottom sheet, for the things that are too big to be a menu — a form, a
+ * choice with an explanation.
+ *
+ * Portalled to the document root for the same reason the popover is: inside
+ * the page tree it sits in whatever stacking context the transition wrapper
+ * creates, and a sticky button in a sibling subtree draws straight through
+ * the middle of it however high its z-index goes.
  */
 export function ActionSheet({
   open,
@@ -20,11 +26,12 @@ export function ActionSheet({
   onClose: () => void
   children: ReactNode
 }) {
-  if (!open) return null
+  // Only ever opened by a tap, so this never runs during SSR.
+  if (!open || typeof document === 'undefined') return null
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 sm:items-center"
       onClick={onClose}
     >
       <div
@@ -46,7 +53,8 @@ export function ActionSheet({
           Cancel
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

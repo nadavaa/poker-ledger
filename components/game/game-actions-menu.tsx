@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ActionSheet, DotsButton } from '@/components/action-sheet'
-import { Button } from '@/components/ui/button'
+import { PopoverMenu, PopoverMenuItem } from '@/components/popover-menu'
 import { EditGameForm } from '@/components/game/edit-game-form'
 import type { GameStatus } from '@/lib/game-edit'
 
@@ -17,9 +17,11 @@ export type EditableGame = {
 
 /**
  * Everything you can do to the game itself, behind one set of dots beside its
- * name. Sharing is for anyone in the group; editing is the admin's, and is
- * absent rather than greyed out for everyone else — a disabled control on
- * someone else's game is just noise.
+ * name. The menu is anchored to those dots; the edit form is a bottom sheet,
+ * because a form with six fields is not a menu.
+ *
+ * Sharing is for anyone in the group; editing is the admin's, and is absent
+ * rather than greyed out for everyone else.
  */
 export function GameActionsMenu({
   gameId,
@@ -39,18 +41,18 @@ export function GameActionsMenu({
   when: string
   location: string | null
   buyinLabel?: string | null
-  /** The group's zone: what the admin types is what the group sees. */
   timeZone: string
   /** Scheduled and active games only: there is nothing to invite anyone to. */
   canShare: boolean
   canEdit: boolean
   game: EditableGame
 }) {
+  const anchor = useRef<HTMLSpanElement>(null)
   const [open, setOpen] = useState(false)
-  const [view, setView] = useState<'menu' | 'edit'>('menu')
+  const [editing, setEditing] = useState(false)
   const [done, setDone] = useState<'shared' | 'text' | 'link' | null>(null)
 
-  // Nothing to offer: no dots at all, rather than an empty sheet.
+  // Nothing to offer: no dots at all, rather than a menu with no items.
   if (!canShare && !canEdit) return null
 
   function flash(what: 'shared' | 'text' | 'link') {
@@ -81,6 +83,7 @@ export function GameActionsMenu({
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ text })
+        setOpen(false)
         flash('shared')
         return
       } catch {
@@ -97,70 +100,61 @@ export function GameActionsMenu({
     flash('link')
   }
 
-  function close() {
-    setOpen(false)
-    setView('menu')
-  }
-
   return (
     <>
-      <DotsButton
-        label="Game options"
-        size="icon"
-        onClick={() => {
-          setView('menu')
-          setOpen(true)
-        }}
-      />
+      {/* The span is the anchor: Button doesn't forward a ref, and wrapping is
+          cheaper than threading one through it. */}
+      <span ref={anchor} className="inline-flex">
+        <DotsButton
+          label="Game options"
+          size="icon"
+          onClick={() => setOpen((v) => !v)}
+        />
+      </span>
 
-      <ActionSheet
+      <PopoverMenu
         open={open}
-        title={view === 'edit' ? 'Edit game' : (game.name ?? when)}
-        description={view === 'edit' ? undefined : `${groupName} · ${when}`}
-        onClose={close}
+        anchorRef={anchor}
+        onClose={() => setOpen(false)}
+        label="Game options"
       >
-        {view === 'edit' ? (
-          <EditGameForm
-            gameId={gameId}
-            status={status}
-            timeZone={timeZone}
-            initial={game}
-          />
-        ) : (
+        {canShare && (
           <>
-            {canShare && (
-              <>
-                <Button
-                  variant="outline"
-                  className="h-11 justify-start rounded-xl"
-                  onClick={share}
-                >
-                  {done === 'shared'
-                    ? 'Shared'
-                    : done === 'text'
-                      ? 'Copied — paste it in the chat'
-                      : 'Share game'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-11 justify-start rounded-xl"
-                  onClick={copyLink}
-                >
-                  {done === 'link' ? 'Copied' : 'Copy link'}
-                </Button>
-              </>
-            )}
-            {canEdit && (
-              <Button
-                variant="outline"
-                className="h-11 justify-start rounded-xl"
-                onClick={() => setView('edit')}
-              >
-                Edit game
-              </Button>
-            )}
+            <PopoverMenuItem onClick={share}>
+              {done === 'shared'
+                ? 'Shared'
+                : done === 'text'
+                  ? 'Copied to clipboard'
+                  : 'Share game'}
+            </PopoverMenuItem>
+            <PopoverMenuItem onClick={copyLink}>
+              {done === 'link' ? 'Copied' : 'Copy link'}
+            </PopoverMenuItem>
           </>
         )}
+        {canEdit && (
+          <PopoverMenuItem
+            onClick={() => {
+              setOpen(false)
+              setEditing(true)
+            }}
+          >
+            Edit game
+          </PopoverMenuItem>
+        )}
+      </PopoverMenu>
+
+      <ActionSheet
+        open={editing}
+        title="Edit game"
+        onClose={() => setEditing(false)}
+      >
+        <EditGameForm
+          gameId={gameId}
+          status={status}
+          timeZone={timeZone}
+          initial={game}
+        />
       </ActionSheet>
     </>
   )

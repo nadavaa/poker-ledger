@@ -1,15 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ActionSheet, DotsButton } from '@/components/action-sheet'
-import { Button } from '@/components/ui/button'
+import { DotsButton } from '@/components/action-sheet'
+import { PopoverMenu, PopoverMenuItem } from '@/components/popover-menu'
 
 /**
- * Remove and To waitlist behind one control. Both are refused by
- * demote_from_confirmed() while the player has live buy-ins — their money is
- * in the pot — so the menu says why rather than offering a button that fails.
+ * Remove and To waitlist behind one control, in the same anchored popover the
+ * game menu uses. Both are refused by demote_from_confirmed() while the
+ * player has live buy-ins — their money is in the pot — so the menu says why
+ * rather than offering a button that fails.
  */
 export function PlayerRowMenu({
   gameId,
@@ -25,6 +26,7 @@ export function PlayerRowMenu({
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
+  const anchor = useRef<HTMLSpanElement>(null)
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,47 +51,45 @@ export function PlayerRowMenu({
 
   return (
     <>
-      <DotsButton label={`Options for ${name}`} onClick={() => setOpen(true)} />
+      <span ref={anchor} className="inline-flex">
+        <DotsButton
+          label={`Options for ${name}`}
+          onClick={() => setOpen((v) => !v)}
+        />
+      </span>
 
-      <ActionSheet
+      <PopoverMenu
         open={open}
-        title={name}
-        description={
-          blocked
-            ? undefined
-            : 'Move them out of this game. Their seat frees up for the waitlist.'
-        }
+        anchorRef={anchor}
         onClose={() => setOpen(false)}
+        label={`Options for ${name}`}
       >
         {blocked ? (
-          <p className="rounded-xl bg-muted px-3 py-2.5 text-sm text-muted-foreground">
+          <p className="max-w-64 px-3 py-2 text-sm text-muted-foreground">
             {name} has {liveBuyins} buy-in{liveBuyins === 1 ? '' : 's'} in the
             pot. Void {liveBuyins === 1 ? 'it' : 'them'} first, then they can be
             moved or removed.
           </p>
         ) : (
           <>
-            <Button
-              variant="outline"
-              className="h-11 justify-start rounded-xl"
+            <PopoverMenuItem
               disabled={pending}
               onClick={() => demote('waitlist')}
             >
               Move to waitlist
-            </Button>
-            <Button
-              variant="destructive"
-              className="h-11 justify-start rounded-xl"
+            </PopoverMenuItem>
+            <PopoverMenuItem
+              destructive
               disabled={pending}
               onClick={() => demote('withdrawn')}
             >
               Remove from game
-            </Button>
+            </PopoverMenuItem>
           </>
         )}
 
-        {error && <p className="text-sm text-down">{error}</p>}
-      </ActionSheet>
+        {error && <p className="px-3 py-2 text-sm text-down">{error}</p>}
+      </PopoverMenu>
     </>
   )
 }
