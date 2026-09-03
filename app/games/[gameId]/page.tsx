@@ -24,9 +24,7 @@ import { DangerZone } from '@/components/game/danger-zone'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
 import { resolveDisplayName } from '@/lib/names'
-import { ShareGame } from '@/components/game/share-game'
-import { EditGameForm } from '@/components/game/edit-game-form'
-import { ActivityFeed, type GameEditEntry } from '@/components/game/activity-feed'
+import { GameActionsMenu } from '@/components/game/game-actions-menu'
 import type { GameStatus } from '@/lib/game-edit'
 import { joinNotice, type JoinOutcome } from '@/lib/game-join'
 
@@ -99,7 +97,6 @@ export default async function GamePage({
     { data: paymentRows },
     { data: foodRows },
     { data: cashoutRows },
-    { data: editRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -162,22 +159,7 @@ export default async function GamePage({
       .from('cashouts')
       .select('member_id, chips, recorded_at, left_table')
       .eq('game_id', gameId),
-    // What the admin changed after the game was created.
-    supabase
-      .from('game_edits')
-      .select('id, field, old_value, new_value, edited_by_member_id, created_at')
-      .eq('game_id', gameId)
-      .order('created_at', { ascending: false }),
   ])
-
-  const edits: GameEditEntry[] = (editRows ?? []).map((e) => ({
-    id: e.id,
-    field: e.field,
-    oldValue: e.old_value,
-    newValue: e.new_value,
-    editedByMemberId: e.edited_by_member_id,
-    createdAt: e.created_at,
-  }))
 
   const cashouts: CashoutRecord[] = (cashoutRows ?? []).map((c) => ({
     memberId: c.member_id,
@@ -399,9 +381,35 @@ export default async function GamePage({
           >
             &larr; {game.groups?.name}
           </Link>
-          <h1 className="truncate text-lg font-semibold tracking-tight">
-            {game.name ?? formatWhen(game.scheduled_at)}
-          </h1>
+          {/* The dots share the name's row rather than sitting under it, so
+              the one control on this screen is where the eye already is. */}
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
+              {game.name ?? formatWhen(game.scheduled_at)}
+            </h1>
+            <GameActionsMenu
+              gameId={gameId}
+              status={game.status as GameStatus}
+              groupName={game.groups?.name ?? 'Poker'}
+              when={formatWhen(game.scheduled_at)}
+              location={game.location}
+              buyinLabel={
+                game.status === 'scheduled'
+                  ? `${formatCents(game.default_buyin_cents)} buy-in`
+                  : null
+              }
+              canShare={isOpen}
+              canEdit={runsTheGame}
+              game={{
+                name: game.name,
+                location: game.location,
+                scheduledAt: game.scheduled_at,
+                seatLimit: game.seat_limit,
+                buyinCents: game.default_buyin_cents,
+                chipsPerDollar: game.chips_per_dollar,
+              }}
+            />
+          </div>
           <p className="truncate text-sm text-muted-foreground">
             {formatWhen(game.scheduled_at)}
             {game.location && ` · ${game.location}`}
@@ -477,21 +485,6 @@ export default async function GamePage({
         )
       })()}
 
-      {/* Scheduled and active only: there is nothing to invite anyone to
-          once the game is counted or called off. */}
-      {isOpen && (
-        <ShareGame
-          gameId={gameId}
-          groupName={game.groups?.name ?? 'Poker'}
-          when={formatWhen(game.scheduled_at)}
-          location={game.location}
-          buyinLabel={
-            game.status === 'scheduled'
-              ? `${formatCents(game.default_buyin_cents)} buy-in`
-              : null
-          }
-        />
-      )}
 
       {myMember && isOpen && (
         <Card>
@@ -534,21 +527,6 @@ export default async function GamePage({
         />
       )}
 
-      {/* A scheduled game has no buy-in feed to fold these into, and a moved
-          start time is exactly the thing people need to see before they turn
-          up at the old one. */}
-      {game.status === 'scheduled' && edits.length > 0 && (
-        <CollapsibleSection title="Changes">
-          <ActivityFeed
-            buyins={[]}
-            edits={edits}
-            names={nameOf}
-            adminMemberId={game.admin_member_id}
-            myMemberId={myMember?.id ?? null}
-          />
-        </CollapsibleSection>
-      )}
-
       {game.status === 'active' &&
         (runsTheGame ? (
           <BuyInGrid
@@ -561,7 +539,6 @@ export default async function GamePage({
             available={available}
             startedAt={game.started_at}
             initialCashouts={cashouts}
-            edits={edits}
             beforeActivity={foodSection}
           />
         ) : (
@@ -572,7 +549,6 @@ export default async function GamePage({
             myMemberId={myMember?.id ?? null}
             initialBuyins={(buyins ?? []) as Buyin[]}
             cashouts={cashouts}
-            edits={edits}
             started
             startedAt={game.started_at}
             beforeActivity={foodSection}
@@ -698,26 +674,6 @@ export default async function GamePage({
       {(isAdmin || isGroupOwner) && (
         <CollapsibleSection title="Game settings">
           <>
-            {/* Only the game admin, and only while there is something left to
-                change. The RLS policy refuses the rest. */}
-            {runsTheGame && (
-              <div className="flex flex-col gap-2 border-b border-border pb-4">
-                <p className="text-sm font-medium">Edit game</p>
-                <EditGameForm
-                  gameId={gameId}
-                  status={game.status as GameStatus}
-                  initial={{
-                    name: game.name,
-                    location: game.location,
-                    scheduledAt: game.scheduled_at,
-                    seatLimit: game.seat_limit,
-                    buyinCents: game.default_buyin_cents,
-                    chipsPerDollar: game.chips_per_dollar,
-                  }}
-                />
-              </div>
-            )}
-
             {runsTheGame && (
             <form action={handOff} className="flex flex-col gap-2">
               <label className="text-sm font-medium" htmlFor="to_member_id">

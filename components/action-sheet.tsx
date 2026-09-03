@@ -54,12 +54,16 @@ export function ActionSheet({
 export function DotsButton({
   label,
   onClick,
+  /** 'icon' is the full 44px target, for dots that stand alone rather than
+   *  sitting inside a row that is itself tappable. */
+  size = 'icon-xs',
 }: {
   label: string
   onClick: () => void
+  size?: 'icon-xs' | 'icon'
 }) {
   return (
-    <Button variant="ghost" size="icon-xs" aria-label={label} onClick={onClick}>
+    <Button variant="ghost" size={size} aria-label={label} onClick={onClick}>
       <svg viewBox="0 0 20 20" aria-hidden className="size-4 fill-current">
         <circle cx="10" cy="4" r="1.6" />
         <circle cx="10" cy="10" r="1.6" />
