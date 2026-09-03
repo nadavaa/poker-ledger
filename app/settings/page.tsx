@@ -9,12 +9,12 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import { Card, CardContent } from '@/components/ui/card'
 
+import { DEFAULT_TIME_ZONE, formatTime } from '@/lib/time'
+
+/** This page spans groups, so there is no one group zone to use. The app's
+ *  default is still better than the server's, which is UTC on Vercel. */
 function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+  return formatTime(iso, DEFAULT_TIME_ZONE, 'day')
 }
 
 export default async function SettingsPage() {

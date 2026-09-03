@@ -1,14 +1,9 @@
 import { formatCents } from '@/lib/money'
+import { formatTime } from '@/lib/time'
 import type { Stats } from '@/lib/stats'
 import { Card, CardContent } from '@/components/ui/card'
 
-function day(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
+
 
 function Stat({
   label,
@@ -42,7 +37,14 @@ function streakLabel(streak: Stats['currentStreak']) {
 }
 
 /** One player's record in one group. Settled games only. */
-export function MyStats({ stats }: { stats: Stats | null }) {
+export function MyStats({
+  stats,
+  timeZone,
+}: {
+  stats: Stats | null
+  /** The group's zone: a game on the 6th is the 6th for everyone in it. */
+  timeZone: string
+}) {
   if (!stats) {
     return (
       <Card>
@@ -94,12 +96,12 @@ export function MyStats({ stats }: { stats: Stats | null }) {
         <Stat
           label="Best game"
           value={formatCents(stats.best.netCents)}
-          sub={day(stats.best.scheduledAt)}
+          sub={formatTime(stats.best.scheduledAt, timeZone, 'day')}
         />
         <Stat
           label="Worst game"
           value={formatCents(stats.worst.netCents)}
-          sub={day(stats.worst.scheduledAt)}
+          sub={formatTime(stats.worst.scheduledAt, timeZone, 'day')}
         />
         <Stat label="Current streak" value={streakLabel(stats.currentStreak)} />
         <Stat

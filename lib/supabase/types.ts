@@ -47,6 +47,7 @@ export type Database = {
           chips_per_dollar: number
           default_buyin_cents: number
           default_seat_limit: number
+          timezone: string
           created_by: string
           created_at: string
         }
@@ -58,6 +59,7 @@ export type Database = {
           chips_per_dollar?: number
           default_buyin_cents?: number
           default_seat_limit?: number
+          timezone?: string
           created_by: string
           created_at?: string
         }
@@ -69,6 +71,7 @@ export type Database = {
           chips_per_dollar?: number
           default_buyin_cents?: number
           default_seat_limit?: number
+          timezone?: string
           created_by?: string
           created_at?: string
         }

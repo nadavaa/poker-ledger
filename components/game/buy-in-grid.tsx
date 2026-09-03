@@ -24,6 +24,7 @@ import {
 import { AddPlayer, type AvailableMember } from './add-player'
 import { PotHeader } from './pot-header'
 import { CollapsibleSection } from '@/components/collapsible-section'
+import { formatTime } from '@/lib/time'
 import {
   cashoutFor,
   hasLeftTable,
@@ -39,12 +40,7 @@ export type Player = {
   avatarUrl?: string | null
 }
 
-function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+
 
 const LONG_PRESS_MS = 450
 const UNDO_MS = 5000
@@ -59,6 +55,7 @@ export function BuyInGrid({
   available,
   startedAt,
   initialCashouts,
+  timeZone,
   beforeActivity,
 }: {
   gameId: string
@@ -71,6 +68,8 @@ export function BuyInGrid({
   startedAt: string | null
   /** Who has already left with their chips. */
   initialCashouts: CashoutRecord[]
+  /** The group's zone; every time on this screen is rendered in it. */
+  timeZone: string
   /** Rendered between the grid and the feed — the food order lives here. */
   beforeActivity?: React.ReactNode
 }) {
@@ -336,6 +335,7 @@ export function BuyInGrid({
           buyins={buyins}
           cashouts={cashouts}
           names={names}
+          timeZone={timeZone}
           adminMemberId={adminMemberId}
           myMemberId={adminMemberId}
         />
@@ -377,6 +377,7 @@ export function BuyInGrid({
           defaultBuyinCents={defaultBuyinCents}
           buyins={buyins.filter((b) => b.member_id === sheet.memberId)}
           cashout={cashoutFor(sheet.memberId, cashouts)}
+          timeZone={timeZone}
           onClose={() => setSheet(null)}
           onAdd={(cents, note) => addBuyin(sheet, cents, note)}
           onVoid={(id) => voidBuyin(id, 'admin correction')}
@@ -530,6 +531,7 @@ function PlayerSheet({
   defaultBuyinCents,
   buyins,
   cashout,
+  timeZone,
   onClose,
   onAdd,
   onVoid,
@@ -542,6 +544,7 @@ function PlayerSheet({
   defaultBuyinCents: number
   buyins: Buyin[]
   cashout: CashoutRecord | null
+  timeZone: string
   onClose: () => void
   onAdd: (cents: number, note?: string) => void
   onVoid: (id: string) => void
@@ -605,7 +608,7 @@ function PlayerSheet({
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
-              Recorded {timeOf(cashout!.recordedAt)}. They can&apos;t buy in
+              Recorded {formatTime(cashout!.recordedAt, timeZone, 'clock')}. They can&apos;t buy in
               again until this is undone, and the count carries into the
               final settlement.
             </p>
@@ -740,7 +743,7 @@ function PlayerSheet({
                 </span>
                 <span className="money text-muted-foreground">
                   {' '}
-                  · {timeOf(b.created_at)}
+                  · {formatTime(b.created_at, timeZone, 'clock')}
                 </span>
                 {b.note && (
                   <span className="text-muted-foreground"> · {b.note}</span>

@@ -8,6 +8,7 @@ import { useDirtyForm } from '@/components/use-dirty-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { fromZonedInput, toZonedInput } from '@/lib/time'
 import {
   lockReason,
   validateEdit,
@@ -33,25 +34,20 @@ function parseCents(v: string): number | null {
   }
 }
 
-/** An ISO instant as the value a datetime-local input wants, in local time. */
-function toLocalInput(iso: string): string {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`
-}
-
 /** Compared as stored values, so "50" and "50.00" aren't a change, and
  *  neither is the same instant typed a second time. */
-function normalize(f: Fields): Fields {
-  const when = new Date(f.scheduledAt)
+function normalize(f: Fields, timeZone: string): Fields {
+  let when: string
+  try {
+    // The admin types the group's wall clock, wherever the admin is standing.
+    when = fromZonedInput(f.scheduledAt, timeZone)
+  } catch {
+    when = f.scheduledAt
+  }
   return {
     name: f.name.trim(),
     location: f.location.trim(),
-    scheduledAt: Number.isNaN(when.getTime())
-      ? f.scheduledAt
-      : when.toISOString(),
+    scheduledAt: when,
     seats: String(Number(f.seats) || ''),
     buyin: String(parseCents(f.buyin) ?? ''),
     ratio: String(Number(f.ratio) || ''),
@@ -83,10 +79,12 @@ function Locked({
 export function EditGameForm({
   gameId,
   status,
+  timeZone,
   initial,
 }: {
   gameId: string
   status: GameStatus
+  timeZone: string
   initial: {
     name: string | null
     location: string | null
@@ -106,20 +104,20 @@ export function EditGameForm({
       initial: {
         name: initial.name ?? '',
         location: initial.location ?? '',
-        scheduledAt: toLocalInput(initial.scheduledAt),
+        scheduledAt: toZonedInput(initial.scheduledAt, timeZone),
         seats: String(initial.seatLimit),
         buyin: centsToDollars(initial.buyinCents),
         ratio: String(initial.chipsPerDollar),
       },
-      normalize,
+      normalize: (f) => normalize(f, timeZone),
       isValid: (f) => {
         const { errors } = validateEdit({
           name: f.name,
           location: f.location,
           scheduledAt: f.scheduledAt,
-          seatLimit: normalize(f).seats,
+          seatLimit: normalize(f, timeZone).seats,
           buyinCents: String(parseCents(f.buyin) ?? ''),
-          chipsPerDollar: normalize(f).ratio,
+          chipsPerDollar: normalize(f, timeZone).ratio,
         })
         return Object.keys(errors).length === 0
       },

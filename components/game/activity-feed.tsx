@@ -4,17 +4,13 @@
 
 import { useState } from 'react'
 import { formatCents } from '@/lib/money'
+import { formatTime } from '@/lib/time'
 import { Button } from '@/components/ui/button'
 import type { Buyin } from './use-game-buyins'
 import type { CashoutRecord } from '@/lib/table'
 
 
-function time(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+
 
 /**
  * Every buy-in, who logged it, when. One person having sole write access to
@@ -24,6 +20,7 @@ export function ActivityFeed({
   buyins,
   cashouts = [],
   names,
+  timeZone,
   adminMemberId,
   myMemberId,
   /** Keeps the page a bounded length; the feed runs all night otherwise. */
@@ -33,6 +30,8 @@ export function ActivityFeed({
   /** Leaving the table is a money event too, so it belongs in the log. */
   cashouts?: CashoutRecord[]
   names: Map<string, string>
+  /** The group's zone: a buy-in logged at 9:12 reads 9:12 for everyone. */
+  timeZone: string
   adminMemberId: string
   myMemberId?: string | null
   limit?: number
@@ -88,7 +87,7 @@ export function ActivityFeed({
                 </span>
               </span>
               <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
-                {time(c.recordedAt)}
+                {formatTime(c.recordedAt, timeZone, 'clock')}
               </span>
             </li>
           )
@@ -128,8 +127,8 @@ export function ActivityFeed({
                 ? `voided${b.void_reason ? ` · ${b.void_reason}` : ''}`
                 : b.created_by_member_id === myMemberId
                   ? // You logged it. Who logged it only matters when it wasn't you.
-                    time(b.created_at)
-                  : `${time(b.created_at)} · by ${
+                    formatTime(b.created_at, timeZone, 'clock')
+                  : `${formatTime(b.created_at, timeZone, 'clock')} · by ${
                       names.get(b.created_by_member_id) ?? 'admin'
                     }`}
             </span>

@@ -1,6 +1,7 @@
 'use client'
 
 import { formatCents } from '@/lib/money'
+import { formatTime } from '@/lib/time'
 import { canPay, type SettlementRole } from '@/lib/settlements'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,12 +20,7 @@ export type TransferRow = {
   kind: 'poker' | 'food'
 }
 
-function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  })
-}
+
 
 /**
  * Status never rides on colour alone — every state carries a glyph and a
@@ -36,16 +32,20 @@ function statusLine({
   payeeName,
   confirmedAt,
   closedOutBy,
+  timeZone,
 }: {
   status: string
   role: SettlementRole
   payeeName: string
   confirmedAt: string | null
+  timeZone: string
   /** Set when the admin closed it out instead of the payee confirming. */
   closedOutBy: string | null
 }): { glyph: string; tone: string; label: string } {
   if (status === 'confirmed') {
-    const when = confirmedAt ? ` ${formatDay(confirmedAt)}` : ''
+    const when = confirmedAt
+      ? ` ${formatTime(confirmedAt, timeZone, 'shortDay')}`
+      : ''
     return {
       glyph: '✓',
       tone: 'text-up',
@@ -87,6 +87,7 @@ export function TransferCard({
   names,
   paymentSources,
   isGameAdmin,
+  timeZone,
   pending,
   error,
   onMove,
@@ -97,6 +98,8 @@ export function TransferCard({
   /** Keyed by settlement id; only present for rows the viewer may act on. */
   paymentSources: Map<string, PaymentSources>
   isGameAdmin: boolean
+  /** The group's zone; a confirmation dated Sep 6 means Sep 6 at the table. */
+  timeZone: string
   /** A write for this row is in flight. */
   pending: boolean
   error: string | null
@@ -130,6 +133,7 @@ export function TransferCard({
     payeeName,
     confirmedAt: transfer.confirmedAt,
     closedOutBy,
+    timeZone,
   })
 
   return (

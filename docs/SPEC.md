@@ -614,6 +614,22 @@ chips minus chips already cashed out, in both units. If cashed-out chips ever
 exceed the pot, that is provably a miscount and the header says so
 immediately.
 
+**Times belong to the group, not the server.** `groups.timezone` holds an IANA
+identifier — never a fixed offset, which is wrong from March to November —
+defaulting to `America/New_York`. Everything goes through `formatTime()` in
+`lib/time.ts` with that zone passed in explicitly, so the server and the
+browser produce the same string and an SSR'd time survives hydration
+unchanged. The create and edit forms read their `datetime-local` field as a
+wall clock *in the group's zone* via `fromZonedInput()`: what the admin types
+is what the group sees, wherever either of them is standing.
+
+This was a real bug, and it took two mistakes cancelling out to hide it. The
+create action ran `new Date(naiveString).toISOString()` inside a server
+action, where Node's zone is UTC on Vercel, so 8pm was stored as 20:00Z — four
+hours late. The game page then rendered with `toLocaleString` and no
+`timeZone`, also in UTC, so that one screen read back correctly while every
+client-rendered time and every other reader saw 4pm.
+
 **Edit the game.** In Game settings, for the game admin only. What may be
 edited depends on what the game is doing, and that rule cannot live in a
 policy — RLS filters rows, not columns, and WITH CHECK cannot see the old row

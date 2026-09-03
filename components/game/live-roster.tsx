@@ -22,6 +22,7 @@ export function LiveRoster({
   myMemberId,
   initialBuyins,
   cashouts = [],
+  timeZone,
   started,
   startedAt,
   beforeActivity,
@@ -33,6 +34,8 @@ export function LiveRoster({
   initialBuyins: Buyin[]
   /** Who has left the table; shown in the feed like a buy-in is. */
   cashouts?: CashoutRecord[]
+  /** The group's zone; every time on this screen is rendered in it. */
+  timeZone: string
   /** Before the first hand nobody has staked anything, so show no money. */
   started: boolean
   startedAt: string | null
@@ -119,6 +122,7 @@ export function LiveRoster({
             buyins={buyins}
             cashouts={cashouts}
             names={names}
+            timeZone={timeZone}
             adminMemberId={adminMemberId}
             myMemberId={myMemberId}
           />

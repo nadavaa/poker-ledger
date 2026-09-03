@@ -24,6 +24,7 @@ import { DangerZone } from '@/components/game/danger-zone'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
 import { resolveDisplayName } from '@/lib/names'
+import { DEFAULT_TIME_ZONE, formatTime } from '@/lib/time'
 import { GameActionsMenu } from '@/components/game/game-actions-menu'
 import type { GameStatus } from '@/lib/game-edit'
 import { joinNotice, type JoinOutcome } from '@/lib/game-join'
@@ -37,23 +38,7 @@ function isOverdue(status: string, scheduledAt: string) {
   return status === 'scheduled' && new Date(scheduledAt).getTime() < Date.now()
 }
 
-function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
 
-function formatWhen(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
 
 export default async function GamePage({
   params,
@@ -72,13 +57,17 @@ export default async function GamePage({
   const { data: game } = await supabase
     .from('games')
     .select(
-      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, started_at, settled_at, groups(name)'
+      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, started_at, settled_at, groups(name, timezone)'
     )
     .eq('id', gameId)
     .maybeSingle()
 
   // RLS hides games in groups you don't belong to.
   if (!game) notFound()
+
+  // The group's zone decides every time on this screen, so an SSR'd time and
+  // a hydrated one are the same string and both are what the table agreed on.
+  const tz = game.groups?.timezone ?? DEFAULT_TIME_ZONE
 
   // Status is known now, which is all the remaining queries needed to know.
   // They used to run in three more waves behind this one; there is no
@@ -276,7 +265,7 @@ export default async function GamePage({
     game.status !== 'settled' &&
     game.status !== 'cancelled' &&
     blockingSettlements.length === 0
-  const gameLabel = game.name ?? formatDay(game.scheduled_at)
+  const gameLabel = game.name ?? formatTime(game.scheduled_at, tz, 'day')
 
   async function joinGame() {
     'use server'
@@ -385,19 +374,20 @@ export default async function GamePage({
               the one control on this screen is where the eye already is. */}
           <div className="flex items-center justify-between gap-2">
             <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
-              {game.name ?? formatWhen(game.scheduled_at)}
+              {game.name ?? formatTime(game.scheduled_at, tz, 'when')}
             </h1>
             <GameActionsMenu
               gameId={gameId}
               status={game.status as GameStatus}
               groupName={game.groups?.name ?? 'Poker'}
-              when={formatWhen(game.scheduled_at)}
+              when={formatTime(game.scheduled_at, tz, 'when')}
               location={game.location}
               buyinLabel={
                 game.status === 'scheduled'
                   ? `${formatCents(game.default_buyin_cents)} buy-in`
                   : null
               }
+              timeZone={tz}
               canShare={isOpen}
               canEdit={runsTheGame}
               game={{
@@ -411,7 +401,7 @@ export default async function GamePage({
             />
           </div>
           <p className="truncate text-sm text-muted-foreground">
-            {formatWhen(game.scheduled_at)}
+            {formatTime(game.scheduled_at, tz, 'when')}
             {game.location && ` · ${game.location}`}
           </p>
         </div>
@@ -460,7 +450,7 @@ export default async function GamePage({
         if (!joined) return null
         const notice = joinNotice(joined as JoinOutcome, {
           groupName: game.groups?.name ?? 'this group',
-          when: formatWhen(game.scheduled_at),
+          when: formatTime(game.scheduled_at, tz, 'when'),
           position: waitlist.findIndex((s) => s.member_id === myMember?.id) + 1 || null,
         })
         if (!notice) return null
@@ -539,6 +529,7 @@ export default async function GamePage({
             available={available}
             startedAt={game.started_at}
             initialCashouts={cashouts}
+            timeZone={tz}
             beforeActivity={foodSection}
           />
         ) : (
@@ -549,6 +540,7 @@ export default async function GamePage({
             myMemberId={myMember?.id ?? null}
             initialBuyins={(buyins ?? []) as Buyin[]}
             cashouts={cashouts}
+            timeZone={tz}
             started
             startedAt={game.started_at}
             beforeActivity={foodSection}
@@ -561,6 +553,7 @@ export default async function GamePage({
             <CashoutPanel
               gameId={gameId}
               chipsPerDollar={chipsPerDollar}
+              timeZone={tz}
               hasAdjustments={(adjustments?.length ?? 0) > 0}
               rows={(totals ?? []).map((t) => ({
                 memberId: t.member_id,
@@ -591,6 +584,7 @@ export default async function GamePage({
             adminMemberId={game.admin_member_id}
             myMemberId={myMember?.id ?? null}
             initialBuyins={(buyins ?? []) as Buyin[]}
+            timeZone={tz}
             started
             startedAt={game.started_at}
           />
@@ -628,6 +622,7 @@ export default async function GamePage({
           paymentSources={paymentSources}
           myMemberId={myMember?.id ?? null}
           isAdmin={isAdmin}
+          timeZone={tz}
           gameLabel={gameLabel}
           startedAt={game.started_at}
           settledAt={game.settled_at}

@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { toZonedInput } from '@/lib/time'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,21 +13,21 @@ type GroupDefaults = {
   default_seat_limit: number
 }
 
-function defaultDateTime() {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  d.setHours(20, 0, 0, 0)
-  // datetime-local wants local time, not UTC.
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+/** Tomorrow at 8pm, in the group's zone rather than whoever's phone this is. */
+function defaultDateTime(timeZone: string) {
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  return `${toZonedInput(tomorrow.toISOString(), timeZone).slice(0, 10)}T20:00`
 }
 
 export function NewGameForm({
   defaults,
+  timeZone,
   action,
   errorMessage,
 }: {
   defaults: GroupDefaults
+  /** What the admin types is read as this zone's wall clock. */
+  timeZone: string
   action: (formData: FormData) => void
   errorMessage?: string
 }) {
@@ -41,7 +42,7 @@ export function NewGameForm({
               name="scheduled_at"
               type="datetime-local"
               required
-              defaultValue={defaultDateTime()}
+              defaultValue={defaultDateTime(timeZone)}
             />
           </div>
 

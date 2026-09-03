@@ -28,6 +28,7 @@ export function GameActionsMenu({
   when,
   location,
   buyinLabel,
+  timeZone,
   canShare,
   canEdit,
   game,
@@ -38,6 +39,8 @@ export function GameActionsMenu({
   when: string
   location: string | null
   buyinLabel?: string | null
+  /** The group's zone: what the admin types is what the group sees. */
+  timeZone: string
   /** Scheduled and active games only: there is nothing to invite anyone to. */
   canShare: boolean
   canEdit: boolean
@@ -120,6 +123,7 @@ export function GameActionsMenu({
           <EditGameForm
             gameId={gameId}
             status={status}
+            timeZone={timeZone}
             initial={game}
           />
         ) : (

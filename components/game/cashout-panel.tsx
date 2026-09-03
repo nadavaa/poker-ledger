@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { chipsToCents, formatCents } from '@/lib/money'
+import { formatTime } from '@/lib/time'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -20,12 +21,7 @@ export type NetRow = {
   leftTable: boolean
 }
 
-function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+
 
 /**
  * Counting chips, with the distribution tracked live rather than sprung on
@@ -36,11 +32,14 @@ export function CashoutPanel({
   gameId,
   rows,
   chipsPerDollar,
+  timeZone,
   hasAdjustments,
 }: {
   gameId: string
   rows: NetRow[]
   chipsPerDollar: number
+  /** The group's zone, so "cashed out 9:42" means 9:42 at the table. */
+  timeZone: string
   hasAdjustments: boolean
 }) {
   const supabase = useMemo(() => createClient(), [])
@@ -200,7 +199,7 @@ export function CashoutPanel({
                   {r.leftTable && (
                     <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
                       ✓ cashed out
-                      {r.recordedAt ? ` ${timeOf(r.recordedAt)}` : ''}
+                      {r.recordedAt ? ` ${formatTime(r.recordedAt, timeZone, 'clock')}` : ''}
                     </span>
                   )}
                 </p>

@@ -14,24 +14,9 @@ import { BalanceChart } from '@/components/group/balance-chart'
 import { GroupTabs } from '@/components/group/group-tabs'
 import { Avatar } from '@/components/avatar'
 import { resolveDisplayName } from '@/lib/names'
+import { DEFAULT_TIME_ZONE, formatTime } from '@/lib/time'
 
-function formatWhen(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
 
-function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
 
 export default async function GroupPage({
   params,
@@ -54,7 +39,7 @@ export default async function GroupPage({
     await Promise.all([
       supabase
         .from('groups')
-        .select('id, name, invite_code')
+        .select('id, name, invite_code, timezone')
         .eq('id', groupId)
         .maybeSingle(),
       supabase
@@ -84,6 +69,10 @@ export default async function GroupPage({
   // RLS hides groups you're not a member of, so this covers both
   // "doesn't exist" and "not yours".
   if (!group) notFound()
+
+  // Every time on this page is the group's, not the server's and not the
+  // reader's phone.
+  const tz = group.timezone ?? DEFAULT_TIME_ZONE
 
   const me = members?.find((m) => m.profile_id === user.id)
   const canManage = me?.role === 'owner' || me?.role === 'admin'
@@ -198,7 +187,7 @@ export default async function GroupPage({
       >
       {activeTab === 'stats' ? (
         <>
-          <MyStats stats={myStats} />
+          <MyStats stats={myStats} timeZone={tz} />
           <BalanceChart points={myBalance} />
         </>
       ) : activeTab === 'games' ? (
@@ -228,10 +217,10 @@ export default async function GroupPage({
                     <CardContent className="flex items-center justify-between gap-3 py-3.5">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">
-                          {g.name ?? formatWhen(g.scheduled_at)}
+                          {g.name ?? formatTime(g.scheduled_at, tz, 'when')}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {formatWhen(g.scheduled_at)}
+                          {formatTime(g.scheduled_at, tz, 'when')}
                           {g.location && ` · ${g.location}`}
                         </p>
                       </div>
@@ -281,7 +270,7 @@ export default async function GroupPage({
                   <Card className="transition-colors hover:bg-muted/50">
                     <CardContent className="flex items-center justify-between gap-3 py-3.5">
                       <div className="min-w-0">
-                        <p className="text-sm">{formatDay(g.scheduled_at)}</p>
+                        <p className="text-sm">{formatTime(g.scheduled_at, tz, 'day')}</p>
                         <p className="money truncate text-xs text-muted-foreground">
                           {playersByGame.get(g.id) ?? 0} players ·{' '}
                           {formatCents(potByGame.get(g.id) ?? 0)} pot

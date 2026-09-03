@@ -43,6 +43,7 @@ export function SettledView({
   paymentSources,
   myMemberId,
   isAdmin,
+  timeZone,
   gameLabel,
   startedAt,
   settledAt,
@@ -57,6 +58,8 @@ export function SettledView({
   paymentSources: Map<string, import('@/lib/payment').PaymentSources>
   myMemberId: string | null
   isAdmin: boolean
+  /** The group's zone; confirmation dates are rendered in it. */
+  timeZone: string
   gameLabel: string
   startedAt: string | null
   settledAt: string | null
@@ -193,6 +196,7 @@ export function SettledView({
           paymentSources={paymentSources}
           myMemberId={myMemberId}
           isAdmin={isAdmin}
+          timeZone={timeZone}
         />
 
         {isAdmin && transfers.length > 0 && (
