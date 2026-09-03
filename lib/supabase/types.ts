@@ -589,6 +589,18 @@ export type Database = {
         Args: { p_game_id: string; p_member_id: string; p_chips: number }
         Returns: undefined
       }
+      join_game_by_link: {
+        Args: { p_game_id: string }
+        Returns: {
+          group_id: string
+          group_name: string
+          game_name: string | null
+          scheduled_at: string
+          game_status: string
+          outcome: string
+          waitlist_position: number | null
+        }[]
+      }
       undo_cashout: {
         Args: { p_game_id: string; p_member_id: string }
         Returns: undefined

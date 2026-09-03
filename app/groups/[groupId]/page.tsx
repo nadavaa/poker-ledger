@@ -38,10 +38,10 @@ export default async function GroupPage({
   searchParams,
 }: {
   params: Promise<{ groupId: string }>
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; finished?: string }>
 }) {
   const { groupId } = await params
-  const { tab } = await searchParams
+  const { tab, finished } = await searchParams
   const activeTab =
     tab === 'members' ? 'members' : tab === 'stats' ? 'stats' : 'games'
 
@@ -169,6 +169,20 @@ export default async function GroupPage({
           />
         </div>
       </header>
+
+      {/* They followed a link to a game that had already finished. They're in
+          the group now, which is the useful half of what they wanted. */}
+      {finished && (
+        <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card px-4 py-3">
+          <p className="text-sm font-semibold">
+            That game is over — you&apos;re in {group.name}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Nobody gets signed up for a finished game. You&apos;ll be here for
+            the next one.
+          </p>
+        </div>
+      )}
 
       {/* Distinct key prefixes: two siblings sharing a key breaks React's
           reconciliation and strands the old node in the DOM. */}

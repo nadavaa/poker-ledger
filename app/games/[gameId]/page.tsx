@@ -24,6 +24,8 @@ import { DangerZone } from '@/components/game/danger-zone'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
 import { resolveDisplayName } from '@/lib/names'
+import { ShareGame } from '@/components/game/share-game'
+import { joinNotice, type JoinOutcome } from '@/lib/game-join'
 
 const BUYIN_COLUMNS =
   'id, member_id, amount_cents, chips, note, created_at, created_by_member_id, voided_at, void_reason'
@@ -57,10 +59,10 @@ export default async function GamePage({
   searchParams,
 }: {
   params: Promise<{ gameId: string }>
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; joined?: string }>
 }) {
   const { gameId } = await params
-  const { error: errorMessage } = await searchParams
+  const { error: errorMessage, joined } = await searchParams
   const supabase = await createClient()
 
   const user = await getSessionUser(supabase)
@@ -423,6 +425,53 @@ export default async function GamePage({
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errorMessage}
         </p>
+      )}
+
+      {/* What just happened, for somebody who arrived from a link in the
+          group chat and needs to know what they joined. */}
+      {(() => {
+        if (!joined) return null
+        const notice = joinNotice(joined as JoinOutcome, {
+          groupName: game.groups?.name ?? 'this group',
+          when: formatWhen(game.scheduled_at),
+          position: waitlist.findIndex((s) => s.member_id === myMember?.id) + 1 || null,
+        })
+        if (!notice) return null
+        return (
+          <div
+            className={`flex flex-col gap-1 rounded-2xl border px-4 py-3 ${
+              notice.tone === 'good'
+                ? 'border-up/30 bg-up-soft'
+                : 'border-pending/30 bg-pending-soft'
+            }`}
+          >
+            <p
+              className={`text-sm font-semibold ${
+                notice.tone === 'good' ? 'text-up' : 'text-pending'
+              }`}
+            >
+              <span aria-hidden>{notice.tone === 'good' ? '✓' : '○'}</span>{' '}
+              {notice.title}
+            </p>
+            <p className="text-xs text-muted-foreground">{notice.detail}</p>
+          </div>
+        )
+      })()}
+
+      {/* Scheduled and active only: there is nothing to invite anyone to
+          once the game is counted or called off. */}
+      {isOpen && (
+        <ShareGame
+          gameId={gameId}
+          groupName={game.groups?.name ?? 'Poker'}
+          when={formatWhen(game.scheduled_at)}
+          location={game.location}
+          buyinLabel={
+            game.status === 'scheduled'
+              ? `${formatCents(game.default_buyin_cents)} buy-in`
+              : null
+          }
+        />
       )}
 
       {myMember && isOpen && (

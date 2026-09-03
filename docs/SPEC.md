@@ -614,6 +614,36 @@ chips minus chips already cashed out, in both units. If cashed-out chips ever
 exceed the pot, that is provably a miscount and the header says so
 immediately.
 
+**Share the game.** On a scheduled or active game, a Share button hands over
+a link to `/games/[gameId]/join` plus WhatsApp-ready text, because that is
+where it gets pasted. The link does the whole job in one transaction
+(`join_game_by_link`): joins the group if needed — reactivating an existing
+row, never creating a second one — and then does the right thing with the
+game.
+
+Signed out, they go to `/login?next=/games/<id>/join` and come back to the
+link after auth, Google round trip included. Never the home page; that is the
+case most likely to break.
+
+What happens to the signup depends on the game. **Scheduled with room:**
+seated. **Scheduled and full:** waitlisted, and told so with their position —
+a link may never confirm anyone over the seat limit. **Active:** they join the
+group but land in the waitlist, which is the admin's approval queue. A
+forwarded link does not get to seat someone into a game with money on the
+table. **Settled, cancelled or being counted:** group only, landing on the
+group page with a note. **Already signed up:** straight to the game, no
+message, no second row.
+
+Every step is idempotent — five clicks produce one membership and one signup —
+and it is one function so nobody can end up half-joined. The two constraints
+that make this safe are the partial unique index on
+`(group_id, profile_id) where profile_id is not null` and the unique
+`(game_id, member_id)` on signups.
+
+Anyone with the link can join the group, which is exactly what the existing
+`/join/[code]` invite link does. Game ids are v4 uuids, so the link is no more
+guessable than the invite code.
+
 **Hand off admin.** Buried in a menu, not a primary button. Pick any active group member, confirm, done. The new admin gets the write access and the old one loses it immediately.
 
 **The admin's own buy-ins render differently in the activity feed.** One person having sole write access to everyone's money is a trust concession, and the control on it is visibility, not permission. Every player sees a live feed of every buy-in with a timestamp and who logged it, and the admin logging their own gets a subtle marker. Nobody will ever cheat, but the reason nobody will is that the log makes it pointless.
