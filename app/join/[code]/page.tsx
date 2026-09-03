@@ -15,6 +15,8 @@ export default async function JoinPage({
   const { error: errorMessage } = await searchParams
   const supabase = await createClient()
 
+  // Signed-out visitors never reach this: middleware sends them to
+  // /login?next=/join/<code> and the callback brings them back here.
   const { data: preview } = await supabase
     .rpc('group_preview_by_invite', { code })
     .maybeSingle()
@@ -30,9 +32,17 @@ export default async function JoinPage({
     )
   }
 
+  // Already in: an invite you've accepted is just a link to the group.
+  if (preview.my_member_status === 'active') {
+    redirect(`/groups/${preview.group_id}`)
+  }
+
+  const returning = preview.my_member_status === 'inactive'
+
   async function join() {
     'use server'
     const supabase = await createClient()
+    // Idempotent, and reactivates rather than inserting a second row.
     const { data: groupId, error } = await supabase.rpc(
       'join_group_by_invite',
       { code }
@@ -47,20 +57,25 @@ export default async function JoinPage({
     <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Join {preview.group_name}?</CardTitle>
+          <CardTitle>
+            {returning ? 'Rejoin' : 'Join'} {preview.group_name}?
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            {preview.member_count}{' '}
-            {preview.member_count === 1 ? 'member' : 'members'}
+            {returning
+              ? 'You were in this group before. Rejoining brings back your original record, including every game you played.'
+              : `${preview.member_count} ${
+                  preview.member_count === 1 ? 'member' : 'members'
+                }`}
           </p>
           <form action={join}>
-            <Button type="submit" className="w-full">
-              Join group
+            <Button type="submit" className="h-11 w-full rounded-xl">
+              {returning ? 'Rejoin group' : 'Join group'}
             </Button>
           </form>
           {errorMessage && (
-            <p className="text-sm text-destructive">{errorMessage}</p>
+            <p className="text-sm text-down">{errorMessage}</p>
           )}
         </CardContent>
       </Card>

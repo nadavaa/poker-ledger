@@ -526,6 +526,7 @@ export type Database = {
           group_id: string
           group_name: string
           member_count: number
+          my_member_status: 'active' | 'inactive' | null
         }[]
       }
       member_preview_by_claim: {
