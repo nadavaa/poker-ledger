@@ -17,17 +17,17 @@ import { Button } from '@/components/ui/button'
 export function VenmoButton({
   handle,
   amountCents,
-  note,
   payeeName,
 }: {
   handle: string | null
   amountCents: number
-  note: string
   payeeName: string
 }) {
   if (!handle) return null
 
-  const links = venmoLink(handle, amountCents, note)
+  // The note is the helper's, not this component's: every Venmo link in the
+  // app carries the same one.
+  const links = venmoLink(handle, amountCents)
 
   return (
     <Button

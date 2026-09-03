@@ -20,7 +20,6 @@ export function SettlementSection({
   transfers,
   names,
   paymentSources,
-  venmoNote,
   myMemberId,
   isAdmin,
 }: {
@@ -28,7 +27,6 @@ export function SettlementSection({
   transfers: TransferRow[]
   names: Map<string, string>
   paymentSources: Map<string, PaymentSources>
-  venmoNote: string
   myMemberId: string | null
   isAdmin: boolean
 }) {
@@ -134,7 +132,6 @@ export function SettlementSection({
                   role={settlementRole(t, myMemberId)}
                   names={names}
                   paymentSources={paymentSources}
-                  venmoNote={venmoNote}
                   isGameAdmin={isAdmin}
                   pending={!!busy[t.id]}
                   error={errors[t.id] || null}

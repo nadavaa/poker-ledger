@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeHandle, resolveVenmoHandle, venmoLink } from './venmo'
+import {
+  VENMO_NOTE,
+  normalizeHandle,
+  resolveVenmoHandle,
+  venmoLink,
+} from './venmo'
 
 describe('normalizeHandle', () => {
   it('strips a leading @ and surrounding whitespace', () => {
@@ -37,10 +42,41 @@ describe('resolveVenmoHandle', () => {
 })
 
 describe('venmoLink', () => {
-  it('builds a pay link with the amount and note prefilled', () => {
-    const { web } = venmoLink('@gilad', 8000, 'Tuesday crew · Aug 28')
+  it('builds a pay link with the amount prefilled', () => {
+    const { web } = venmoLink('@gilad', 8000)
     expect(web).toBe(
-      'https://venmo.com/gilad?txn=pay&amount=80.00&note=Tuesday%20crew%20%C2%B7%20Aug%2028'
+      'https://venmo.com/gilad?txn=pay&amount=80.00&note=%E2%99%A0%EF%B8%8F'
+    )
+  })
+
+  it('sends the spade as UTF-8 percent-escapes, not raw or double-encoded', () => {
+    // Raw bytes in a URL and a literal % in the note are the two ways this
+    // arrives in Venmo as mojibake rather than a spade.
+    const { web, app } = venmoLink('gilad', 100)
+    expect(web).toContain('note=%E2%99%A0%EF%B8%8F')
+    expect(app).toContain('note=%E2%99%A0%EF%B8%8F')
+    expect(web).not.toContain(VENMO_NOTE)
+    expect(web).not.toContain('%25')
+  })
+
+  it('round-trips back to exactly the spade', () => {
+    const note = new URL(venmoLink('gilad', 100).web).searchParams.get('note')
+    expect(note).toBe(VENMO_NOTE)
+    expect(note).toBe('♠️')
+    // U+2660 plus the U+FE0F variation selector that forces emoji rendering
+    // rather than the monochrome glyph.
+    expect([...VENMO_NOTE].map((c) => c.codePointAt(0)?.toString(16))).toEqual([
+      '2660',
+      'fe0f',
+    ])
+  })
+
+  it('carries nothing about the group or the game', () => {
+    const { web } = venmoLink('gilad', 8000)
+    expect(web).toBe(
+      `https://venmo.com/gilad?txn=pay&amount=80.00&note=${encodeURIComponent(
+        VENMO_NOTE
+      )}`
     )
   })
 })

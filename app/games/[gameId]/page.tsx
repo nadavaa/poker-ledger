@@ -568,9 +568,6 @@ export default async function GamePage({
           myMemberId={myMember?.id ?? null}
           isAdmin={isAdmin}
           gameLabel={gameLabel}
-          venmoNote={`${game.groups?.name ?? 'Poker'} · ${formatDay(
-            game.scheduled_at
-          )}`}
           startedAt={game.started_at}
           settledAt={game.settled_at}
           beforeSettlements={foodSection}

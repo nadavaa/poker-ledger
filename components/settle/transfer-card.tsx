@@ -86,7 +86,6 @@ export function TransferCard({
   role,
   names,
   paymentSources,
-  venmoNote,
   isGameAdmin,
   pending,
   error,
@@ -97,7 +96,6 @@ export function TransferCard({
   names: Map<string, string>
   /** Keyed by settlement id; only present for rows the viewer may act on. */
   paymentSources: Map<string, PaymentSources>
-  venmoNote: string
   isGameAdmin: boolean
   /** A write for this row is in flight. */
   pending: boolean
@@ -202,7 +200,6 @@ export function TransferCard({
                 <VenmoButton
                   handle={primary.value}
                   amountCents={transfer.amountCents}
-                  note={venmoNote}
                   payeeName={payeeName}
                 />
               ) : (

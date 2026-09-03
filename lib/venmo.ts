@@ -10,6 +10,17 @@ import { centsToDollars } from './money'
 export type VenmoLinks = { app: string; web: string }
 
 /**
+ * What Venmo shows in the note field. A single spade, and nothing else — the
+ * two people already know what the money is for, and a payment history full
+ * of group names and dates is nobody else's business.
+ *
+ * It lives here rather than at the call sites so there is one note, not one
+ * per screen. encodeURIComponent turns it into UTF-8 percent-escapes
+ * (%E2%99%A0%EF%B8%8F), which is what Venmo decodes back into the emoji.
+ */
+export const VENMO_NOTE = '\u2660\ufe0f'
+
+/**
  * One place where a handle is cleaned up: trim it, drop a leading @, and turn
  * an empty string into null so "no handle" is a single representable state.
  */
@@ -38,13 +49,9 @@ export function resolveVenmoHandle(
  * the Venmo app when it's installed and opens the site when it isn't. A bare
  * `venmo://` href silently does nothing in a desktop browser.
  */
-export function venmoLink(
-  handle: string,
-  cents: number,
-  note: string
-): VenmoLinks {
+export function venmoLink(handle: string, cents: number): VenmoLinks {
   const amount = centsToDollars(cents)
-  const n = encodeURIComponent(note)
+  const n = encodeURIComponent(VENMO_NOTE)
   const h = encodeURIComponent(normalizeHandle(handle) ?? '')
   return {
     app: `venmo://paycharge?txn=pay&recipients=${h}&amount=${amount}&note=${n}`,

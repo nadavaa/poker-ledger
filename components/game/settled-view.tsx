@@ -44,7 +44,6 @@ export function SettledView({
   myMemberId,
   isAdmin,
   gameLabel,
-  venmoNote,
   startedAt,
   settledAt,
   beforeSettlements,
@@ -59,8 +58,6 @@ export function SettledView({
   myMemberId: string | null
   isAdmin: boolean
   gameLabel: string
-  /** What Venmo shows in the note field: which crew, which night. */
-  venmoNote: string
   startedAt: string | null
   settledAt: string | null
   /** Sits between the scoreboard and the payments — the food order. */
@@ -194,7 +191,6 @@ export function SettledView({
           transfers={transfers}
           names={names}
           paymentSources={paymentSources}
-          venmoNote={venmoNote}
           myMemberId={myMemberId}
           isAdmin={isAdmin}
         />
