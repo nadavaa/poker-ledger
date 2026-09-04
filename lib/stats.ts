@@ -10,7 +10,7 @@ export type GameResult = {
   netCents: number
   buyinCents: number
   /** ISO timestamp. Ordering for streaks is by this, ascending. */
-  scheduledAt: string
+  playedAt: string
 }
 
 export type StreakKind = 'win' | 'loss' | 'none'
@@ -36,7 +36,7 @@ export type Stats = {
 
 export type BalancePoint = {
   gameId: string
-  scheduledAt: string
+  playedAt: string
   /** Cumulative net after this game. */
   balanceCents: number
 }
@@ -49,7 +49,7 @@ export type BalancePoint = {
 export function runningBalance(results: GameResult[]): BalancePoint[] {
   const ordered = [...results].sort(
     (a, b) =>
-      a.scheduledAt.localeCompare(b.scheduledAt) ||
+      a.playedAt.localeCompare(b.playedAt) ||
       a.gameId.localeCompare(b.gameId)
   )
   let balance = 0
@@ -57,7 +57,7 @@ export function runningBalance(results: GameResult[]): BalancePoint[] {
     balance += r.netCents
     return {
       gameId: r.gameId,
-      scheduledAt: r.scheduledAt,
+      playedAt: r.playedAt,
       balanceCents: balance,
     }
   })
@@ -74,7 +74,7 @@ export function computeStats(results: GameResult[]): Stats | null {
 
   const ordered = [...results].sort(
     (a, b) =>
-      a.scheduledAt.localeCompare(b.scheduledAt) ||
+      a.playedAt.localeCompare(b.playedAt) ||
       a.gameId.localeCompare(b.gameId)
   )
 

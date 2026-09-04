@@ -14,7 +14,12 @@ import { BalanceChart } from '@/components/group/balance-chart'
 import { GroupTabs } from '@/components/group/group-tabs'
 import { Avatar } from '@/components/avatar'
 import { resolveDisplayName } from '@/lib/names'
-import { DEFAULT_TIME_ZONE, formatTime } from '@/lib/time'
+import {
+  DEFAULT_TIME_ZONE,
+  byPlayedAtDesc,
+  formatTime,
+  playedAt,
+} from '@/lib/time'
 
 
 
@@ -96,7 +101,10 @@ export default async function GroupPage({
   const settledById = new Map(
     (games ?? [])
       .filter((g) => g.status === 'settled')
-      .map((g) => [g.id, g.scheduled_at])
+      .map((g) => [
+        g.id,
+        playedAt({ startedAt: g.started_at, scheduledAt: g.scheduled_at }),
+      ])
   )
   const myResults = (totals ?? [])
     .filter((t) => t.member_id === me?.id && settledById.has(t.game_id))
@@ -104,7 +112,7 @@ export default async function GroupPage({
       gameId: t.game_id,
       netCents: t.net_cents,
       buyinCents: t.buyin_cents,
-      scheduledAt: settledById.get(t.game_id)!,
+      playedAt: settledById.get(t.game_id)!,
     }))
   const myStats = computeStats(myResults)
   const myBalance = runningBalance(myResults)
@@ -114,9 +122,21 @@ export default async function GroupPage({
   const live = (games ?? [])
     .filter((g) => g.status === 'scheduled' || g.status === 'active')
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
-  const past = (games ?? []).filter(
-    (g) => g.status !== 'scheduled' && g.status !== 'active'
-  )
+  const past = (games ?? [])
+    .filter((g) => g.status !== 'scheduled' && g.status !== 'active')
+    .map((g) => ({
+      ...g,
+      played: playedAt({
+        startedAt: g.started_at,
+        scheduledAt: g.scheduled_at,
+      }),
+    }))
+    .sort((a, b) =>
+      byPlayedAtDesc(
+        { startedAt: a.started_at, scheduledAt: a.scheduled_at },
+        { startedAt: b.started_at, scheduledAt: b.scheduled_at }
+      )
+    )
 
   async function addMember(formData: FormData) {
     'use server'
@@ -270,7 +290,7 @@ export default async function GroupPage({
                   <Card className="transition-colors hover:bg-muted/50">
                     <CardContent className="flex items-center justify-between gap-3 py-3.5">
                       <div className="min-w-0">
-                        <p className="text-sm">{formatTime(g.scheduled_at, tz, 'day')}</p>
+                        <p className="text-sm">{formatTime(g.played, tz, 'day')}</p>
                         <p className="money truncate text-xs text-muted-foreground">
                           {playersByGame.get(g.id) ?? 0} players ·{' '}
                           {formatCents(potByGame.get(g.id) ?? 0)} pot

@@ -7,7 +7,7 @@ function games(...nets: number[]): GameResult[] {
     gameId: `g${i}`,
     netCents,
     buyinCents: 5000,
-    scheduledAt: `2026-08-${String(i + 1).padStart(2, '0')}T20:00:00.000Z`,
+    playedAt: `2026-08-${String(i + 1).padStart(2, '0')}T20:00:00.000Z`,
   }))
 }
 
@@ -100,9 +100,9 @@ describe('computeStats', () => {
   it('orders by date, not input order', () => {
     // Fed newest-first; the streak should still read chronologically.
     const unordered: GameResult[] = [
-      { gameId: 'c', netCents: -100, buyinCents: 5000, scheduledAt: '2026-08-03T20:00:00.000Z' },
-      { gameId: 'a', netCents: 100, buyinCents: 5000, scheduledAt: '2026-08-01T20:00:00.000Z' },
-      { gameId: 'b', netCents: 100, buyinCents: 5000, scheduledAt: '2026-08-02T20:00:00.000Z' },
+      { gameId: 'c', netCents: -100, buyinCents: 5000, playedAt: '2026-08-03T20:00:00.000Z' },
+      { gameId: 'a', netCents: 100, buyinCents: 5000, playedAt: '2026-08-01T20:00:00.000Z' },
+      { gameId: 'b', netCents: 100, buyinCents: 5000, playedAt: '2026-08-02T20:00:00.000Z' },
     ]
     const s = computeStats(unordered)!
     expect(s.longestWinStreak).toBe(2)
@@ -125,8 +125,8 @@ describe('runningBalance', () => {
 
   it('orders by date, not input order', () => {
     const unordered: GameResult[] = [
-      { gameId: 'b', netCents: -50, buyinCents: 5000, scheduledAt: '2026-08-02T20:00:00.000Z' },
-      { gameId: 'a', netCents: 200, buyinCents: 5000, scheduledAt: '2026-08-01T20:00:00.000Z' },
+      { gameId: 'b', netCents: -50, buyinCents: 5000, playedAt: '2026-08-02T20:00:00.000Z' },
+      { gameId: 'a', netCents: 200, buyinCents: 5000, playedAt: '2026-08-01T20:00:00.000Z' },
     ]
     expect(runningBalance(unordered).map((p) => p.balanceCents)).toEqual([200, 150])
   })

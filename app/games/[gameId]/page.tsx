@@ -24,7 +24,7 @@ import { DangerZone } from '@/components/game/danger-zone'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
 import { resolveDisplayName } from '@/lib/names'
-import { DEFAULT_TIME_ZONE, formatTime } from '@/lib/time'
+import { DEFAULT_TIME_ZONE, formatTime, playedAt } from '@/lib/time'
 import { GameActionsMenu } from '@/components/game/game-actions-menu'
 import type { GameStatus } from '@/lib/game-edit'
 import { joinNotice, type JoinOutcome } from '@/lib/game-join'
@@ -68,6 +68,13 @@ export default async function GamePage({
   // The group's zone decides every time on this screen, so an SSR'd time and
   // a hydrated one are the same string and both are what the table agreed on.
   const tz = game.groups?.timezone ?? DEFAULT_TIME_ZONE
+
+  // A game that ran on Saturday and settled on Sunday is a Saturday game.
+  // Before it starts there is nothing but the plan, so that stands in.
+  const played = playedAt({
+    startedAt: game.started_at,
+    scheduledAt: game.scheduled_at,
+  })
 
   // Status is known now, which is all the remaining queries needed to know.
   // They used to run in three more waves behind this one; there is no
@@ -265,7 +272,7 @@ export default async function GamePage({
     game.status !== 'settled' &&
     game.status !== 'cancelled' &&
     blockingSettlements.length === 0
-  const gameLabel = game.name ?? formatTime(game.scheduled_at, tz, 'day')
+  const gameLabel = game.name ?? formatTime(played, tz, 'day')
 
   async function joinGame() {
     'use server'
@@ -374,13 +381,13 @@ export default async function GamePage({
               the one control on this screen is where the eye already is. */}
           <div className="flex items-center justify-between gap-2">
             <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
-              {game.name ?? formatTime(game.scheduled_at, tz, 'when')}
+              {game.name ?? formatTime(played, tz, 'when')}
             </h1>
             <GameActionsMenu
               gameId={gameId}
               status={game.status as GameStatus}
               groupName={game.groups?.name ?? 'Poker'}
-              when={formatTime(game.scheduled_at, tz, 'when')}
+              when={formatTime(played, tz, 'when')}
               location={game.location}
               buyinLabel={
                 game.status === 'scheduled'
@@ -401,7 +408,7 @@ export default async function GamePage({
             />
           </div>
           <p className="truncate text-sm text-muted-foreground">
-            {formatTime(game.scheduled_at, tz, 'when')}
+            {formatTime(played, tz, 'when')}
             {game.location && ` · ${game.location}`}
           </p>
         </div>
@@ -450,7 +457,7 @@ export default async function GamePage({
         if (!joined) return null
         const notice = joinNotice(joined as JoinOutcome, {
           groupName: game.groups?.name ?? 'this group',
-          when: formatTime(game.scheduled_at, tz, 'when'),
+          when: formatTime(played, tz, 'when'),
           position: waitlist.findIndex((s) => s.member_id === myMember?.id) + 1 || null,
         })
         if (!notice) return null

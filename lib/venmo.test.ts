@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   VENMO_NOTE,
+  handleProblem,
+  isValidHandle,
   normalizeHandle,
   resolveVenmoHandle,
   venmoLink,
@@ -78,5 +80,41 @@ describe('venmoLink', () => {
         VENMO_NOTE
       )}`
     )
+  })
+})
+
+describe('handleProblem', () => {
+  it('takes @nadav-a and nadav-a as the same thing', () => {
+    expect(normalizeHandle('@nadav-a')).toBe('nadav-a')
+    expect(normalizeHandle('nadav-a')).toBe('nadav-a')
+    expect(isValidHandle('@nadav-a')).toBe(true)
+    expect(isValidHandle('nadav-a')).toBe(true)
+  })
+
+  it('judges the handle after stripping, so a leading @ is never an error', () => {
+    expect(handleProblem('  @nadav-a  ')).toBeNull()
+    expect(handleProblem('@@nadav-a')).toBeNull()
+  })
+
+  it('rejects an @ anywhere but the front', () => {
+    expect(handleProblem('nadav@example.com')).toBeTruthy()
+    expect(handleProblem('@nadav@a')).toBeTruthy()
+    expect(isValidHandle('nadav@example.com')).toBe(false)
+  })
+
+  it('rejects a handle with a space inside it', () => {
+    expect(handleProblem('nadav a')).toBeTruthy()
+  })
+
+  it('treats an empty field as no handle rather than a bad one', () => {
+    expect(handleProblem('')).toBeNull()
+    expect(handleProblem('   ')).toBeNull()
+    expect(handleProblem('@')).toBeNull()
+    expect(handleProblem(null)).toBeNull()
+    expect(isValidHandle(undefined)).toBe(true)
+  })
+
+  it('builds the same link either way it was typed', () => {
+    expect(venmoLink('@gilad', 8000).web).toBe(venmoLink('gilad', 8000).web)
   })
 })

@@ -5,7 +5,7 @@ import { useDirtyForm } from '@/components/use-dirty-form'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatPhone, parseUsPhone } from '@/lib/payment'
-import { normalizeHandle } from '@/lib/venmo'
+import { handleProblem, normalizeHandle } from '@/lib/venmo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -83,12 +83,16 @@ export function ProfileForm({
       // Only judge the phone while it's the field on screen. Otherwise a bad
       // number typed under Zelle would keep Save dead after switching to
       // Venmo, with nothing visible explaining why.
-      (f.preferred !== 'zelle' || parseUsPhone(f.phone).valid),
+      (f.preferred !== 'zelle' || parseUsPhone(f.phone).valid) &&
+      // Same rule as the phone: only judge the field that's on screen, and
+      // judge it on the stripped value so a leading @ is never an error.
+      (f.preferred !== 'venmo' || handleProblem(f.venmo) === null),
   })
 
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const phoneValid = parseUsPhone(fields.phone).valid
+  const venmoProblem = handleProblem(fields.venmo)
 
   async function save() {
     if (!canSave) return
@@ -175,7 +179,15 @@ export function ProfileForm({
             }}
             maxLength={60}
             placeholder="your-venmo"
+            aria-invalid={!!venmoProblem}
           />
+          {venmoProblem ? (
+            <p className="text-xs text-down">{venmoProblem}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              With or without the @ — it&apos;s stored without.
+            </p>
+          )}
         </div>
       )}
 

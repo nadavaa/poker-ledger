@@ -614,6 +614,13 @@ chips minus chips already cashed out, in both units. If cashed-out chips ever
 exceed the pot, that is provably a miscount and the header says so
 immediately.
 
+**A game is dated by the night it was played.** `started_at` where there is
+one, `scheduled_at` where there isn't — a game that ran on Saturday and was
+settled on Sunday afternoon is a Saturday game, and a cancelled game that
+never started still has a date rather than a null that sorts to the bottom.
+`playedAt()` in `lib/time.ts` is the one place that rule lives; history,
+My Stats and the game header all read it.
+
 **Times belong to the group, not the server.** `groups.timezone` holds an IANA
 identifier — never a fixed offset, which is wrong from March to November —
 defaulting to `America/New_York`. Everything goes through `formatTime()` in

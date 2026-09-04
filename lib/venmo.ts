@@ -31,6 +31,31 @@ export function normalizeHandle(raw: string | null | undefined): string | null {
 }
 
 /**
+ * Judged after stripping, never before: typing the @ people see on their own
+ * Venmo profile is a formatting choice, not a mistake, and rejecting it would
+ * be the app arguing with the user about punctuation.
+ *
+ * An @ anywhere else is a real problem — it means they pasted an email or a
+ * URL, and the payment link built from it would not resolve.
+ *
+ * Returns the reason, or null when there is nothing wrong. An empty field is
+ * "no handle", which is allowed.
+ */
+export function handleProblem(raw: string | null | undefined): string | null {
+  const cleaned = normalizeHandle(raw)
+  if (cleaned === null) return null
+  if (cleaned.includes('@')) {
+    return 'A Venmo handle has the @ at the front, if at all — not inside it.'
+  }
+  if (/\s/.test(cleaned)) return 'Venmo handles have no spaces in them.'
+  return null
+}
+
+export function isValidHandle(raw: string | null | undefined): boolean {
+  return handleProblem(raw) === null
+}
+
+/**
  * A handle set on the group member row is an override for that group; the
  * profile handle is the person's default. Either may be null.
  */

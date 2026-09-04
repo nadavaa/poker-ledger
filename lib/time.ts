@@ -59,6 +59,27 @@ export function toZonedInput(iso: string, timeZone: string): string {
   return shifted.toISOString().slice(0, 16)
 }
 
+/**
+ * The night a game was actually played. A game that ran on Saturday and was
+ * settled on Sunday afternoon is a Saturday game, and a game that was
+ * cancelled or logged after the fact never started at all — so the scheduled
+ * time stands in rather than leaving a null to sort to the bottom.
+ */
+export function playedAt(game: {
+  startedAt: string | null
+  scheduledAt: string
+}): string {
+  return game.startedAt ?? game.scheduledAt
+}
+
+/** Newest first, by the date it was played. */
+export function byPlayedAtDesc(
+  a: { startedAt: string | null; scheduledAt: string },
+  b: { startedAt: string | null; scheduledAt: string }
+): number {
+  return playedAt(b).localeCompare(playedAt(a))
+}
+
 const STYLES = {
   /** "Sat, Sep 6, 8:00 PM" — the game's headline time. */
   when: {

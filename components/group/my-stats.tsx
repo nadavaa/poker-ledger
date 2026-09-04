@@ -96,12 +96,12 @@ export function MyStats({
         <Stat
           label="Best game"
           value={formatCents(stats.best.netCents)}
-          sub={formatTime(stats.best.scheduledAt, timeZone, 'day')}
+          sub={formatTime(stats.best.playedAt, timeZone, 'day')}
         />
         <Stat
           label="Worst game"
           value={formatCents(stats.worst.netCents)}
-          sub={formatTime(stats.worst.scheduledAt, timeZone, 'day')}
+          sub={formatTime(stats.worst.playedAt, timeZone, 'day')}
         />
         <Stat label="Current streak" value={streakLabel(stats.currentStreak)} />
         <Stat
