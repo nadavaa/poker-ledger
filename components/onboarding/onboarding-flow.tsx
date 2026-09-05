@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { parseUsPhone } from '@/lib/payment'
@@ -43,8 +43,27 @@ export function OnboardingFlow({
   const [phone, setPhone] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // A photo saved during this run, so pressing Done afterwards isn't recorded
+  // as skipping the step they just completed.
+  const [photoSaved, setPhotoSaved] = useState(false)
 
   const phoneValid = parseUsPhone(phone).valid
+
+  /**
+   * Fire and forget: a setup flow must never stall on an analytics write, and
+   * losing one row matters far less than making somebody wait. The function
+   * de-duplicates views itself, so a reload doesn't inflate the funnel.
+   */
+  const log = useMemo(
+    () => (s: string, action: 'viewed' | 'saved' | 'skipped') => {
+      void supabase.rpc('log_onboarding', { p_step: s, p_action: action })
+    },
+    [supabase]
+  )
+
+  useEffect(() => {
+    log(step, 'viewed')
+  }, [step, log])
 
   async function finish() {
     setPending(true)
@@ -61,7 +80,11 @@ export function OnboardingFlow({
 
   async function saveName() {
     const clean = name.trim()
-    if (!clean) return next()
+    // Next with an empty box is a skip by another name.
+    if (!clean) {
+      log('name', 'skipped')
+      return next()
+    }
     setError(null)
     setPending(true)
     const { error } = await supabase
@@ -70,11 +93,15 @@ export function OnboardingFlow({
       .eq('id', userId)
     setPending(false)
     if (error) return setError(error.message)
+    log('name', 'saved')
     next()
   }
 
   async function savePayment() {
-    if (!method) return next()
+    if (!method) {
+      log('pay', 'skipped')
+      return next()
+    }
     setError(null)
     setPending(true)
     // Cleaned on the way in: @ stripped, phone to E.164 in the database.
@@ -85,6 +112,14 @@ export function OnboardingFlow({
     })
     setPending(false)
     if (error) return setError(error.message)
+    log('pay', 'saved')
+    next()
+  }
+
+  /** The photo step's own button does the saving, so Done only has to say
+   *  whether anything came of it. */
+  function finishPhoto() {
+    log('photo', photoSaved ? 'saved' : 'skipped')
     next()
   }
 
@@ -190,6 +225,7 @@ export function OnboardingFlow({
                   .from('profiles')
                   .update({ avatar_url: path })
                   .eq('id', userId)
+                if (!error) setPhotoSaved(true)
                 return { error: error?.message ?? null }
               }}
             />
@@ -204,7 +240,10 @@ export function OnboardingFlow({
           variant="ghost"
           className="h-11 flex-1 rounded-xl"
           disabled={pending}
-          onClick={next}
+          onClick={() => {
+            log(step, 'skipped')
+            next()
+          }}
         >
           Skip
         </Button>
@@ -212,7 +251,11 @@ export function OnboardingFlow({
           className="h-11 flex-1 rounded-xl"
           disabled={pending || (step === 'pay' && method === 'zelle' && !phoneValid)}
           onClick={
-            step === 'name' ? saveName : step === 'pay' ? savePayment : next
+            step === 'name'
+              ? saveName
+              : step === 'pay'
+                ? savePayment
+                : finishPhoto
           }
         >
           {index + 1 === steps.length ? 'Done' : 'Next'}

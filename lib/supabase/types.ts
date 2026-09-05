@@ -614,6 +614,24 @@ export type Database = {
         Args: { p_game_id: string; p_member_id: string; p_chips: number }
         Returns: undefined
       }
+      log_onboarding: {
+        Args: { p_step: string; p_action: string }
+        Returns: undefined
+      }
+      admin_onboarding: {
+        Args: Record<string, never>
+        Returns: {
+          step: string
+          viewed: number
+          saved: number
+          skipped: number
+          dropped: number
+        }[]
+      }
+      admin_onboarding_totals: {
+        Args: Record<string, never>
+        Returns: Record<string, number | null>
+      }
       admin_overview: {
         Args: Record<string, never>
         Returns: Record<string, number | null>

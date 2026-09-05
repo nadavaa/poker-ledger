@@ -22,19 +22,24 @@ const load = unstable_cache(
   async () => {
     const admin = createAdminClient()
     if (!admin) return null
-    const [overview, weekly, monthly, cohorts, groups] = await Promise.all([
-      admin.rpc('admin_overview'),
-      admin.rpc('admin_weekly'),
-      admin.rpc('admin_monthly_signups'),
-      admin.rpc('admin_cohorts'),
-      admin.rpc('admin_groups'),
-    ])
+    const [overview, weekly, monthly, cohorts, groups, steps, setup] =
+      await Promise.all([
+        admin.rpc('admin_overview'),
+        admin.rpc('admin_weekly'),
+        admin.rpc('admin_monthly_signups'),
+        admin.rpc('admin_cohorts'),
+        admin.rpc('admin_groups'),
+        admin.rpc('admin_onboarding'),
+        admin.rpc('admin_onboarding_totals'),
+      ])
     return {
       m: (overview.data ?? {}) as Record<string, number | null>,
       weekly: weekly.data ?? [],
       monthly: monthly.data ?? [],
       cohorts: cohorts.data ?? [],
       groups: groups.data ?? [],
+      steps: steps.data ?? [],
+      setup: (setup.data ?? {}) as Record<string, number | null>,
       error:
         overview.error?.message ??
         weekly.error?.message ??
@@ -86,7 +91,13 @@ export default async function AdminPage() {
     )
   }
 
-  const { m, weekly, monthly, cohorts, groups } = data
+  const { m, weekly, monthly, cohorts, groups, steps, setup } = data
+  const o = (k: string) => setup[k] ?? 0
+  const STEP_LABEL: Record<string, string> = {
+    name: 'Your name',
+    pay: 'How you get paid',
+    photo: 'Photo',
+  }
   const n = (k: string) => m[k] ?? 0
 
   return (
@@ -213,10 +224,69 @@ export default async function AdminPage() {
             value={formatPct(pct(n('with_photo'), n('onboarding_total')))}
           />
         </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          Onboarding funnel
+        </h2>
+        <div className="grid grid-cols-3 gap-2">
+          <Metric label="Started" value={String(o('started'))} />
+          <Metric
+            label="Finished"
+            value={formatPct(pct(o('completed'), o('started')))}
+            sub={`${o('abandoned')} gave up`}
+          />
+          <Metric
+            label="Filled something in"
+            value={formatPct(pct(o('completed_with_input'), o('started')))}
+            sub={`${o('skipped_everything')} skipped it all`}
+          />
+        </div>
+
+        {steps.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nobody has been through setup since tracking was added.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted-foreground">
+                <th className="py-1 pr-2 font-medium">Step</th>
+                <th className="py-1 pr-2 text-right font-medium">Saw</th>
+                <th className="py-1 pr-2 text-right font-medium">Filled</th>
+                <th className="py-1 pr-2 text-right font-medium">Skipped</th>
+                <th className="py-1 text-right font-medium">Dropped</th>
+              </tr>
+            </thead>
+            <tbody>
+              {steps.map((st) => (
+                <tr key={st.step} className="border-t border-border">
+                  <td className="py-2 pr-2">
+                    {STEP_LABEL[st.step] ?? st.step}
+                  </td>
+                  <td className="money py-2 pr-2 text-right">{st.viewed}</td>
+                  <td className="money py-2 pr-2 text-right">{st.saved}</td>
+                  <td className="money py-2 pr-2 text-right text-muted-foreground">
+                    {st.skipped}
+                  </td>
+                  <td
+                    className={`money py-2 text-right ${
+                      st.dropped > 0 ? 'text-down' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {st.dropped}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
         <p className="text-[0.7rem] text-muted-foreground">
-          Onboarding stores one timestamp, set whether you finish or skip, and
-          records no step — so completed-vs-skipped and the drop-off step
-          can&apos;t be answered without new instrumentation.
+          Dropped = last step they reached before leaving without finishing.
+          Skipping every step still counts as finishing, and still leaves
+          somebody who can&apos;t be paid — that&apos;s what the second tile
+          separates. Counted from the day step tracking was added.
         </p>
       </section>
 
