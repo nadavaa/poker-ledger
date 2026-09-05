@@ -253,13 +253,20 @@ export function OnboardingFlow({
           className="h-11 flex-1 rounded-xl"
           disabled={pending}
           onClick={() => {
-            // One question, and only when there is nothing in either field.
-            if (step === 'pay' && !hasPaymentDetail) {
-              setConfirmSkipPay(true)
-              return
+            // Skip never throws away something they typed. It means "move on
+            // without giving you this", and once it's in the box they have
+            // already given it — silently dropping it would be the app
+            // deciding they didn't mean it.
+            if (step === 'pay') {
+              // One question, and only when there is nothing usable to keep.
+              if (!hasPaymentDetail) {
+                setConfirmSkipPay(true)
+                return
+              }
+              return void savePayment()
             }
-            log(step, 'skipped')
-            next()
+            if (step === 'name') return void saveName()
+            return finishPhoto()
           }}
         >
           Skip
