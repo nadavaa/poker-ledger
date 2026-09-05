@@ -32,6 +32,14 @@ export default async function JoinPage({
     )
   }
 
+  // Logged before the redirect below, so an invite opened by somebody
+  // already in the group still counts as a click.
+  await supabase.rpc('log_invite_visit', {
+    p_kind: 'group',
+    p_target_id: preview.group_id,
+    p_outcome: 'view',
+  })
+
   // Already in: an invite you've accepted is just a link to the group.
   if (preview.my_member_status === 'active') {
     redirect(`/groups/${preview.group_id}`)
@@ -50,6 +58,11 @@ export default async function JoinPage({
     if (error) {
       redirect(`/join/${code}?error=${encodeURIComponent(error.message)}`)
     }
+    await supabase.rpc('log_invite_visit', {
+      p_kind: 'group',
+      p_target_id: groupId,
+      p_outcome: 'joined',
+    })
     redirect(`/groups/${groupId}`)
   }
 

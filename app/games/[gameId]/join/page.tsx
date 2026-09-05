@@ -42,6 +42,14 @@ export default async function JoinGamePage({
     )
   }
 
+  // One row per visit, carrying what the link actually did — so the funnel is
+  // clicks against outcomes rather than clicks against a guess.
+  await supabase.rpc('log_invite_visit', {
+    p_kind: 'game',
+    p_target_id: gameId,
+    p_outcome: data.outcome,
+  })
+
   redirect(
     joinDestination({
       gameId,

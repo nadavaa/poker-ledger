@@ -48,6 +48,17 @@ export async function updateSession(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   )
 
+  // The owner gate, checked here and again in the page. A non-owner gets a
+  // 404, not a 403: the route does not exist as far as anyone else is
+  // concerned. Rewriting rather than returning a bare 404 keeps the styled
+  // not-found page, which is what a wrong URL looks like everywhere else.
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    const owner = process.env.OWNER_USER_ID
+    if (!owner || !user || user.sub !== owner) {
+      return NextResponse.rewrite(new URL('/_not-found-admin', request.url))
+    }
+  }
+
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'

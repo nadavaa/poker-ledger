@@ -614,6 +614,40 @@ export type Database = {
         Args: { p_game_id: string; p_member_id: string; p_chips: number }
         Returns: undefined
       }
+      admin_overview: {
+        Args: Record<string, never>
+        Returns: Record<string, number | null>
+      }
+      admin_weekly: {
+        Args: Record<string, never>
+        Returns: { week: string; signups: number; games: number }[]
+      }
+      admin_monthly_signups: {
+        Args: Record<string, never>
+        Returns: { month: string; signups: number }[]
+      }
+      admin_cohorts: {
+        Args: Record<string, never>
+        Returns: {
+          cohort: string
+          size: number
+          week2: number
+          week4: number
+        }[]
+      }
+      admin_groups: {
+        Args: Record<string, never>
+        Returns: {
+          name: string
+          members: number
+          games: number
+          last_game: string | null
+        }[]
+      }
+      log_invite_visit: {
+        Args: { p_kind: string; p_target_id: string; p_outcome: string }
+        Returns: undefined
+      }
       join_game_by_link: {
         Args: { p_game_id: string }
         Returns: {
