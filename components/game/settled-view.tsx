@@ -1,4 +1,5 @@
 import { formatCents } from '@/lib/money'
+import { NO_PAYMENT_BODY } from '@/lib/payment'
 import { CopySummary } from '@/components/settle/copy-summary'
 import { type TransferRow } from '@/components/settle/transfer-card'
 import { SettlementSection } from '@/components/settle/settlement-section'
@@ -174,10 +175,7 @@ export function SettledView({
           <p className="text-sm font-medium text-pending">
             You&apos;re owed money for this game
           </p>
-          <p className="text-xs text-muted-foreground">
-            Nobody can pay you yet — add a Venmo handle or a phone for Zelle
-            and it shows up on their screen.
-          </p>
+          <p className="text-xs text-muted-foreground">{NO_PAYMENT_BODY}</p>
           <a
             href="/settings"
             className="text-sm font-semibold text-pending underline-offset-2 hover:underline"

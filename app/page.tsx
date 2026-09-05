@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { Avatar } from '@/components/avatar'
+import { PaymentBanner } from '@/components/payment-banner'
 
 export default async function HomePage({
   searchParams,
@@ -20,7 +21,8 @@ export default async function HomePage({
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: memberships }] = await Promise.all([
+  const [{ data: profile }, { data: memberships }, { data: payment }] =
+    await Promise.all([
     supabase
       .from('profiles')
       .select('display_name, avatar_url, onboarding_completed_at')
@@ -32,7 +34,11 @@ export default async function HomePage({
       .eq('profile_id', user.id)
       .eq('is_active', true)
       .order('created_at'),
+    // Own details only; the RPC reads nobody else's.
+    supabase.rpc('my_payment_details').maybeSingle(),
   ])
+
+  const cannotBePaid = !payment?.venmo_handle && !payment?.phone_number
 
   // New account, or one that closed the browser mid-flow.
   if (profile && !profile.onboarding_completed_at) redirect('/welcome')
@@ -122,6 +128,10 @@ export default async function HomePage({
           </Button>
         </div>
       </header>
+
+      {/* Above the groups, because it is about money they are owed rather
+          than something to get around to. */}
+      {cannotBePaid && <PaymentBanner />}
 
       <InstallPrompt />
 

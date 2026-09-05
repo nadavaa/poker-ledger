@@ -6,6 +6,17 @@
 
 import { normalizeHandle } from './venmo'
 
+/**
+ * The same sentence wherever this comes up: onboarding, the home banner, and
+ * the settled game where it finally bites. It is about them losing money, not
+ * about the app wanting a field filled in — "complete your profile" is a
+ * request, and this is a consequence.
+ */
+export const NO_PAYMENT_TITLE = "You won't be able to get paid"
+export const NO_PAYMENT_BODY =
+  'Without a Venmo handle or Zelle number, players who owe you money ' +
+  "won't have a way to pay you. You can add it later in Settings."
+
 export type PaymentMethod = 'venmo' | 'zelle'
 
 export type PaymentOption = {

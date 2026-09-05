@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { parseUsPhone } from '@/lib/payment'
+import {
+  NO_PAYMENT_BODY,
+  NO_PAYMENT_TITLE,
+  parseUsPhone,
+} from '@/lib/payment'
+import { ActionSheet } from '@/components/action-sheet'
 import { normalizeHandle } from '@/lib/venmo'
 import { AvatarUpload } from '@/components/avatar-upload'
 import { Button } from '@/components/ui/button'
@@ -46,8 +51,15 @@ export function OnboardingFlow({
   // A photo saved during this run, so pressing Done afterwards isn't recorded
   // as skipping the step they just completed.
   const [photoSaved, setPhotoSaved] = useState(false)
+  const [confirmSkipPay, setConfirmSkipPay] = useState(false)
 
   const phoneValid = parseUsPhone(phone).valid
+
+  // Something usable in the box. Skipping past a filled-in field is their
+  // business; skipping past an empty one is the case worth one question.
+  const hasPaymentDetail =
+    (method === 'venmo' && normalizeHandle(handle) !== null) ||
+    (method === 'zelle' && phone.trim() !== '' && phoneValid)
 
   /**
    * Fire and forget: a setup flow must never stall on an analytics write, and
@@ -241,6 +253,11 @@ export function OnboardingFlow({
           className="h-11 flex-1 rounded-xl"
           disabled={pending}
           onClick={() => {
+            // One question, and only when there is nothing in either field.
+            if (step === 'pay' && !hasPaymentDetail) {
+              setConfirmSkipPay(true)
+              return
+            }
             log(step, 'skipped')
             next()
           }}
@@ -261,6 +278,34 @@ export function OnboardingFlow({
           {index + 1 === steps.length ? 'Done' : 'Next'}
         </Button>
       </div>
+
+      {/* Asked once. They answer it, and that is the end of it — a second
+          prompt would be the app arguing with somebody who already decided. */}
+      <ActionSheet
+        open={confirmSkipPay}
+        title={NO_PAYMENT_TITLE}
+        description={NO_PAYMENT_BODY}
+        hideCancel
+        onClose={() => setConfirmSkipPay(false)}
+      >
+        <Button
+          className="h-11 w-full rounded-xl"
+          onClick={() => setConfirmSkipPay(false)}
+        >
+          Go back
+        </Button>
+        <Button
+          variant="ghost"
+          className="h-11 w-full rounded-xl text-muted-foreground"
+          onClick={() => {
+            setConfirmSkipPay(false)
+            log('pay', 'skipped')
+            next()
+          }}
+        >
+          Skip anyway
+        </Button>
+      </ActionSheet>
     </main>
   )
 }

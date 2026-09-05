@@ -18,12 +18,16 @@ export function ActionSheet({
   title,
   description,
   onClose,
+  hideCancel = false,
   children,
 }: {
   open: boolean
   title: string
   description?: string
   onClose: () => void
+  /** For a sheet whose own buttons already include the way out — a second
+   *  Cancel underneath them is one more thing to read. */
+  hideCancel?: boolean
   children: ReactNode
 }) {
   // Only ever opened by a tap, so this never runs during SSR.
@@ -45,13 +49,15 @@ export function ActionSheet({
 
         <div className="mt-3 flex flex-col gap-1.5">{children}</div>
 
-        <Button
-          variant="ghost"
-          className="mt-3 h-11 w-full rounded-xl"
-          onClick={onClose}
-        >
-          Cancel
-        </Button>
+        {!hideCancel && (
+          <Button
+            variant="ghost"
+            className="mt-3 h-11 w-full rounded-xl"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+        )}
       </div>
     </div>,
     document.body
