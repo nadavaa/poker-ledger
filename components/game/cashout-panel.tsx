@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { chipsToCents, formatCents } from '@/lib/money'
 import { formatTime } from '@/lib/time'
+import { ErrorToast } from '@/components/error-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -167,11 +168,7 @@ export function CashoutPanel({
   return (
     // Bottom padding leaves room for the pinned tracker.
     <div className="flex flex-col gap-3 pb-56">
-      {error && (
-        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
-          {error}
-        </p>
-      )}
+      <ErrorToast message={error} onDismiss={() => setError(null)} />
 
       <section className="flex flex-col gap-2">
         {rows.map((r) => {

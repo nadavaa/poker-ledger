@@ -10,6 +10,8 @@ import { AddPlayer, type AvailableMember } from './add-player'
 import { Avatar } from '@/components/avatar'
 import { PlayerRowMenu } from './player-row-menu'
 import type { Player } from './buy-in-grid'
+import { seatLabel, seatNote } from '@/lib/seats'
+import { ErrorToast } from '@/components/error-toast'
 
 /**
  * A game that hasn't started. Signing up is a plan, not chips on the table,
@@ -48,7 +50,6 @@ export function ScheduledView({
     () => new Set(players.map((p) => p.memberId))
   )
 
-  const seatsLeft = Math.max(seatLimit - players.length, 0)
 
   async function start() {
     setError(null)
@@ -72,18 +73,14 @@ export function ScheduledView({
 
   return (
     <div className="flex flex-col gap-3">
-      {error && (
-        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
-          {error}
-        </p>
-      )}
+      <ErrorToast message={error} onDismiss={() => setError(null)} />
 
       <section className="flex flex-col gap-2">
         <h2 className="flex items-baseline justify-between text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           <span>Confirmed</span>
           <span className="money normal-case tracking-normal">
-            {players.length}/{seatLimit} ·{' '}
-            {seatsLeft === 0 ? 'table full' : `${seatsLeft} free`}
+            {seatLabel(players.length, seatLimit)} ·{' '}
+            {seatNote(players.length, seatLimit)}
           </span>
         </h2>
         {players.length === 0 && (

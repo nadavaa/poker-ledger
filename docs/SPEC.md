@@ -692,6 +692,25 @@ Anyone with the link can join the group, which is exactly what the existing
 `/join/[code]` invite link does. Game ids are v4 uuids, so the link is no more
 guessable than the invite code.
 
+**Seating over the limit.** The seat limit is a default, not a wall. The
+admin can seat a waitlisted player into a full game after one question that
+states the numbers — "This game is full (8/8). Adding Dean will make it 9
+players. Continue?" — and the count then reads 9/8 · 1 over everywhere,
+never clamped and never hidden. The limit itself is not raised. Self-signup
+at the limit still lands on the waitlist; only the admin, and only after
+being asked, goes over.
+
+Mechanically this is a transaction-local flag (`app.overfill_seats`) set by
+`promote_to_confirmed()` and read by `game_signups_before_update()`. That
+trigger has three such rules stacked on it, each named in the source, because
+it has been re-declared from a stale copy before and lost one.
+
+**Refused writes are shown where the admin is looking.** Every admin action
+that can be rejected by the database surfaces the message in a bottom toast
+above any open sheet or menu, not in a bar at the top of its own section.
+A rejected write that prints off-screen is indistinguishable from nothing
+happening, and that is worse than the rejection.
+
 **Hand off admin.** Buried in a menu, not a primary button. Pick any active group member, confirm, done. The new admin gets the write access and the old one loses it immediately.
 
 **The admin's own buy-ins render differently in the activity feed.** One person having sole write access to everyone's money is a trust concession, and the control on it is visibility, not permission. Every player sees a live feed of every buy-in with a timestamp and who logged it, and the admin logging their own gets a subtle marker. Nobody will ever cheat, but the reason nobody will is that the log makes it pointless.

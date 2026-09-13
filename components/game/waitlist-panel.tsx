@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { overfillPrompt } from '@/lib/seats'
 
 export type WaitlistEntry = { id: string; memberId: string; name: string }
 
@@ -18,22 +19,30 @@ export function WaitlistPanel({
   entries,
   isAdmin,
   myMemberId,
+  confirmedCount,
+  seatLimit,
 }: {
   gameId: string
   entries: WaitlistEntry[]
   isAdmin: boolean
   myMemberId: string | null
+  /** For the question: "This game is full (8/8). Adding X makes it 9." */
+  confirmedCount: number
+  seatLimit: number
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
-  const [error, setError] = useState<string | null>(null)
+  // Keyed by member, and drawn on that member's row. An error at the top of
+  // the section is off-screen from the row you tapped, which is how a refused
+  // write looked like nothing happening.
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [pending, setPending] = useState<string | null>(null)
   // Set when the server says the table is full; the admin confirms to proceed.
   const [confirmOverfill, setConfirmOverfill] = useState<string | null>(null)
 
   async function addToGame(memberId: string, allowOverfill: boolean) {
-    setError(null)
+    setErrors((e) => ({ ...e, [memberId]: '' }))
     setPending(memberId)
     const { error } = await supabase.rpc('promote_to_confirmed', {
       p_game_id: gameId,
@@ -43,11 +52,13 @@ export function WaitlistPanel({
     setPending(null)
 
     if (error) {
-      if (/game is full/i.test(error.message)) {
+      if (!allowOverfill && /game is full/i.test(error.message)) {
         setConfirmOverfill(memberId)
         return
       }
-      setError(error.message)
+      // Whatever the database said, on the row that asked. Never swallowed.
+      setConfirmOverfill(null)
+      setErrors((e) => ({ ...e, [memberId]: error.message }))
       return
     }
     setConfirmOverfill(null)
@@ -61,12 +72,6 @@ export function WaitlistPanel({
       <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
         Waitlist ({entries.length})
       </h2>
-
-      {error && (
-        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
-          {error}
-        </p>
-      )}
 
       {entries.map((e, i) => (
         <Card key={e.id}>
@@ -95,12 +100,18 @@ export function WaitlistPanel({
               </div>
             </div>
 
+            {errors[e.memberId] && (
+              <p className="rounded-lg bg-down-soft px-2 py-1.5 text-xs text-down">
+                {errors[e.memberId]}
+              </p>
+            )}
+
             {isAdmin && confirmOverfill === e.memberId && (
-              <div className="flex items-center justify-between gap-2 rounded-lg bg-muted px-2 py-1.5">
+              <div className="flex flex-col gap-2 rounded-lg bg-muted px-2 py-1.5">
                 <span className="text-xs">
-                  Table is full. Seat {e.name} anyway and go over the limit?
+                  {overfillPrompt(e.name, confirmedCount, seatLimit)}
                 </span>
-                <span className="flex shrink-0 gap-2">
+                <span className="flex shrink-0 justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="xs"

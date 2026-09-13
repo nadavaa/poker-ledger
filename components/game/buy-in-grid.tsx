@@ -24,6 +24,7 @@ import {
 import { AddPlayer, type AvailableMember } from './add-player'
 import { PotHeader } from './pot-header'
 import { CollapsibleSection } from '@/components/collapsible-section'
+import { ErrorToast } from '@/components/error-toast'
 import { formatTime } from '@/lib/time'
 import {
   cashoutFor,
@@ -285,11 +286,9 @@ export function BuyInGrid({
         }
       />
 
-      {error && (
-        <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
-          {error}
-        </p>
-      )}
+      {/* Bottom of the screen, above the player sheet: a refused cash-out
+          used to land behind the sheet it was tapped from. */}
+      <ErrorToast message={error} onDismiss={() => setError(null)} />
 
       {queued > 0 && (
         <p className="rounded-xl bg-pending-soft px-3 py-2 text-sm text-pending">

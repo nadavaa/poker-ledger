@@ -670,6 +670,8 @@ export default async function GamePage({
           }))}
           isAdmin={runsTheGame}
           myMemberId={myMember?.id ?? null}
+          confirmedCount={confirmed.length}
+          seatLimit={game.seat_limit}
         />
       )}
 
