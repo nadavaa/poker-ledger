@@ -364,6 +364,31 @@ using (can_admin_game(game_id));
 
 ---
 
+## 5a. Privileges, not just policies
+
+Two facts about Postgres that RLS alone does not cover, learned in the
+2026-09-17 audit:
+
+**EXECUTE on a function is granted to PUBLIC by default.** `revoke execute
+... from anon` does nothing while PUBLIC still holds it. Every function in
+this schema is therefore revoked from PUBLIC, and default privileges are set
+so new functions start closed. A function the app calls as a user gets an
+explicit grant to `authenticated`; the analytics functions get `service_role`
+only; internal helpers get nothing and are reached only from definer
+functions and triggers, which run as the owner. A new RPC that returns
+"permission denied" has not been granted yet — that is the intended failure,
+and it is loud.
+
+**A policy decides which rows; a column privilege decides which columns.**
+UPDATE and INSERT on the client-written tables are granted per column, listing
+exactly what the client writes today. Everything else — `games.status`,
+`game_signups.signup_order`, `group_members.role`, `groups.invite_code`,
+`buyins.created_at` — moves only through a definer RPC or a trigger.
+
+`group_members.claim_code` is not readable by anyone. Owners and admins get
+their own group's codes through `group_claim_codes()`, and a claimed
+identity's code is nulled.
+
 ## 6. Settlement algorithm
 
 This is the most interesting code in the project. Put it in `lib/settle.ts` as a pure function with no DB dependency, and test it hard.

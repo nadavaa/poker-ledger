@@ -52,7 +52,7 @@ export default async function GroupPage({
         // Left join: an unclaimed member has no profile, so this is null and
         // the avatar falls back to initials.
         .select(
-          'id, display_name, role, profile_id, claim_code, is_active, profiles(display_name, avatar_url)'
+          'id, display_name, role, profile_id, is_active, profiles(display_name, avatar_url)'
         )
         .eq('group_id', groupId)
         .order('created_at'),
@@ -81,6 +81,17 @@ export default async function GroupPage({
 
   const me = members?.find((m) => m.profile_id === user.id)
   const canManage = me?.role === 'owner' || me?.role === 'admin'
+
+  // Claim codes are not a column anyone can read: a code is a working key to
+  // somebody's identity and history. Owners and admins fetch them for their
+  // own group through a function that checks exactly that.
+  const claimCodes = new Map<string, string>()
+  if (canManage) {
+    const { data: codes } = await supabase.rpc('group_claim_codes', {
+      p_group_id: groupId,
+    })
+    for (const c of codes ?? []) claimCodes.set(c.member_id, c.claim_code)
+  }
 
   // Per-game rollups: how many played, what went in, and what you took home.
   const potByGame = new Map<string, number>()
@@ -359,9 +370,9 @@ export default async function GroupPage({
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {canManage && !m.profile_id && m.claim_code && (
+                      {canManage && !m.profile_id && claimCodes.get(m.id) && (
                         <CopyLinkButton
-                          path={`/claim/${m.claim_code}`}
+                          path={`/claim/${claimCodes.get(m.id)}`}
                           label="Claim link"
                           size="xs"
                         />

@@ -52,9 +52,12 @@ export async function updateSession(request: NextRequest) {
   // 404, not a 403: the route does not exist as far as anyone else is
   // concerned. Rewriting rather than returning a bare 404 keeps the styled
   // not-found page, which is what a wrong URL looks like everywhere else.
-  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+  // Only once signed in. A signed-out visitor is sent to /login exactly like
+  // every other path — answering 404 here while /anything-else redirected
+  // would have told them this route is special.
+  if (user && (pathname === '/admin' || pathname.startsWith('/admin/'))) {
     const owner = process.env.OWNER_USER_ID
-    if (!owner || !user || user.sub !== owner) {
+    if (!owner || user.sub !== owner) {
       return NextResponse.rewrite(new URL('/_not-found-admin', request.url))
     }
   }

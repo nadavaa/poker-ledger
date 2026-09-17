@@ -614,6 +614,10 @@ export type Database = {
         Args: { p_game_id: string; p_member_id: string; p_chips: number }
         Returns: undefined
       }
+      group_claim_codes: {
+        Args: { p_group_id: string }
+        Returns: { member_id: string; claim_code: string }[]
+      }
       log_onboarding: {
         Args: { p_step: string; p_action: string }
         Returns: undefined
