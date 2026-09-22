@@ -174,10 +174,35 @@ begin
     format('update public.group_members set profile_id = %L where id = %L', owner_p, m_fresh),
     owner_p);
 
+  -- RLS does not raise on UPDATE; it filters the row out and the statement
+  -- affects zero rows. Before the column grant this was a 42501 from the
+  -- privilege check, which is why the earlier version of this test looked for
+  -- an exception. What has to be true is that nothing changed, so count rows.
   perform pg_temp.run(
-    '10. ordinary member cannot deactivate anyone', 'EXPECT-DENY',
-    format('update public.group_members set is_active = false where id = %L', m_played),
+    '10. ordinary member''s deactivate changes 0 rows (allowed = blocked)',
+    'EXPECT-ALLOW',
+    format('do $x$ declare n int; begin
+              update public.group_members set is_active = false where id = %L;
+              get diagnostics n = row_count;
+              if n > 0 then
+                raise exception ''an ordinary member deactivated %% row(s)'', n;
+              end if;
+            end $x$', m_played),
     member_p);
+
+  -- The companion, so a zero-row result cannot pass for the wrong reason —
+  -- a already-inactive row, or a WHERE that matches nothing.
+  perform pg_temp.run(
+    '11. owner''s deactivate on the same member changes exactly 1 row',
+    'EXPECT-ALLOW',
+    format('do $x$ declare n int; begin
+              update public.group_members set is_active = false where id = %L;
+              get diagnostics n = row_count;
+              if n <> 1 then
+                raise exception ''owner changed %% row(s), expected 1'', n;
+              end if;
+            end $x$', m_played),
+    owner_p);
 end $$;
 
 -- The Supabase SQL editor shows only the LAST statement's result, so the
