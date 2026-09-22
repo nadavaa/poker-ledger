@@ -1,0 +1,24 @@
+-- Removing a member with game history has been failing since 2026-09-17 with
+-- "permission denied for table group_members" (42501).
+--
+-- The security audit revoked UPDATE on group_members from authenticated and
+-- granted no columns back, on the reasoning that every column on that table
+-- moves through an RPC that checks who is asking. That is true of role,
+-- profile_id, claim_code and venmo_handle — each has a SECURITY DEFINER
+-- function. It is not true of is_active: remove_group_member() and
+-- reactivate_group_member() are SECURITY INVOKER, so they write as the
+-- caller and need the privilege the caller was just stripped of.
+--
+-- Privileges are checked before policies, so the owner never reached RLS.
+-- Both removal paths were affected differently, which is why this looked
+-- intermittent: DELETE was never revoked, so removing a member with no games
+-- kept working, while anyone who had played could not be deactivated.
+--
+-- One column. role, profile_id, claim_code and venmo_handle stay revoked —
+-- they were the audit's actual targets. RLS remains the authority over who
+-- may write this column: "owner or admin updates members" still requires the
+-- role, and the restrictive "block deactivating an entangled member" still
+-- refuses to deactivate the group owner, the admin of an unsettled game, or
+-- anyone with money still moving.
+
+grant update (is_active) on public.group_members to authenticated;

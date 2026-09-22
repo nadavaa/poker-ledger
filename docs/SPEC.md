@@ -379,6 +379,19 @@ functions and triggers, which run as the owner. A new RPC that returns
 "permission denied" has not been granted yet — that is the intended failure,
 and it is loud.
 
+**A privilege is checked before a policy.** A correct policy on a table the
+caller has no privilege on fails with `42501` and never reaches RLS at all —
+which looks identical in the UI to a policy rejection and has a completely
+different fix. When a write starts failing after a grant change, check
+`information_schema.column_privileges` before reading the policy.
+
+**Not every RPC is SECURITY DEFINER.** `remove_group_member()` and
+`reactivate_group_member()` are deliberately SECURITY INVOKER: they write as
+the caller so RLS stays the authority over who may remove whom. That means
+they need the underlying column privilege, unlike the definer functions
+around them. Revoking a column "because an RPC covers it" is only safe when
+that RPC is a definer.
+
 **A policy decides which rows; a column privilege decides which columns.**
 UPDATE and INSERT on the client-written tables are granted per column, listing
 exactly what the client writes today. Everything else — `games.status`,
