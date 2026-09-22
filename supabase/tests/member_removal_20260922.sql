@@ -180,7 +180,17 @@ begin
     member_p);
 end $$;
 
-select n, test, expect, got, pass from removal_results order by n;
-select count(*) filter (where not pass) as failures, count(*) as total from removal_results;
+-- The Supabase SQL editor shows only the LAST statement's result, so the
+-- detail goes last and failures sort to the top. Row 0 is the summary.
+select
+  0 as n,
+  format('SUMMARY: %s failure(s) of %s',
+    count(*) filter (where not pass), count(*)) as test,
+  '' as expect, '' as got,
+  bool_and(pass) as pass
+from removal_results
+union all
+select n, test, expect, got, pass from removal_results
+order by pass nulls first, n;
 
 rollback;
