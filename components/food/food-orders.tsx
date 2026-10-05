@@ -269,13 +269,34 @@ function OrderForm({
   const [paidBy, setPaidBy] = useState(
     order?.paidByMemberId ?? myMemberId ?? players[0]?.memberId ?? ''
   )
-  // The payer ate too, so they start checked.
-  const [checked, setChecked] = useState<Set<string>>(
-    () =>
-      new Set(
-        order ? order.shares.map((s) => s.memberId) : players.map((p) => p.memberId)
-      )
+  // Only the payer, and they add whoever else ate. The old default checked
+  // everyone, which meant somebody had to notice and uncheck the four people
+  // who didn't order — and silently billing a player $25 for food they never
+  // ate is worse than the extra taps. An existing order keeps what it saved.
+  const [checked, setChecked] = useState<Set<string>>(() =>
+    new Set(
+      order
+        ? order.shares.map((s) => s.memberId)
+        : [myMemberId ?? players[0]?.memberId].filter(
+            (id): id is string => !!id
+          )
+    )
   )
+
+  /** On a new order the checked payer follows the dropdown, so an admin
+   *  ordering on someone else's behalf gets that person, not themselves.
+   *  Anyone else already ticked stays ticked. */
+  function changePayer(next: string) {
+    if (!order) {
+      setChecked((prev) => {
+        const s = new Set(prev)
+        s.delete(paidBy)
+        s.add(next)
+        return s
+      })
+    }
+    setPaidBy(next)
+  }
   const [fixed, setFixed] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       (order?.shares ?? [])
@@ -357,7 +378,7 @@ function OrderForm({
           />
           <select
             value={paidBy}
-            onChange={(e) => setPaidBy(e.target.value)}
+            onChange={(e) => changePayer(e.target.value)}
             aria-label="Who paid"
             disabled={!isGameAdmin && myMemberId !== null}
             className="h-9 flex-1 rounded-lg border border-border bg-background px-2 text-sm disabled:opacity-60"
@@ -368,6 +389,21 @@ function OrderForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            Who ate · {checked.size} of {players.length}
+          </span>
+          {checked.size < players.length && (
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => setChecked(new Set(players.map((p) => p.memberId)))}
+            >
+              Select all
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-col gap-1">

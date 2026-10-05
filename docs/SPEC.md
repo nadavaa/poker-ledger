@@ -514,6 +514,17 @@ check their share against the receipt. Editing or deleting is limited to
 whoever added it or the game admin, and is refused once any of its settlements
 is confirmed — the screen names who has already paid.
 
+**Only the payer is ticked by default.** Not everyone eats, and a list that
+starts all-checked means somebody has to notice and untick the four people who
+didn't order — so the failure mode is silently billing a player $25 for food
+they never saw. The payer adds whoever else ate; "Select all" is one tap for
+the night everyone did. On a new order the ticked payer follows the "who paid"
+dropdown, so an admin ordering on someone else's behalf gets that person
+rather than themselves. The payer can be unticked — they may have paid for a
+round they skipped — and an empty list blocks Save with "Pick at least one
+person to split this with." Editing an existing order keeps its saved
+participants; this is a default, not a rule.
+
 ## 7. Money movement
 
 No money passes through the app. You compute who owes whom, deep-link into Venmo with the amount prefilled, and track confirmation state. This keeps you entirely out of money transmitter territory, which is where a Stripe Connect integration would drag you.
