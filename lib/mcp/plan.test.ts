@@ -181,6 +181,14 @@ describe('confirm received', () => {
     if (p.kind === 'confirm') expect(p.text).toMatch(/has not marked it paid/)
   })
 
+  it('reads once, with one "from": the person, not a second one for the date', () => {
+    const p = planConfirmReceived(t({ role: 'payee', status: 'paid' }))
+    expect(p.kind === 'confirm' && p.text).toMatch(
+      /You're confirming that you received \$80 from Gilad for poker \(the game on Thu, Oct 2\)/
+    )
+    expect(p.kind === 'confirm' && p.text.match(/ from /g)?.length).toBe(1)
+  })
+
   it('works from paid, and warns it cannot be undone', () => {
     const p = planConfirmReceived(t({ role: 'payee', status: 'paid' }))
     expect(p.kind === 'confirm' && p.text).toMatch(/cannot be undone/)
