@@ -244,8 +244,11 @@ export function planConfirmReceived(t: TransferFacts): TransferPlan {
       : `${t.counterparty} has not marked it paid in the app.`
   return {
     kind: 'confirm',
+    // Not what(t): that ends "...from <day>", and this sentence already has a
+    // "from <person>".
     text:
-      `You're confirming that you received ${what(t)} from ${t.counterparty}. ` +
+      `You're confirming that you received ${formatCents(t.amountCents)} from ` +
+      `${t.counterparty} for ${t.kind} (the game on ${t.gameDay}). ` +
       `${claim} This closes the debt and cannot be undone. Only say yes if the money ` +
       `has actually arrived. Confirm?`,
   }
