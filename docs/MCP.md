@@ -5,8 +5,13 @@ Gilad?"*, *"am I up this year?"*, *"am I on the waitlist for Saturday?"*
 This is a **read-only** remote MCP server at
 
 ```
-https://kevespoker.com/api/mcp
+https://www.kevespoker.com/api/mcp
 ```
+
+Use the **`www`** address exactly. `kevespoker.com` redirects to `www`, and an
+MCP client checks that the server's metadata names the same URL it was given:
+entered without `www`, Claude fails with *"Couldn't register with Poker App's
+sign-in service."*
 
 What it can and can't do, and why, is in the *Agents* section of
 [FUNCTIONALITY.md](FUNCTIONALITY.md). This page is how to set it up.
@@ -21,7 +26,7 @@ server of ours. In the Supabase dashboard:
    registers itself through it. The consent screen is the control: nothing is
    readable until a signed-in user approves a named client.
 3. **Authorization path:** `/oauth/consent`. With the Site URL
-   (`https://kevespoker.com`) this is the page Supabase sends people to.
+   (the `www` address) this is the page Supabase sends people to.
 4. Check it is live — this should return JSON, not `OAuth server is disabled`:
 
    ```bash
@@ -39,7 +44,7 @@ by this code path.
 ## Add it to Claude
 
 1. Claude → **Settings → Connectors → Add custom connector**.
-2. Name: *Poker Ledger*. URL: `https://kevespoker.com/api/mcp`. Add.
+2. Name: *Poker Ledger*. URL: `https://www.kevespoker.com/api/mcp` (with `www`). Add.
 3. Click **Connect**. You land on Poker Ledger: sign in the way you always
    do (Google or a magic link), then read the screen and press **Allow**.
 4. Ask: *"What poker groups am I in?"*
@@ -124,6 +129,7 @@ group by tool order by calls desc;
 
 | Symptom | Likely cause |
 |---|---|
+| *"Couldn't register with Poker App's sign-in service"* | The URL was entered without `www`; use `https://www.kevespoker.com/api/mcp` |
 | Claude says it can't connect, no sign-in page | OAuth server disabled, or dynamic registration off, in Supabase |
 | Sign-in works, then the consent page says the request expired | Took longer than the request lives; start again from Claude |
 | Signs in, lands on the home page instead of consent | `next` lost in the login round trip — check `lib/supabase/middleware.ts` keeps the query for `/oauth/*` |
