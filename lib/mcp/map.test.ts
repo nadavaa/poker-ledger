@@ -208,7 +208,24 @@ describe('game detail', () => {
       myMemberId: 'm0',
     })
     expect(d.settlements).toHaveLength(1)
-    expect(d.settlements?.[0]).toMatchObject({ from: 'Sam', to: 'Dean', my_part: 'payee' })
+    expect(d.settlements?.[0]).toMatchObject({ from: 'Sam', to: 'Dean', my_part: 'payee', transfer_id: 's1' })
+  })
+
+  it('gives no transfer id for a transfer between two other people', () => {
+    const rows: SettlementRow[] = [
+      { id: 's2', from_member_id: 'm1', to_member_id: 'admin', amount_cents: 100, status: 'pending', kind: 'poker' },
+    ]
+    const d = gameDetail({
+      game: game({ status: 'settled' }),
+      timezone: NY,
+      groupName: 'Tuesday',
+      signups: signups(2),
+      people,
+      totals,
+      settlements: rows,
+      myMemberId: 'm0',
+    })
+    expect(d.settlements?.[0]).not.toHaveProperty('transfer_id')
   })
 })
 
@@ -316,7 +333,7 @@ describe('outstanding debt', () => {
   })
 
   it('drops confirmed rows and transfers between other people', () => {
-    const ids = [...out.i_owe, ...out.owed_to_me].map((l) => l.settlement_id)
+    const ids = [...out.i_owe, ...out.owed_to_me].map((l) => l.transfer_id)
     expect(ids).not.toContain('done')
     expect(ids).not.toContain('other')
   })

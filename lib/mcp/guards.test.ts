@@ -48,7 +48,7 @@ describe('the MCP code path', () => {
         writes.add(`${m[1]}.${m[2]}`)
       }
     }
-    expect([...writes].sort()).toEqual([])
+    expect([...writes].sort()).toEqual(['game_signups.update'])
   })
 
   it('calls only the database functions it is meant to', () => {
@@ -61,6 +61,9 @@ describe('the MCP code path', () => {
       new Set([
         // reads
         'game_payment_details',
+        // the same functions the app calls for these actions
+        'join_game_by_link',
+        'can_withdraw_from_game',
         // bookkeeping
         'log_mcp_call',
         'mcp_consume_confirmation',
