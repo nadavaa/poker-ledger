@@ -355,8 +355,10 @@ export function mapStats(rows: StatsGameRow[], timezone: string | null) {
     losses: stats.losses,
     break_evens: stats.breakEvens,
     win_rate: Math.round(stats.winRate * 1000) / 1000,
-    biggest_win: game(stats.best),
-    biggest_loss: game(stats.worst),
+    // The stats module returns the best and worst game whatever they were,
+    // so with three losses "best" is a loss. Say so as null, not as a win.
+    biggest_win: stats.best.netCents > 0 ? game(stats.best) : null,
+    biggest_loss: stats.worst.netCents < 0 ? game(stats.worst) : null,
     current_streak: stats.currentStreak,
     longest_win_streak: stats.longestWinStreak,
     longest_loss_streak: stats.longestLossStreak,

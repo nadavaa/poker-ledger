@@ -235,6 +235,37 @@ describe('stats', () => {
   })
 })
 
+describe('stats with no wins or no losses', () => {
+  const stats = (nets: number[]) =>
+    mapStats(
+      nets.map((n, i) => ({
+        game_id: `g${i}`,
+        played_at: `2026-09-0${i + 1}T00:00:00Z`,
+        net_cents: n,
+        buyin_cents: 5000,
+      })),
+      NY
+    ) as Extract<ReturnType<typeof mapStats>, { lifetime_net: unknown }>
+
+  it('never calls a losing game the biggest win', () => {
+    const s = stats([-10700, -18800, -12800])
+    expect(s.biggest_win).toBeNull()
+    expect(s.biggest_loss?.net.cents).toBe(-18800)
+  })
+
+  it('never calls a winning game the biggest loss', () => {
+    const s = stats([500, 2000])
+    expect(s.biggest_loss).toBeNull()
+    expect(s.biggest_win?.net.cents).toBe(2000)
+  })
+
+  it('treats a break-even game as neither', () => {
+    const s = stats([0])
+    expect(s.biggest_win).toBeNull()
+    expect(s.biggest_loss).toBeNull()
+  })
+})
+
 describe('balances', () => {
   it('lists what I ended each game with, newest first, and a total', () => {
     const b = mapBalances([
