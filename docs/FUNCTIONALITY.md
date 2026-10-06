@@ -327,19 +327,21 @@ the service role alone.
 ## Agents
 
 Players can connect their own AI app (Claude, ChatGPT) to Poker Ledger and
-ask about their poker in plain words. Setup is in [MCP.md](MCP.md); this is
-what the agent is and isn't allowed to do, and why.
+ask about their poker in plain words, and do a handful of the things a player
+can do themselves. Setup is in [MCP.md](MCP.md); this is what the agent is
+and isn't allowed to do, and why.
 
-**It is you, with read-only access.** The connector signs in as the player,
-through the same Google or magic-link login, and a consent screen names the
-app and says what it will see. Every request then reaches the database with
-that player's own token — so every row-level policy and column grant applies
-exactly as it does in the app. There is no agent permission layer to get
-wrong: ask for a game in a group you don't belong to and the answer is the
-same as devtools would give, *not found*. The service-role key is not part of
-this code path, and a test keeps it that way.
+**It is you, signed in.** The connector signs in as the player, through the
+same Google or magic-link login, and a consent screen names the app and says
+what it can do. Every request then reaches the database with that player's own
+token — so every row-level policy and column grant applies exactly as it does
+in the app. There is no agent permission layer to get wrong: ask for a game in
+a group you don't belong to and the answer is the same as devtools would
+give, *not found*. The service-role key is not part of this code path, and a
+test keeps it that way. Each action goes through the same table update or
+database function the app's own button uses, never around it.
 
-**What it can read**
+### What it can read
 
 - **Your groups** — name, your role, the group's timezone.
 - **Games** — date, status, seats (`9/8 · 1 over`, never clamped), and whether
@@ -351,42 +353,102 @@ this code path, and a test keeps it that way.
 - **Settlements** — only the ones the database lets you see: your own, or all
   of them if you ran the game. Poker and food are separate lines, never netted.
 - **Your stats** — lifetime net, games played, streaks, biggest win and loss,
-  and your net in every game, so the agent can answer questions we never
-  built a screen for. Settled games only, dated by the night they were
+  and your net in every game. Settled games only, dated by the night they were
   played.
 - **Your balances** — what you ended each settled game with.
-- **What you owe and are owed** — with the handshake status (pending, paid,
-  confirmed) and, on what you owe, a Venmo link. The link is the same
-  prefilled payment the app builds. No money moves through Poker Ledger or
-  through the agent.
+- **What you owe and are owed** — with the handshake status and, on what you
+  owe, a Venmo link. No money moves through Poker Ledger or through the agent.
 
-**What it can't do, and why**
+### What it can do
 
-- **Write anything.** Not a signup, a buy-in, a settlement, a "mark paid".
-  Phase one is read-only on purpose: a write tool is a new database function
-  with its own policy first, and only then a tool. An agent should not be able
-  to move someone's money on the strength of a sentence it misread.
+Five player actions, and nothing an admin does.
+
+| Action | What it does | Same as |
+|---|---|---|
+| Join a game | Seated if there is room, waitlisted with a position if full, queued for the admin if the game is running; refused if settled, cancelled or being counted. Already in: reports where you stand and changes nothing | Opening the game link |
+| Withdraw | Gives up the seat; the next waitlisted player moves up. Allowed whenever the app allows it: scheduled, or running with no buy-in of yours in the pot | The Withdraw button |
+| Mark a transfer paid | You are the payer: records that you sent the money | The Paid button |
+| Confirm a transfer received | You are the payee: records that the money arrived and closes the debt. Works from pending or paid, as in the app | The Confirm button |
+| Update payment details | Venmo handle and Zelle number, with Settings' own validation. Omitted fields are kept | Settings |
+
+Joining only works for games in groups you already belong to: the game is read
+through row-level security first, so a link to someone else's game is *not
+found* rather than an invitation to join their group.
+
+### Nothing that matters happens on one call
+
+Joining, withdrawing, marking paid and confirming each take **two calls**:
+
+1. The first returns a **preview** in words — *"You're marking that you paid
+   Gilad $80 for poker from Oct 2. Only say yes if the money has actually been
+   sent. Confirm?"* — and a confirmation token. Nothing has changed.
+2. The agent shows the preview to the user and waits for a real yes, then
+   calls again with the token.
+
+The token is how the server knows the user was shown *this* action. It is
+signed, valid for five minutes, and bound to the user, the tool and the exact
+arguments: a token from one preview cannot confirm another transfer or another
+game. It works once; the database refuses a replay. The tool descriptions tell
+the agent never to confirm for the user and never to infer that a payment
+happened. That last part is a request, not a guarantee, which is why the money
+steps are also visible to the people they involve (below).
+
+Anything that is already true is answered at once without a token — already
+seated, already marked paid — so repeating a request is safe. A refusal
+(*"Only the person being paid can confirm they received it"*) is one sentence;
+the database's own error text is never passed through.
+
+Changing payment details skips the two steps, because it affects only you and
+can be changed back, but it says exactly what it saved. A phone number is
+shown only as its last four digits.
+
+### Everything an agent does is visible
+
+The app's rule is that money-related actions are visible, and an agent acting
+for a player is one more fact worth showing:
+
+- A seat or waitlist spot taken through an agent reads *"· via AI agent"* next
+  to the name, the way an admin logging their own buy-in gets a marker. The
+  label belongs to that one signup: if someone joins by agent, withdraws, and
+  rejoins by hand, the new signup carries no label.
+- A payment marked paid or confirmed by an agent says so on the transfer.
+- A short **Agent activity** list on the game covers the rest, including
+  withdrawals, which leave no row to label.
+
+A payment marker is visible only to people who can already see that payment —
+the two parties and the game admin — so it can never reveal who owes whom. A
+marker is written only after the action has committed, by a function that
+checks it really happened to the caller. If the label cannot be saved, the
+action still stands and the agent is told to say so.
+
+### What it can't do, and why
+
+- **Anything an admin does.** No buy-ins, cash-outs, starting or settling a
+  game, seating anyone, closing out someone else's transfer. Those are the
+  game admin's, and a sentence misread by an agent should not move the pot.
 - **See anything in the live game** — the buy-in feed, cash-outs as they
   happen. The tap grid is a human's job at a table.
 - **See phone numbers.** The database function that returns a payee's Zelle
   number also returns it to the agent's code; the tool drops it and a test
   pins that. Venmo handles are shown, because they go into the link.
-- **See claim codes, invite links, group settings, member lists, roles or
-  the `/admin` analytics.** A claim code is a working key to someone's
-  identity and an invite link has no expiry; neither belongs in a chat
-  transcript. Role and membership changes stay in the app.
+- **See claim codes, invite links, group settings, member lists, roles or the
+  `/admin` analytics.** A claim code is a working key to someone's identity and
+  an invite link has no expiry; neither belongs in a chat transcript.
 - **See other people's debts.** A game admin can see every transfer in their
-  game in the app, but the agent only reports the ones you are party to — the
-  question being asked is *yours*.
+  game in the app, but the agent only reports the ones you are party to.
+- **Change a lot, fast.** Each user has a limit on previews and on committed
+  changes in any ten minutes.
 
 **Consent and revocation.** Any signed-in player can approve a connector; the
-screen names the app. Disconnecting it in the AI app ends its access.
-Because Supabase allows AI apps to register themselves, the consent screen
-is the control: nothing is readable until a person says yes to a named app.
+screen names the app and lists what it can do. Disconnecting it in the AI app
+ends its access. Because Supabase allows AI apps to register themselves, the
+consent screen is the control: nothing is readable or changeable until a person
+says yes to a named app.
 
 **What we record.** One row per tool call: who, which tool, success or not,
-how long. No arguments, no amounts, no error text. It exists to measure
-adoption, and no client can read it, including its owner.
+whether it was a read, a preview or a commit, and how long. No arguments, no
+amounts, no error text, no tokens. It exists to measure adoption, and no
+client can read it, including its owner.
 
 ---
 
@@ -414,6 +476,6 @@ Worth stating, because each one looks like a bug until you know why:
 
 ## Scale and shape
 
-39 migrations · 170 tests across 14 pure modules · one Next.js app on Vercel,
+41 migrations · 170 tests across 14 pure modules · one Next.js app on Vercel,
 one Supabase project. The testable rules live in `lib/` with no I/O:
 settlement, splitting, money, time, seats, stats, joins, game edits.
