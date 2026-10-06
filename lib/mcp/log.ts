@@ -10,11 +10,18 @@ import type { Database } from '../supabase/types'
 
 export async function recordToolCall(
   supabase: SupabaseClient<Database>,
-  call: { tool: string; ok: boolean; latencyMs: number }
+  call: {
+    tool: string
+    ok: boolean
+    latencyMs: number
+    /** A read, the preview half of a write, or the commit half. */
+    phase?: 'read' | 'preview' | 'commit'
+  }
 ): Promise<void> {
   await supabase.rpc('log_mcp_call', {
     p_tool: call.tool,
     p_ok: call.ok,
     p_latency_ms: Math.max(0, Math.round(call.latencyMs)),
+    p_phase: call.phase ?? 'read',
   })
 }

@@ -8,7 +8,14 @@ import type { Database } from '../../supabase/types'
 export class ToolError extends Error {}
 
 export type Db = SupabaseClient<Database>
-export type ToolContext = { db: Db; userId: string }
+export type Phase = 'read' | 'preview' | 'commit'
+
+export type ToolContext = {
+  db: Db
+  userId: string
+  /** Writes say which half of the two-step this call turned out to be. */
+  setPhase: (phase: Phase) => void
+}
 
 /**
  * Every tool goes through here: authenticate, run as the user, time it, log
@@ -25,11 +32,18 @@ export async function runTool(
 ): Promise<CallToolResult> {
   const started = Date.now()
   let ok = true
+  let phase: Phase = 'read'
   let db: Db | null = null
   try {
     const caller = callerOf(ctx.http?.authInfo)
     db = userClient(caller.token)
-    const result = await fn({ db, userId: caller.userId })
+    const result = await fn({
+      db,
+      userId: caller.userId,
+      setPhase: (p) => {
+        phase = p
+      },
+    })
     return { content: [{ type: 'text', text: JSON.stringify(result) }] }
   } catch (error) {
     ok = false
@@ -44,6 +58,7 @@ export async function runTool(
         tool: name,
         ok,
         latencyMs: Date.now() - started,
+        phase,
       }).catch(() => {})
     }
   }

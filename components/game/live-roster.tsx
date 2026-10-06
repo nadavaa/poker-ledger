@@ -9,6 +9,7 @@ import { PotHeader } from './pot-header'
 import type { CashoutRecord } from '@/lib/table'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import { Avatar } from '@/components/avatar'
+import { AgentChip } from '@/components/agent-chip'
 import type { Player } from './buy-in-grid'
 
 /**
@@ -94,6 +95,7 @@ export function LiveRoster({
                   {p.memberId === myMemberId && (
                     <span className="text-muted-foreground">(you)</span>
                   )}
+                  {p.viaAgent && <AgentChip label="signed up via AI agent" />}
                   {p.memberId === adminMemberId && (
                     <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                       admin

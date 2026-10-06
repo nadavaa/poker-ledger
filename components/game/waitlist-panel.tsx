@@ -6,8 +6,15 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { overfillPrompt } from '@/lib/seats'
+import { AgentChip } from '@/components/agent-chip'
 
-export type WaitlistEntry = { id: string; memberId: string; name: string }
+export type WaitlistEntry = {
+  id: string
+  memberId: string
+  name: string
+  /** This signup was made by the player's AI agent. */
+  viaAgent?: boolean
+}
 
 /**
  * The waitlist, in order. The admin can seat anyone from here — the seat
@@ -82,6 +89,7 @@ export function WaitlistPanel({
                 {e.memberId === myMemberId && (
                   <span className="text-muted-foreground"> (you)</span>
                 )}
+                {e.viaAgent && <AgentChip />}
               </span>
               <div className="flex items-center gap-2">
                 <span className="money flex size-6 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">

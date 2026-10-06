@@ -283,6 +283,8 @@ export function gameDetail(args: {
             myMemberId
           )
           return {
+            // Only a transfer I am part of is one I can act on.
+            ...(role !== 'bystander' ? { transfer_id: s.id } : {}),
             kind: s.kind,
             from: nameOf(names, s.from_member_id),
             to: nameOf(names, s.to_member_id),
@@ -445,7 +447,8 @@ export function mapOutstandingDebt(args: {
       ? resolveVenmoHandle(detail.member_venmo, detail.profile_venmo)
       : null
     return {
-      settlement_id: s.id,
+      // The id the payment tools take.
+      transfer_id: s.id,
       game_id: s.game_id,
       group: info?.group_name ?? null,
       game: info?.game_name ?? null,

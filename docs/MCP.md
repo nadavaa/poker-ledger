@@ -1,8 +1,10 @@
 # Poker Ledger as an AI connector (MCP)
 
-Players can ask their own AI app about their poker: *"what do I owe
-Gilad?"*, *"am I up this year?"*, *"am I on the waitlist for Saturday?"*
-This is a **read-only** remote MCP server at
+Players can ask their own AI app about their poker — *"what do I owe
+Gilad?"*, *"am I up this year?"*, *"am I on the waitlist for Saturday?"* — and
+do a few things a player can do themselves: join or leave a game, mark a
+payment paid, confirm one received, update a Venmo or Zelle handle. This is a
+remote MCP server at
 
 ```
 https://www.kevespoker.com/api/mcp
@@ -38,8 +40,23 @@ server of ours. In the Supabase dashboard:
    without RLS") and check it ends `ALL PASS`. Until the migration is applied
    the connector works but nothing is logged.
 
-No new environment variables are needed. The service-role key is never used
-by this code path.
+6. Apply the phase 2 migrations, in order, each followed by its proof script
+   (ending `ALL PASS`):
+
+   | Migration | Proof |
+   |---|---|
+   | `20261006000000_mcp_write_support.sql` | `supabase/tests/mcp_write_support_20261006.sql` |
+   | `20261006010000_agent_actions.sql` | `supabase/tests/agent_actions_20261006.sql` |
+
+   Then run the anon check from phase 1 (list public functions `anon` can
+   execute); it should return no rows.
+7. Set **`MCP_CONFIRM_SECRET`** on Vercel (Production and Preview) and in
+   `.env.local`: any long random string, for example
+   `openssl rand -base64 48`. It signs confirmation tokens. **Without it every
+   change refuses to run** — reading still works. Rotating it only invalidates
+   previews that are in flight.
+
+The service-role key is never used by this code path.
 
 ## Add it to Claude
 
@@ -57,8 +74,7 @@ remote MCP servers with OAuth; try the same URL.
 
 ## Tools
 
-All read-only, all as you, all through the same row-level security as the
-app.
+All as you, all through the same row-level security as the app.
 
 | Tool | Use it for |
 |---|---|
@@ -67,8 +83,19 @@ app.
 | `get_game(game_id)` | Roster, waitlist, and what you're allowed to see of the money. |
 | `get_my_stats(group_id, from?, to?)` | Lifetime net, streaks, biggest win/loss, per-game nets. |
 | `get_my_balances(group_id?)` | What you ended each settled game with. |
-| `get_outstanding_debt(group_id?)` | Who you still owe and who owes you, with Venmo links. |
+| `get_outstanding_debt(group_id?)` | Who you still owe and who owes you, with Venmo links and a `transfer_id` for each. |
+| `join_game(game_id)` | Sign up, or join the waitlist. Two-step. |
+| `withdraw_from_game(game_id)` | Give up your seat. Two-step. |
+| `mark_transfer_paid(transfer_id)` | You are the payer and you sent it. Two-step. |
+| `confirm_transfer_received(transfer_id)` | You are the payee and it arrived. Two-step, can't be undone. |
+| `update_payment_handle(venmo?, zelle_phone?)` | Venmo and/or Zelle. Saves at once; shows the last four digits of a phone only. |
 
+**Two-step:** the first call returns a preview and a `confirmation_token` and
+changes nothing; the agent shows the preview, waits for a yes, and calls again
+with the token. Tokens last five minutes, work once, and are bound to you, the
+tool and the exact arguments. Every change an agent makes is labelled *via AI
+agent* on the game screen. The full rules are in the Agents section of
+[FUNCTIONALITY.md](FUNCTIONALITY.md).
 Money comes back as integer cents and a display string; times as ISO 8601 and
 text in the group's own timezone.
 
@@ -112,8 +139,8 @@ curl -s localhost:3000/.well-known/oauth-protected-resource/api/mcp
 
 ## Measuring adoption
 
-Every tool call writes one row to `mcp_tool_calls`: user, tool, ok, latency,
-time. No arguments, no amounts, no error text. No client can read it; use the
+Every tool call writes one row to `mcp_tool_calls`: user, tool, ok, whether it
+was a read, a preview or a commit, latency, time. No arguments, no amounts, no error text. No client can read it; use the
 service role from the SQL editor:
 
 ```sql
@@ -136,3 +163,7 @@ group by tool order by calls desc;
 | `401` on every call after connecting | Token isn't role `authenticated` or the project's signing keys changed; disconnect and reconnect |
 | A tool says *not found, or you are not a member* | RLS: that id isn't in one of your groups |
 | Venmo link missing | The payee hasn't saved a Venmo handle |
+| *"Changes through an AI app are not switched on for this server yet"* | `MCP_CONFIRM_SECRET` is not set on this deployment |
+| *"That confirmation expired"* / *"already used"* | Ask for a fresh preview; each token lasts five minutes and works once |
+| *"Too many changes in a short time"* | The per-user limit (10 changes or 30 previews in ten minutes); wait |
+| Changes work but no *via AI agent* label appears | `20261006010000_agent_actions.sql` is not applied, or `record_agent_action` failed; the tool reports a warning when it can't label |
