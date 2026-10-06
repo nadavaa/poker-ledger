@@ -230,7 +230,7 @@ describe('stats', () => {
     expect(s.lifetime_net.cents).toBe(5000)
     expect(s.per_game.map((g) => g.game_id)).toEqual(['a', 'b'])
     expect(s.per_game[1].running_net.cents).toBe(5000)
-    expect(s.biggest_loss.net.cents).toBe(-2000)
+    expect(s.biggest_loss?.net.cents).toBe(-2000)
     expect(s.current_streak).toEqual({ kind: 'loss', length: 1 })
   })
 })
