@@ -2,7 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/server'
 import { registerGameTools } from './tools/games'
 import { registerGroupTools } from './tools/groups'
 import { registerMoneyTools } from './tools/money'
+import { registerPaymentHandleTool } from './tools/payment-handle'
 import { registerSignupTools } from './tools/signups'
+import { registerTransferTools } from './tools/transfers'
 
 export const SERVER_INFO = { name: 'poker-ledger', version: '0.1.0' }
 
@@ -17,4 +19,6 @@ export function registerTools(server: McpServer) {
   registerGameTools(server)
   registerMoneyTools(server)
   registerSignupTools(server)
+  registerTransferTools(server)
+  registerPaymentHandleTool(server)
 }

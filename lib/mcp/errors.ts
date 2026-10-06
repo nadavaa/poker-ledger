@@ -12,7 +12,7 @@ const KNOWN: [RegExp, string][] = [
   [/no seats available/i, 'There is no free seat in that game.'],
   [/member is not in this group/i, 'You are not a member of that game\'s group.'],
   [/not authenticated/i, 'Not signed in. Reconnect the Poker Ledger connector.'],
-  [/10-digit US phone|not a valid US phone/i, 'That is not a valid US phone number. Use 10 digits, like (555) 123-4567.'],
+  [/10-digit US phone|not a valid US phone/i, 'That is not a valid US phone number. Use 10 digits, like (212) 555-0123.'],
 ]
 
 export function friendlyDbError(

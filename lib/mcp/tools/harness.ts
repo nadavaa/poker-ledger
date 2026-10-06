@@ -7,7 +7,7 @@ export type Result = { data: unknown; error: unknown }
 
 export type FakeConfig = {
   /** Rows a select on each table returns. maybeSingle() takes the first. */
-  tables?: Record<string, unknown[]>
+  tables?: Record<string, unknown[] | ((eq: Record<string, unknown>) => unknown[])>
   /** What an update on a table returns (a row per row it changed). */
   updates?: Record<string, Result>
   rpc?: Record<string, (args: Record<string, unknown>) => Result>
@@ -19,10 +19,15 @@ export function makeFakeDb(config: FakeConfig) {
 
   const chain = (table: string) => {
     let op: 'select' | 'update' = 'select'
+    const eqs: Record<string, unknown> = {}
     const c: Record<string, unknown> = {}
     const self = () => c
-    for (const m of ['select', 'eq', 'neq', 'in', 'order', 'limit', 'or']) {
+    for (const m of ['select', 'neq', 'in', 'order', 'limit', 'or']) {
       c[m] = self
+    }
+    c.eq = (col: string, value: unknown) => {
+      eqs[col] = value
+      return c
     }
     c.update = (patch: unknown) => {
       op = 'update'
@@ -32,7 +37,13 @@ export function makeFakeDb(config: FakeConfig) {
     const resolve = (): Result =>
       op === 'update'
         ? (config.updates?.[table] ?? { data: [{ id: 'row' }], error: null })
-        : { data: config.tables?.[table] ?? [], error: null }
+        : {
+            data: (() => {
+              const t = config.tables?.[table]
+              return typeof t === 'function' ? t(eqs) : (t ?? [])
+            })(),
+            error: null,
+          }
     c.maybeSingle = async () => {
       const r = resolve()
       return { data: Array.isArray(r.data) ? (r.data[0] ?? null) : r.data, error: r.error }
