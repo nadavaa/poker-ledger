@@ -230,8 +230,39 @@ describe('stats', () => {
     expect(s.lifetime_net.cents).toBe(5000)
     expect(s.per_game.map((g) => g.game_id)).toEqual(['a', 'b'])
     expect(s.per_game[1].running_net.cents).toBe(5000)
-    expect(s.biggest_loss.net.cents).toBe(-2000)
+    expect(s.biggest_loss?.net.cents).toBe(-2000)
     expect(s.current_streak).toEqual({ kind: 'loss', length: 1 })
+  })
+})
+
+describe('stats with no wins or no losses', () => {
+  const stats = (nets: number[]) =>
+    mapStats(
+      nets.map((n, i) => ({
+        game_id: `g${i}`,
+        played_at: `2026-09-0${i + 1}T00:00:00Z`,
+        net_cents: n,
+        buyin_cents: 5000,
+      })),
+      NY
+    ) as Extract<ReturnType<typeof mapStats>, { lifetime_net: unknown }>
+
+  it('never calls a losing game the biggest win', () => {
+    const s = stats([-10700, -18800, -12800])
+    expect(s.biggest_win).toBeNull()
+    expect(s.biggest_loss?.net.cents).toBe(-18800)
+  })
+
+  it('never calls a winning game the biggest loss', () => {
+    const s = stats([500, 2000])
+    expect(s.biggest_loss).toBeNull()
+    expect(s.biggest_win?.net.cents).toBe(2000)
+  })
+
+  it('treats a break-even game as neither', () => {
+    const s = stats([0])
+    expect(s.biggest_win).toBeNull()
+    expect(s.biggest_loss).toBeNull()
   })
 })
 
