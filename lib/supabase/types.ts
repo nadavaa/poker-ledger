@@ -622,6 +622,10 @@ export type Database = {
         Args: { p_step: string; p_action: string }
         Returns: undefined
       }
+      log_mcp_call: {
+        Args: { p_tool: string; p_ok: boolean; p_latency_ms: number }
+        Returns: undefined
+      }
       admin_onboarding: {
         Args: Record<string, never>
         Returns: {

@@ -12,6 +12,11 @@ const PUBLIC_PATHS = [
   '/icon',
   '/apple-icon',
   '/offline',
+  // The MCP endpoint and its discovery documents are called by an AI client
+  // with a bearer token and no cookies. They answer 401 themselves; a
+  // redirect to /login would be gibberish to an agent.
+  '/api/mcp',
+  '/.well-known',
 ]
 
 export async function updateSession(request: NextRequest) {
@@ -68,7 +73,13 @@ export async function updateSession(request: NextRequest) {
     url.search = ''
     if (pathname !== '/') {
       // Preserve the destination so invite/claim links survive the login trip.
-      url.searchParams.set('next', pathname)
+      // The OAuth consent screen is the one place the query string is the
+      // point: without ?authorization_id the connector flow dies after login.
+      const keepQuery = pathname.startsWith('/oauth/')
+      url.searchParams.set(
+        'next',
+        keepQuery ? pathname + request.nextUrl.search : pathname
+      )
     }
     return NextResponse.redirect(url)
   }

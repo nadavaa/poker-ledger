@@ -324,6 +324,72 @@ the service role alone.
 
 ---
 
+## Agents
+
+Players can connect their own AI app (Claude, ChatGPT) to Poker Ledger and
+ask about their poker in plain words. Setup is in [MCP.md](MCP.md); this is
+what the agent is and isn't allowed to do, and why.
+
+**It is you, with read-only access.** The connector signs in as the player,
+through the same Google or magic-link login, and a consent screen names the
+app and says what it will see. Every request then reaches the database with
+that player's own token — so every row-level policy and column grant applies
+exactly as it does in the app. There is no agent permission layer to get
+wrong: ask for a game in a group you don't belong to and the answer is the
+same as devtools would give, *not found*. The service-role key is not part of
+this code path, and a test keeps it that way.
+
+**What it can read**
+
+- **Your groups** — name, your role, the group's timezone.
+- **Games** — date, status, seats (`9/8 · 1 over`, never clamped), and whether
+  you're seated or waitlisted, with your waitlist position.
+- **One game** — roster, waitlist, admin. A **scheduled game shows no money**,
+  same as the screen. Once it starts, the pot and each player's buy-in total;
+  once settled, everyone's in, out and net, which is already public inside the
+  group.
+- **Settlements** — only the ones the database lets you see: your own, or all
+  of them if you ran the game. Poker and food are separate lines, never netted.
+- **Your stats** — lifetime net, games played, streaks, biggest win and loss,
+  and your net in every game, so the agent can answer questions we never
+  built a screen for. Settled games only, dated by the night they were
+  played.
+- **Your balances** — what you ended each settled game with.
+- **What you owe and are owed** — with the handshake status (pending, paid,
+  confirmed) and, on what you owe, a Venmo link. The link is the same
+  prefilled payment the app builds. No money moves through Poker Ledger or
+  through the agent.
+
+**What it can't do, and why**
+
+- **Write anything.** Not a signup, a buy-in, a settlement, a "mark paid".
+  Phase one is read-only on purpose: a write tool is a new database function
+  with its own policy first, and only then a tool. An agent should not be able
+  to move someone's money on the strength of a sentence it misread.
+- **See anything in the live game** — the buy-in feed, cash-outs as they
+  happen. The tap grid is a human's job at a table.
+- **See phone numbers.** The database function that returns a payee's Zelle
+  number also returns it to the agent's code; the tool drops it and a test
+  pins that. Venmo handles are shown, because they go into the link.
+- **See claim codes, invite links, group settings, member lists, roles or
+  the `/admin` analytics.** A claim code is a working key to someone's
+  identity and an invite link has no expiry; neither belongs in a chat
+  transcript. Role and membership changes stay in the app.
+- **See other people's debts.** A game admin can see every transfer in their
+  game in the app, but the agent only reports the ones you are party to — the
+  question being asked is *yours*.
+
+**Consent and revocation.** Any signed-in player can approve a connector; the
+screen names the app. Disconnecting it in the AI app ends its access.
+Because Supabase allows AI apps to register themselves, the consent screen
+is the control: nothing is readable until a person says yes to a named app.
+
+**What we record.** One row per tool call: who, which tool, success or not,
+how long. No arguments, no amounts, no error text. It exists to measure
+adoption, and no client can read it, including its owner.
+
+---
+
 ## Things that are deliberately not true
 
 Worth stating, because each one looks like a bug until you know why:
@@ -348,6 +414,6 @@ Worth stating, because each one looks like a bug until you know why:
 
 ## Scale and shape
 
-38 migrations · 170 tests across 14 pure modules · one Next.js app on Vercel,
+39 migrations · 170 tests across 14 pure modules · one Next.js app on Vercel,
 one Supabase project. The testable rules live in `lib/` with no I/O:
 settlement, splitting, money, time, seats, stats, joins, game edits.
