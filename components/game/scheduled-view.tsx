@@ -12,6 +12,7 @@ import { PlayerRowMenu } from './player-row-menu'
 import type { Player } from './buy-in-grid'
 import { seatLabel, seatNote } from '@/lib/seats'
 import { ErrorToast } from '@/components/error-toast'
+import { AgentChip } from '@/components/agent-chip'
 
 /**
  * A game that hasn't started. Signing up is a plan, not chips on the table,
@@ -104,6 +105,7 @@ export function ScheduledView({
                 {p.memberId === myMemberId && (
                   <span className="text-muted-foreground"> (you)</span>
                 )}
+                {p.viaAgent && <AgentChip />}
               </span>
             </span>
             {isAdmin && (

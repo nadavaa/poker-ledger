@@ -59,6 +59,16 @@ export function registerSignupTools(server: McpServer) {
             ? { kind: 'refuse', reason: plan.reason }
             : { kind: plan.kind, text: plan.text }
         },
+        afterCommit: async ({ db }, result) => {
+          // Only a signup that now exists is worth a label; "already" and
+          // "over" changed nothing.
+          if (!['confirmed', 'waitlisted', 'needs_approval'].includes(String(result.outcome))) return
+          const { error } = await db.rpc('record_agent_action', {
+            p_action: 'joined',
+            p_game_id: args.game_id,
+          })
+          if (error) throw error
+        },
         commit: async ({ db, userId }) => {
           const g = await loadGameContext(db, userId, args.game_id)
           // The same function the shared game link calls. Safe to reach only
@@ -134,6 +144,13 @@ export function registerSignupTools(server: McpServer) {
             myMemberId: g.myMemberId,
             databaseAllows: allowed,
           })
+        },
+        afterCommit: async ({ db }) => {
+          const { error } = await db.rpc('record_agent_action', {
+            p_action: 'withdrew',
+            p_game_id: args.game_id,
+          })
+          if (error) throw error
         },
         commit: async ({ db, userId }) => {
           const g = await loadGameContext(db, userId, args.game_id)

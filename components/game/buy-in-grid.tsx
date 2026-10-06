@@ -39,6 +39,8 @@ export type Player = {
   /** For the avatar: the profile drives the photo, the id drives the colour. */
   profileId?: string | null
   avatarUrl?: string | null
+  /** This signup was made by the player's AI agent. */
+  viaAgent?: boolean
 }
 
 

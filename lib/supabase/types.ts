@@ -459,6 +459,22 @@ export type Database = {
           },
         ]
       }
+      agent_actions: {
+        Row: {
+          id: number
+          profile_id: string
+          member_id: string
+          game_id: string
+          settlement_id: string | null
+          signup_order: number | null
+          action: 'joined' | 'withdrew' | 'marked_paid' | 'confirmed_received'
+          created_at: string
+        }
+        // Written only by record_agent_action().
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
       settlements: {
         Row: {
           id: string
@@ -634,6 +650,14 @@ export type Database = {
       mcp_consume_confirmation: {
         Args: { p_jti: string; p_expires_at: string }
         Returns: boolean
+      }
+      record_agent_action: {
+        Args: {
+          p_action: 'joined' | 'withdrew' | 'marked_paid' | 'confirmed_received'
+          p_game_id?: string | null
+          p_settlement_id?: string | null
+        }
+        Returns: undefined
       }
       mcp_rate_counts: {
         Args: Record<string, never>

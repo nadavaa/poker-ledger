@@ -20,6 +20,8 @@ import {
 import { SettledView } from '@/components/game/settled-view'
 import { StatusBanner } from '@/components/game/status-banner'
 import { WaitlistPanel } from '@/components/game/waitlist-panel'
+import { AgentActivity } from '@/components/game/agent-activity'
+import { agentMarks } from '@/lib/agent-marker'
 import { DangerZone } from '@/components/game/danger-zone'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
@@ -93,6 +95,7 @@ export default async function GamePage({
     { data: paymentRows },
     { data: foodRows },
     { data: cashoutRows },
+    { data: agentRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -155,7 +158,15 @@ export default async function GamePage({
       .from('cashouts')
       .select('member_id, chips, recorded_at, left_table')
       .eq('game_id', gameId),
+    // What an AI agent did here. Row-level security hides a payment marker
+    // from anyone who cannot see the payment itself.
+    supabase
+      .from('agent_actions')
+      .select('member_id, action, settlement_id, signup_order, created_at')
+      .eq('game_id', gameId)
+      .order('created_at', { ascending: false }),
   ])
+  const agent = agentMarks(agentRows ?? [])
 
   const cashouts: CashoutRecord[] = (cashoutRows ?? []).map((c) => ({
     memberId: c.member_id,
@@ -188,6 +199,7 @@ export default async function GamePage({
     )
 
   const players = confirmed.map((s) => ({
+    viaAgent: agent.joinedViaAgent(s.member_id, s.signup_order),
     memberId: s.member_id,
     name: signupName(s),
     profileId: s.group_members?.profile_id ?? null,
@@ -618,6 +630,8 @@ export default async function GamePage({
             confirmedAt: s.confirmed_at,
             confirmedByMemberId: s.confirmed_by_member_id,
             kind: s.kind,
+            paidViaAgent: agent.paidViaAgent(s.id),
+            confirmedViaAgent: agent.confirmedViaAgent(s.id),
           }))}
           adjustments={(adjustments ?? []).map((a) => ({
             id: a.id,
@@ -667,6 +681,7 @@ export default async function GamePage({
             id: s.id,
             memberId: s.member_id,
             name: signupName(s),
+            viaAgent: agent.joinedViaAgent(s.member_id, s.signup_order),
           }))}
           isAdmin={runsTheGame}
           myMemberId={myMember?.id ?? null}
@@ -674,6 +689,8 @@ export default async function GamePage({
           seatLimit={game.seat_limit}
         />
       )}
+
+      <AgentActivity rows={agentRows ?? []} names={nameOf} timeZone={tz} />
 
       {(isAdmin || isGroupOwner) && (
         <CollapsibleSection title="Game settings">

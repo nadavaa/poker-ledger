@@ -18,6 +18,10 @@ export type TransferRow = {
   confirmedAt: string | null
   confirmedByMemberId: string | null
   kind: 'poker' | 'food'
+  /** The payer's AI agent marked it paid. */
+  paidViaAgent?: boolean
+  /** The payee's AI agent confirmed it. */
+  confirmedViaAgent?: boolean
 }
 
 
@@ -186,6 +190,17 @@ export function TransferCard({
               {line.glyph}
             </span>
             {line.label}
+            {(transfer.paidViaAgent || transfer.confirmedViaAgent) && (
+              <span className="text-muted-foreground">
+                {' · '}
+                {[
+                  transfer.paidViaAgent && 'marked paid via AI agent',
+                  transfer.confirmedViaAgent && 'confirmed via AI agent',
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </span>
+            )}
           </p>
 
           {error && <p className="mt-0.5 text-xs text-down">{error}</p>}

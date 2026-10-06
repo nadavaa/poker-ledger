@@ -208,3 +208,35 @@ describe('withdraw_from_game', () => {
     expect(r.json).not.toHaveProperty('confirmation_token')
   })
 })
+
+describe('the agent marker', () => {
+  const recorded = (calls: { kind: string; name: string; args: unknown }[]) =>
+    calls.filter((c) => c.name === 'record_agent_action').map((c) => c.args)
+
+  it('labels a join and a withdrawal, but only after they commit', async () => {
+    const t = await setup(open())
+    const p = await call(t.handlers, 'join_game', { game_id: GAME })
+    expect(recorded(t.calls)).toEqual([])
+    await call(t.handlers, 'join_game', { game_id: GAME, confirmation_token: p.json?.confirmation_token })
+    expect(recorded(t.calls)).toEqual([{ p_action: 'joined', p_game_id: GAME }])
+  })
+
+  it('labels a withdrawal', async () => {
+    const t = await setup(open([{ member_id: 'me', status: 'confirmed', signup_order: 1 }]))
+    const p = await call(t.handlers, 'withdraw_from_game', { game_id: GAME })
+    await call(t.handlers, 'withdraw_from_game', { game_id: GAME, confirmation_token: p.json?.confirmation_token })
+    expect(recorded(t.calls)).toEqual([{ p_action: 'withdrew', p_game_id: GAME }])
+  })
+
+  it('does not label a join that did not create a signup', async () => {
+    const config = open()
+    config.rpc!.join_game_by_link = () => ({
+      data: [{ group_id: 'grp', group_name: 'T', game_name: null, scheduled_at: '2026-10-04T18:30:00Z', game_status: 'settled', outcome: 'over', waitlist_position: null }],
+      error: null,
+    })
+    const t = await setup(config)
+    const p = await call(t.handlers, 'join_game', { game_id: GAME })
+    await call(t.handlers, 'join_game', { game_id: GAME, confirmation_token: p.json?.confirmation_token })
+    expect(recorded(t.calls)).toEqual([])
+  })
+})

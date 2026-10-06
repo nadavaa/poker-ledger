@@ -188,3 +188,45 @@ describe('confirm_transfer_received', () => {
     expect(updates(t.calls)).toHaveLength(0)
   })
 })
+
+describe('the agent marker', () => {
+  const recorded = (calls: { kind: string; name: string; args: unknown }[]) =>
+    calls.filter((c) => c.name === 'record_agent_action').map((c) => c.args)
+
+  it('is recorded after a committed payment, and not at preview', async () => {
+    const t = await setup(world(settlement()))
+    const p = await call(t.handlers, 'mark_transfer_paid', { transfer_id: T })
+    expect(recorded(t.calls)).toEqual([])
+    await call(t.handlers, 'mark_transfer_paid', { transfer_id: T, confirmation_token: p.json?.confirmation_token })
+    expect(recorded(t.calls)).toEqual([{ p_action: 'marked_paid', p_settlement_id: T }])
+  })
+
+  it('is recorded as received for a confirmation', async () => {
+    const t = await setup(world(settlement({ from_member_id: 'gilad', to_member_id: 'me', status: 'paid' })))
+    const p = await call(t.handlers, 'confirm_transfer_received', { transfer_id: T })
+    await call(t.handlers, 'confirm_transfer_received', { transfer_id: T, confirmation_token: p.json?.confirmation_token })
+    expect(recorded(t.calls)).toEqual([{ p_action: 'confirmed_received', p_settlement_id: T }])
+  })
+
+  it('is not recorded when the write was refused', async () => {
+    const config = world(settlement())
+    config.updates = { settlements: { data: [], error: null } }
+    const t = await setup(config)
+    const p = await call(t.handlers, 'mark_transfer_paid', { transfer_id: T })
+    await call(t.handlers, 'mark_transfer_paid', { transfer_id: T, confirmation_token: p.json?.confirmation_token })
+    expect(recorded(t.calls)).toEqual([])
+  })
+
+  it('failing to record it does not hide the payment, and says so', async () => {
+    const config = world(settlement())
+    config.rpc = { record_agent_action: () => ({ data: null, error: { message: 'boom' } }) }
+    const t = await setup(config)
+    const p = await call(t.handlers, 'mark_transfer_paid', { transfer_id: T })
+    const r = await call(t.handlers, 'mark_transfer_paid', { transfer_id: T, confirmation_token: p.json?.confirmation_token })
+    expect(r.isError).toBe(false)
+    expect(r.json).toMatchObject({ changed: true, status: 'paid' })
+    expect(String(r.json?.warning)).toMatch(/could not be labelled/)
+    // Tried twice, no more.
+    expect(recorded(t.calls)).toHaveLength(2)
+  })
+})

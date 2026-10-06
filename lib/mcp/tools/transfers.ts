@@ -100,6 +100,13 @@ export function registerTransferTools(server: McpServer) {
         ctx,
         args: { transfer_id: args.transfer_id },
         token: args.confirmation_token,
+        afterCommit: async ({ db }) => {
+          const { error } = await db.rpc('record_agent_action', {
+            p_action: 'marked_paid',
+            p_settlement_id: args.transfer_id,
+          })
+          if (error) throw error
+        },
         plan: async ({ db, userId }) =>
           planMarkPaid((await loadTransfer(db, userId, args.transfer_id)).facts),
         commit: async ({ db }) => {
@@ -153,6 +160,13 @@ export function registerTransferTools(server: McpServer) {
         ctx,
         args: { transfer_id: args.transfer_id },
         token: args.confirmation_token,
+        afterCommit: async ({ db }) => {
+          const { error } = await db.rpc('record_agent_action', {
+            p_action: 'confirmed_received',
+            p_settlement_id: args.transfer_id,
+          })
+          if (error) throw error
+        },
         plan: async ({ db, userId }) =>
           planConfirmReceived((await loadTransfer(db, userId, args.transfer_id)).facts),
         commit: async ({ db }) => {

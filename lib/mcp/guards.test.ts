@@ -70,6 +70,7 @@ describe('the MCP code path', () => {
         'log_mcp_call',
         'mcp_consume_confirmation',
         'mcp_rate_counts',
+        'record_agent_action',
       ])
     )
   })

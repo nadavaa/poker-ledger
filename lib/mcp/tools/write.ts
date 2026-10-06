@@ -106,8 +106,31 @@ export function runWriteTool<R extends Record<string, unknown>>(opts: {
     }
 
     const result = await opts.commit(tool)
-    if (opts.afterCommit) await opts.afterCommit(tool, result)
-    return { changed: true, ...result }
+
+    // The write has happened. Labelling it as the agent's is a second call; if
+    // that fails, say so rather than pretend, and rather than undo the write.
+    let marked = true
+    if (opts.afterCommit) {
+      try {
+        await opts.afterCommit(tool, result)
+      } catch {
+        try {
+          await opts.afterCommit(tool, result)
+        } catch {
+          marked = false
+        }
+      }
+    }
+    return {
+      changed: true,
+      ...result,
+      ...(marked
+        ? {}
+        : {
+            warning:
+              'This was done, but it could not be labelled as made through an AI app, so other players will not see that label. Tell the user.',
+          }),
+    }
   })
 }
 
