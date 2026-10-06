@@ -12,6 +12,10 @@
 begin;
 
 create temp table a_results (n serial, test text, expect text, got text, pass boolean) on commit drop;
+-- Same precaution as the other proof script: results may be written while a
+-- role is being impersonated.
+grant all on a_results to authenticated, anon, service_role;
+grant usage, select on sequence a_results_n_seq to authenticated, anon, service_role;
 
 -- Runs one statement as one user; reports 'ok' or 'denied: ...'.
 create function pg_temp.try_as(as_uid uuid, sql text)

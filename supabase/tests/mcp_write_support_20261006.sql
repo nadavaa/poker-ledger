@@ -7,6 +7,10 @@
 begin;
 
 create temp table w_results (n serial, test text, expect text, got text, pass boolean) on commit drop;
+-- The script records results while it is impersonating a role, so that role
+-- has to be allowed to write them. (The temp table, and nothing real.)
+grant all on w_results to authenticated, anon, service_role;
+grant usage, select on sequence w_results_n_seq to authenticated, anon, service_role;
 
 do $$
 declare
