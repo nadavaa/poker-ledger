@@ -623,8 +623,21 @@ export type Database = {
         Returns: undefined
       }
       log_mcp_call: {
-        Args: { p_tool: string; p_ok: boolean; p_latency_ms: number }
+        Args: {
+          p_tool: string
+          p_ok: boolean
+          p_latency_ms: number
+          p_phase?: 'read' | 'preview' | 'commit'
+        }
         Returns: undefined
+      }
+      mcp_consume_confirmation: {
+        Args: { p_jti: string; p_expires_at: string }
+        Returns: boolean
+      }
+      mcp_rate_counts: {
+        Args: Record<string, never>
+        Returns: { commits: number; previews: number }[]
       }
       admin_onboarding: {
         Args: Record<string, never>

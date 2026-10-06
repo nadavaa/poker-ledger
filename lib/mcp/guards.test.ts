@@ -63,6 +63,8 @@ describe('the MCP code path', () => {
         'game_payment_details',
         // bookkeeping
         'log_mcp_call',
+        'mcp_consume_confirmation',
+        'mcp_rate_counts',
       ])
     )
   })
@@ -80,6 +82,23 @@ describe('recordToolCall', () => {
       p_tool: 'get_game',
       p_ok: false,
       p_latency_ms: 13,
+      p_phase: 'read',
     })
+  })
+
+  it('records whether it was a preview or a commit, and still nothing else', async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null })
+    await recordToolCall({ rpc } as never, {
+      tool: 'mark_transfer_paid',
+      ok: true,
+      latencyMs: 4,
+      phase: 'commit',
+    })
+    expect(Object.keys(rpc.mock.calls[0][1]).sort()).toEqual([
+      'p_latency_ms',
+      'p_ok',
+      'p_phase',
+      'p_tool',
+    ])
   })
 })
