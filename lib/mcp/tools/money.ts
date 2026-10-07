@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/server'
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import { z } from 'zod'
 import { DEFAULT_TIME_ZONE } from '../../time'
 import {
@@ -12,12 +13,15 @@ import {
   type SettlementRow,
 } from '../map'
 import { loadGroup, mySettledResults } from './common'
+import { statsUi } from '../ui/register'
 import { must, runTool, ToolError } from './run'
 
 export function registerMoneyTools(server: McpServer) {
-  server.registerTool(
+  registerAppTool(
+    server,
     'get_my_stats',
     {
+      _meta: statsUi,
       title: 'My stats in a group',
       description:
         'Use this for questions about how the user has done in one group: ' +

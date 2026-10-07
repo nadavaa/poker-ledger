@@ -1,0 +1,21 @@
+.head {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stat { background: var(--bg-soft); border-radius: var(--radius); padding: 8px 10px; min-width: 0; }
+.stat-label { font-size: var(--font-text-xs-size, 12px); }
+.stat-value { font-size: var(--font-heading-sm-size, 17px); font-weight: 700; overflow-wrap: anywhere; }
+.stat-note { font-size: var(--font-text-xs-size, 12px); }
+.group { font-size: var(--font-text-sm-size, 13px); margin-bottom: 4px; }
+.frame { position: relative; width: 100%; }
+.tip {
+  position: absolute; z-index: 2; pointer-events: none;
+  background: var(--bg); color: var(--fg);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 6px 10px; font-size: var(--font-text-sm-size, 13px);
+  box-shadow: var(--shadow-md, 0 2px 8px rgb(0 0 0 / 0.2));
+  max-width: 70%;
+}
+.hint { font-size: var(--font-text-xs-size, 12px); margin: 6px 0 0; }

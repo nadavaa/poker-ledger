@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/server'
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import { z } from 'zod'
 import { playedAt, DEFAULT_TIME_ZONE } from '../../time'
 import {
@@ -9,6 +10,7 @@ import {
   type SignupRow,
 } from '../map'
 import { loadGroup, myMemberId } from './common'
+import { gameCardUi } from '../ui/register'
 import { must, runTool, ToolError } from './run'
 
 const STATUSES = ['scheduled', 'active', 'reconciling', 'settled', 'cancelled'] as const
@@ -118,9 +120,11 @@ export function registerGameTools(server: McpServer) {
       })
   )
 
-  server.registerTool(
+  registerAppTool(
+    server,
     'get_game',
     {
+      _meta: gameCardUi,
       title: 'Get one game',
       description:
         'Use this for the details of one game: who is seated and on the ' +
