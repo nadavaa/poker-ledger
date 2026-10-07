@@ -123,7 +123,8 @@ button { font: inherit; color: inherit; }
   background: var(--card); border-radius: 12px; padding: 14px 16px;
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
 }
-a.card, button.card { display: block; width: 100%; text-align: left; border: 0; cursor: pointer; transition: background-color 0.15s; }
+a.card, button.card { width: 100%; text-align: left; border: 0; cursor: pointer; transition: background-color 0.15s; }
+button.card.row { display: flex; align-items: center; }
 a.card:hover, button.card:hover { background: color-mix(in oklab, var(--muted) 50%, var(--card)); }
 .item {
   display: flex; align-items: center; gap: 10px; justify-content: space-between;

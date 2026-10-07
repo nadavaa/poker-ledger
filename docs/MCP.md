@@ -114,18 +114,22 @@ agent* on the game screen. The full rules are in the Agents section of
 Money comes back as integer cents and a display string; times as ISO 8601 and
 text in the group's own timezone.
 
-## The interactive views
+## The interactive view
 
-`get_my_stats` and `get_game` link to a page (`ui://poker-ledger/stats.html`,
-`ui://poker-ledger/game-card.html`) that apps with MCP Apps support draw in
-the chat. What they show and can do is in [FUNCTIONALITY.md](FUNCTIONALITY.md#interactive-views-mcp-apps).
+Six read tools (`list_my_groups`, `list_games`, `get_game`, `get_my_stats`,
+`get_my_balances`, `get_outstanding_debt`) link to one page,
+`ui://poker-ledger/app.html`, which apps with MCP Apps support draw in the chat
+as a small version of the app. What it shows and can do is in
+[FUNCTIONALITY.md](FUNCTIONALITY.md#interactive-view-mcp-apps).
 
-The source is in `widgets/`. Each page builds to one self-contained HTML file
-that the server returns as the resource, so **after changing anything in
+The source is in `widgets/app`. It builds to one self-contained HTML file that
+the server returns as the resource, so **after changing anything in
 `widgets/`, run `npm run build:widgets` and commit the result in
-`lib/mcp/ui/generated/`**. A test checks that each file is one document, under
-the size budget, and names no web address of its own. The pages need no
-configuration, and no setup beyond the connector.
+`lib/mcp/ui/generated/`**. A test checks that the file is one document, under
+the size budget, and names no web address of its own. The page needs no
+configuration beyond the connector. "Open in Poker Ledger" goes to
+`www.kevespoker.com` on production and to the deployment's own address on a
+preview (`lib/mcp/ui/origin.ts`).
 
 ## Try it locally in MCP Inspector
 

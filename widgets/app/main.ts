@@ -109,11 +109,28 @@ const keyOf = {
   debt: 'debt',
 }
 
+/** Fetch once. A failure is kept too, so a screen shows it with a Try again
+ *  button rather than asking the server again on every redraw. */
 async function load(key: string, tool: string, args: Record<string, unknown>, force = false) {
   if (!force && cache.has(key)) return cache.get(key)!
   const parsed = parseResult(await call(tool, args))
-  if (parsed.ok) cache.set(key, parsed)
+  cache.set(key, parsed)
   return parsed
+}
+
+/**
+ * Fetch something a screen wants but does not wait for, and redraw when it
+ * arrives. Never fetches what is already here or on its way, and never
+ * redraws unless something actually arrived: a redraw that asks for the same
+ * thing again is a loop.
+ */
+function loadInBackground(key: string, tool: string, args: Record<string, unknown>) {
+  if (cache.has(key) || inflight.has(key)) return
+  inflight.add(key)
+  void load(key, tool, args).then(() => {
+    inflight.delete(key)
+    render()
+  })
 }
 
 /** The first result becomes the first screen. Later screens fetch their own. */
@@ -253,7 +270,7 @@ function withData(key: string, fetcher: () => Promise<Parsed>, show: (d: Record<
     inflight.add(key)
     void fetcher().then((r) => {
       inflight.delete(key)
-      if (!r.ok) cache.set(key, r)
+      cache.set(key, r)
       render()
     })
   }
@@ -305,8 +322,8 @@ function groupsScreen(): Node[] {
     // Lifetime and member counts arrive a moment after the list, so the
     // list itself is never waiting on them.
     for (const g of groups.slice(0, 8)) {
-      void load(keyOf.stats(g.id), 'get_my_stats', { group_id: g.id }).then(rerenderIfHome)
-      void load(keyOf.members(g.id), 'list_group_members', { group_id: g.id }).then(rerenderIfHome)
+      loadInBackground(keyOf.stats(g.id), 'get_my_stats', { group_id: g.id })
+      loadInBackground(keyOf.members(g.id), 'list_group_members', { group_id: g.id })
     }
     return [
       label('Your groups'),
@@ -336,10 +353,6 @@ function groupsScreen(): Node[] {
         h('span', { text: 'My results, game by game' }), h('span', { class: 'muted', text: '›' })),
     ]
   })
-}
-
-function rerenderIfHome() {
-  if (top()?.s === 'groups') render()
 }
 
 // ------------------------------------------------------------------ group
@@ -603,8 +616,7 @@ function startedGame(v: Extract<GameCardView, { kind: 'summary' }>): Node[] {
       h('div', { class: 'row', attrs: { style: 'gap:8px;flex-wrap:wrap' } }, h('strong', { class: 'wrap', attrs: { style: 'font-size:17px' }, text: v.title }), chip(v.status, statusKind(v.status))),
       v.group && v.group !== v.title ? h('div', { class: 'muted', text: v.group }) : null,
       v.when ? h('div', { text: v.when }) : null,
-      v.location ? h('div', { class: 'wrap', text: v.location }) : null,
-      v.seats ? h('div', { class: 'small muted money', text: v.seats }) : null),
+      v.location ? h('div', { class: 'wrap', text: v.location }) : null),
     v.status === 'cancelled' ? h('div', { class: 'banner', text: 'This game was cancelled.' }) : null,
     v.money
       ? h('section', { class: 'stack-sm' },
