@@ -48,7 +48,6 @@ function secret(): string {
   return s
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function runWriteTool<R extends Record<string, unknown>>(opts: {
   name: string
   ctx: ServerContext
@@ -57,6 +56,8 @@ export function runWriteTool<R extends Record<string, unknown>>(opts: {
   token: string | undefined
   plan: (tool: ToolContext) => Promise<WritePlan>
   /** The write itself, through the path the app uses. Throws ToolError. */
+  // The plan's own data, whatever shape that tool's plan gave it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   commit: (tool: ToolContext, data: any) => Promise<R>
   /** Runs after a successful commit, to record that an agent did it. */
   afterCommit?: (tool: ToolContext, result: R) => Promise<void>
