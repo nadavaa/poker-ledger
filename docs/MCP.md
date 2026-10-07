@@ -114,6 +114,19 @@ agent* on the game screen. The full rules are in the Agents section of
 Money comes back as integer cents and a display string; times as ISO 8601 and
 text in the group's own timezone.
 
+## The interactive views
+
+`get_my_stats` and `get_game` link to a page (`ui://poker-ledger/stats.html`,
+`ui://poker-ledger/game-card.html`) that apps with MCP Apps support draw in
+the chat. What they show and can do is in [FUNCTIONALITY.md](FUNCTIONALITY.md#interactive-views-mcp-apps).
+
+The source is in `widgets/`. Each page builds to one self-contained HTML file
+that the server returns as the resource, so **after changing anything in
+`widgets/`, run `npm run build:widgets` and commit the result in
+`lib/mcp/ui/generated/`**. A test checks that each file is one document, under
+the size budget, and names no web address of its own. The pages need no
+configuration, and no setup beyond the connector.
+
 ## Try it locally in MCP Inspector
 
 The full connector flow needs a public URL (Claude can't reach localhost), so

@@ -433,6 +433,41 @@ Changing payment details skips the two steps, because it affects only you and
 can be changed back, but it says exactly what it saved. A phone number is
 shown only as its last four digits.
 
+### Interactive views (MCP Apps)
+
+Two tools can also draw a small page inside the chat, in apps that support
+MCP Apps (Claude on web, desktop and mobile). The tool still returns exactly
+the text it always did, so an app that does not draw the page, or an agent that
+only reads, loses nothing.
+
+| Tool | The page |
+|---|---|
+| `get_my_stats` | **Stats chart.** Lifetime net, games played, win rate and current streak, then your running balance across the season: one point per settled game, with the zero line drawn and labelled. Tap or hover a point for that game's date and result. Read-only |
+| `get_game` | **Game card.** For a *scheduled* game: name, date and time on the group's clock, location, seats (`9/8 · 1 over`), players, waitlist and where you stand (seated, waitlisted at a position, not signed up), with a **Join** or **Withdraw** button. No money, as on the screen. Any other status shows a short summary and no buttons |
+
+**What the buttons do.** Join and Withdraw run the same two steps as above,
+but the user's click is the yes. The first click calls the tool with no token
+and shows the server's preview in the card, with **Confirm** and **Cancel**;
+nothing has changed. Confirm calls it again with the token, then the card
+reloads from the server and tells the chat what happened, so the conversation
+and the card agree. A refusal (expired confirmation, table changed, already
+signed up) is shown in the card in the server's own words. Confirmations work
+once, so a second tap on a used one is refused.
+
+**What the pages can't do.** They have no access of their own: no database,
+no token, no network, and nothing loads from outside. Everything they show
+came in a tool result, and everything they do is a call to a tool through the
+app, as you, under the same row-level security. There are no admin actions in
+either page, no money, and no links out. Names and places from the database
+are shown as text, never as markup.
+
+One difference worth knowing. With only the chat, "never confirm for the user"
+is a request to the model. In the card it is the Confirm button. The server
+cannot tell a tap from a model's call; what it checks is unchanged: the
+token is signed, bound to the user, the tool, the game and the outcome the
+user was shown, and works once. A join made through the card carries the same
+*via AI agent* label, because it goes through the same tool.
+
 ### Everything an agent does is visible
 
 The app's rule is that money-related actions are visible, and an agent acting
