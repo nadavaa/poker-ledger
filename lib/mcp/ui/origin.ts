@@ -8,3 +8,8 @@ export function appOrigin(env: Record<string, string | undefined> = process.env)
   if (env.VERCEL_URL) return `https://${env.VERCEL_URL}`
   return 'http://localhost:3000'
 }
+
+/** Which deployment's page this is, so a stale copy in a chat is easy to spot. */
+export function buildId(env: Record<string, string | undefined> = process.env): string {
+  return env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev'
+}

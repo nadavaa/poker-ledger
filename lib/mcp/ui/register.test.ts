@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { registerTools } from '../server'
 import { html } from './generated/app'
-import { appOrigin } from './origin'
+import { appOrigin, buildId } from './origin'
 import { APP_URI, appPage } from './register'
 
 // A recording stand-in for the MCP server: what gets registered, not what runs.
@@ -75,12 +75,20 @@ describe('where "Open in Poker Ledger" goes', () => {
     expect(appOrigin({})).toBe('http://localhost:3000')
   })
 
-  it('is written into the page, and nothing else changes', () => {
+  it('is written into the page, with the build, and nothing else changes', () => {
     expect(html).toContain('__APP_ORIGIN__')
-    const page = appPage('https://x.app')
+    expect(html).toContain('__BUILD__')
+    const page = appPage('https://x.app', 'abc1234')
     expect(page).toContain('content="https://x.app"')
+    expect(page).toContain('content="abc1234"')
     expect(page).not.toContain('__APP_ORIGIN__')
+    expect(page).not.toContain('__BUILD__')
     expect(page.length).toBeLessThan(html.length + 100)
+  })
+
+  it('names the build by the short commit, or dev', () => {
+    expect(buildId({ VERCEL_GIT_COMMIT_SHA: '1d0187f2a9c0000' })).toBe('1d0187f')
+    expect(buildId({})).toBe('dev')
   })
 })
 
