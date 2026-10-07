@@ -3,7 +3,7 @@ import { NO_PAYMENT_BODY } from '@/lib/payment'
 import { CopySummary } from '@/components/settle/copy-summary'
 import { type TransferRow } from '@/components/settle/transfer-card'
 import { SettlementSection } from '@/components/settle/settlement-section'
-import { gameSummary } from '@/lib/summary'
+import { settledGameSummary } from '@/lib/summary'
 
 export type ResultRow = {
   memberId: string
@@ -199,19 +199,11 @@ export function SettledView({
 
         {isAdmin && transfers.length > 0 && (
           <CopySummary
-            text={gameSummary({
+            text={settledGameSummary({
               title: gameLabel,
-              potCents,
-              players: rows.map((r) => ({
-                name: r.name,
-                netCents: r.netCents,
-              })),
-              transfers: transfers.map((t) => ({
-                fromName: names.get(t.fromMemberId) ?? 'Someone',
-                toName: names.get(t.toMemberId) ?? 'someone',
-                amountCents: t.amountCents,
-                confirmed: t.status === 'confirmed',
-              })),
+              rows,
+              transfers,
+              names,
             })}
           />
         )}
