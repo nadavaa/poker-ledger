@@ -18,7 +18,7 @@ export async function loadGameContext(db: Db, userId: string, gameId: string) {
   const { data: game } = await db
     .from('games')
     .select(
-      'id, group_id, name, scheduled_at, started_at, status, seat_limit, groups(name, timezone)'
+      'id, group_id, name, location, scheduled_at, started_at, status, seat_limit, admin_member_id, groups(name, timezone)'
     )
     .eq('id', gameId)
     .maybeSingle()
@@ -46,6 +46,8 @@ export async function loadGameContext(db: Db, userId: string, gameId: string) {
   return {
     gameId: game.id,
     groupId: game.group_id,
+    location: game.location,
+    adminMemberId: game.admin_member_id,
     facts: {
       name: game.name,
       groupName: game.groups?.name ?? '',

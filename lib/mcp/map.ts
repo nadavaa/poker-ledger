@@ -283,8 +283,11 @@ export function gameDetail(args: {
             myMemberId
           )
           return {
-            // Only a transfer I am part of is one I can act on.
-            ...(role !== 'bystander' ? { transfer_id: s.id } : {}),
+            // A transfer I am part of is one I can act on, and so is any
+            // transfer in a game I run (to close one out).
+            ...(role !== 'bystander' || game.admin_member_id === myMemberId
+              ? { transfer_id: s.id }
+              : {}),
             kind: s.kind,
             from: nameOf(names, s.from_member_id),
             to: nameOf(names, s.to_member_id),

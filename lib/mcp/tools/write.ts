@@ -33,6 +33,8 @@ export type WritePlan =
        * the old yes no longer covers it and the user is asked again.
        */
       bind?: Record<string, unknown>
+      /** What the commit needs from the plan it was approved under. */
+      data?: unknown
     }
 
 function secret(): string {
@@ -46,6 +48,7 @@ function secret(): string {
   return s
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function runWriteTool<R extends Record<string, unknown>>(opts: {
   name: string
   ctx: ServerContext
@@ -54,7 +57,7 @@ export function runWriteTool<R extends Record<string, unknown>>(opts: {
   token: string | undefined
   plan: (tool: ToolContext) => Promise<WritePlan>
   /** The write itself, through the path the app uses. Throws ToolError. */
-  commit: (tool: ToolContext) => Promise<R>
+  commit: (tool: ToolContext, data: any) => Promise<R>
   /** Runs after a successful commit, to record that an agent did it. */
   afterCommit?: (tool: ToolContext, result: R) => Promise<void>
 }) {
@@ -119,7 +122,7 @@ export function runWriteTool<R extends Record<string, unknown>>(opts: {
       )
     }
 
-    const result = await opts.commit(tool)
+    const result = await opts.commit(tool, plan.data)
 
     // The write has happened. Labelling it as the agent's is a second call; if
     // that fails, say so rather than pretend, and rather than undo the write.

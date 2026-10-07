@@ -211,6 +211,23 @@ describe('game detail', () => {
     expect(d.settlements?.[0]).toMatchObject({ from: 'Sam', to: 'Dean', my_part: 'payee', transfer_id: 's1' })
   })
 
+  it('gives the game admin a transfer id for every transfer, to close one out', () => {
+    const rows: SettlementRow[] = [
+      { id: 's3', from_member_id: 'm0', to_member_id: 'm1', amount_cents: 100, status: 'pending', kind: 'poker' },
+    ]
+    const d = gameDetail({
+      game: game({ status: 'settled' }),
+      timezone: NY,
+      groupName: 'Tuesday',
+      signups: signups(2),
+      people,
+      totals,
+      settlements: rows,
+      myMemberId: 'admin', // the game's admin, a party to neither side
+    })
+    expect(d.settlements?.[0]).toMatchObject({ transfer_id: 's3', my_part: 'bystander' })
+  })
+
   it('gives no transfer id for a transfer between two other people', () => {
     const rows: SettlementRow[] = [
       { id: 's2', from_member_id: 'm1', to_member_id: 'admin', amount_cents: 100, status: 'pending', kind: 'poker' },

@@ -15,11 +15,33 @@ const KNOWN: [RegExp, string][] = [
   [/10-digit US phone|not a valid US phone/i, 'That is not a valid US phone number. Use 10 digits, like (212) 555-0123.'],
 ]
 
+/**
+ * Refusals the database words well enough to pass on as they are: they say
+ * what is wrong and what to do, with no table or policy names in them.
+ */
+const PASS_THROUGH = [
+  /^\d+ players are confirmed\. Move someone to the waitlist first\.?$/i,
+  /^the game has started — only the name and location can change now\.?$/i,
+  /^this game is finished; nothing can be edited\.?$/i,
+  /^a game needs at least one seat\.?$/i,
+  /^seat limit must be at least 2\.?$/i,
+  /^this game has \d+ unpaid settlement\(s\); resolve them first\.?$/i,
+  /^a settled game cannot be cancelled; it holds results other players depend on\.?$/i,
+  /^only the game admin or the group owner can cancel a game\.?$/i,
+  /^only the game admin can (add players|change the roster)\.?$/i,
+  /^this game is closed\.?$/i,
+  /^pick an active member of this group\.?$/i,
+  /^that player is already in this game\.?$/i,
+  /^that player is not on the waitlist\.?$/i,
+  /^game is full: \d+ of \d+ seats taken$/i,
+]
+
 export function friendlyDbError(
   error: Failure,
   fallback = 'Poker Ledger could not do that. Nothing was changed.'
 ): string {
   const message = error?.message ?? ''
+  if (PASS_THROUGH.some((re) => re.test(message.trim()))) return message.trim()
   for (const [pattern, text] of KNOWN) {
     if (pattern.test(message)) return text
   }

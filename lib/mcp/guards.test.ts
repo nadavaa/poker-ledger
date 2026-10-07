@@ -48,7 +48,7 @@ describe('the MCP code path', () => {
         writes.add(`${m[1]}.${m[2]}`)
       }
     }
-    expect([...writes].sort()).toEqual(['game_signups.update', 'settlements.update'])
+    expect([...writes].sort()).toEqual(['game_signups.update', 'games.update', 'settlements.update'])
   })
 
   it('calls only the database functions it is meant to', () => {
@@ -66,6 +66,13 @@ describe('the MCP code path', () => {
         'can_withdraw_from_game',
         'set_my_payment_details',
         'my_payment_details',
+        // the game admin's actions, through the functions the app calls
+        'create_game',
+        'add_player_to_game',
+        'promote_to_confirmed',
+        'cancel_game',
+        'can_admin_game',
+        'is_group_owner',
         // bookkeeping
         'log_mcp_call',
         'mcp_consume_confirmation',
