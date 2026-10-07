@@ -63,6 +63,14 @@ export type StatsView =
       winRatePercent: number
       streak: { kind: 'win' | 'loss' | 'none'; length: number; words: string }
       points: StatsPoint[]
+      average: Money | null
+      boughtIn: Money | null
+      wins: number
+      losses: number
+      best: { net: Money; date: string } | null
+      worst: { net: Money; date: string } | null
+      longestWin: number
+      longestLoss: number
     }
 
 export function streakWords(kind: 'win' | 'loss' | 'none', length: number): string {
@@ -106,7 +114,20 @@ export function statsView(data: Record<string, unknown>): StatsView {
     winRatePercent: Math.round(Number(data.win_rate ?? 0) * 100),
     streak: { kind, length, words: streakWords(kind, length) },
     points,
+    average: isMoney(data.average_net_per_game) ? data.average_net_per_game : null,
+    boughtIn: isMoney(data.total_bought_in) ? data.total_bought_in : null,
+    wins: Number(data.wins ?? 0),
+    losses: Number(data.losses ?? 0),
+    best: extreme(data.biggest_win),
+    worst: extreme(data.biggest_loss),
+    longestWin: Number(data.longest_win_streak ?? 0),
+    longestLoss: Number(data.longest_loss_streak ?? 0),
   }
+}
+
+function extreme(raw: unknown): { net: Money; date: string } | null {
+  const g = raw as { net?: unknown; played_at?: Moment } | null
+  return g && isMoney(g.net) && g.played_at ? { net: g.net, date: g.played_at.local } : null
 }
 
 /** One word for a point, so above or below zero never rests on colour. */

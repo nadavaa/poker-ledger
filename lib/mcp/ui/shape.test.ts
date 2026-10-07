@@ -4,7 +4,6 @@ import {
   gameListItem,
   mapBalances,
   mapGroups,
-  mapOutstandingDebt,
   mapStats,
   type GameRow,
 } from '../map'
@@ -73,6 +72,14 @@ describe('statsView', () => {
     expect(v.points[0].net.display).toBe('$50')
     expect(v.points[1].running.display).toBe('-$30')
     expect(v.points[0].date).toBe('Aug 31, 2026')
+    // What the stats screen shows beyond the chart.
+    expect(v.wins).toBe(1)
+    expect(v.losses).toBe(2)
+    expect(v.best?.net.cents).toBe(5000)
+    expect(v.worst?.net.cents).toBe(-8000)
+    expect(v.boughtIn?.cents).toBe(8000)
+    expect(v.average?.display).toBe('-$13.33')
+    expect(v.longestLoss).toBe(2)
   })
 
   it('shows an empty season as a message, not an empty chart', () => {

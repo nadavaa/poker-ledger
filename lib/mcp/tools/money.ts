@@ -13,7 +13,7 @@ import {
   type SettlementRow,
 } from '../map'
 import { loadGroup, mySettledResults } from './common'
-import { statsUi } from '../ui/register'
+import { appUi } from '../ui/register'
 import { must, runTool, ToolError } from './run'
 
 export function registerMoneyTools(server: McpServer) {
@@ -21,7 +21,7 @@ export function registerMoneyTools(server: McpServer) {
     server,
     'get_my_stats',
     {
-      _meta: statsUi,
+      _meta: appUi,
       title: 'My stats in a group',
       description:
         'Use this for questions about how the user has done in one group: ' +
@@ -69,9 +69,11 @@ export function registerMoneyTools(server: McpServer) {
       })
   )
 
-  server.registerTool(
+  registerAppTool(
+    server,
     'get_my_balances',
     {
+      _meta: appUi,
       title: 'What I ended each game with',
       description:
         'Use this to answer "how did I do in each game?" or "what have I ' +
@@ -94,9 +96,11 @@ export function registerMoneyTools(server: McpServer) {
       })
   )
 
-  server.registerTool(
+  registerAppTool(
+    server,
     'get_outstanding_debt',
     {
+      _meta: appUi,
       title: 'What I owe and am owed',
       description:
         'Use this for "who do I still need to pay?" or "who owes me?". ' +

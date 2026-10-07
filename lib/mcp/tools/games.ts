@@ -10,7 +10,7 @@ import {
   type SignupRow,
 } from '../map'
 import { loadGroup, myMemberId } from './common'
-import { gameCardUi } from '../ui/register'
+import { appUi } from '../ui/register'
 import { must, runTool, ToolError } from './run'
 
 const STATUSES = ['scheduled', 'active', 'reconciling', 'settled', 'cancelled'] as const
@@ -18,9 +18,11 @@ const STATUSES = ['scheduled', 'active', 'reconciling', 'settled', 'cancelled'] 
 const LIST_LIMIT = 50
 
 export function registerGameTools(server: McpServer) {
-  server.registerTool(
+  registerAppTool(
+    server,
     'list_games',
     {
+      _meta: appUi,
       title: 'List games in a group',
       description:
         'Use this to find games: upcoming ones to sign up for, recent ones ' +
@@ -124,7 +126,7 @@ export function registerGameTools(server: McpServer) {
     server,
     'get_game',
     {
-      _meta: gameCardUi,
+      _meta: appUi,
       title: 'Get one game',
       description:
         'Use this for the details of one game: who is seated and on the ' +

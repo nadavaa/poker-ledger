@@ -12,7 +12,8 @@ import type { ToolResultLike } from '@/lib/mcp/ui/shape'
 
 export function startApp(
   name: string,
-  onResult: (result: ToolResultLike) => void
+  onResult: (result: ToolResultLike) => void,
+  onInput?: (args: Record<string, unknown>) => void
 ): App {
   const app = new App({ name, version: '0.1.0' })
 
@@ -34,6 +35,7 @@ export function startApp(
 
   // Handlers go on before connect(), or an early message is dropped.
   app.ontoolresult = (result) => onResult(result as ToolResultLike)
+  if (onInput) app.ontoolinput = (p) => onInput((p?.arguments ?? {}) as Record<string, unknown>)
   app.onhostcontextchanged = (ctx) => applyContext({ ...app.getHostContext(), ...ctx })
 
   app.connect().then(

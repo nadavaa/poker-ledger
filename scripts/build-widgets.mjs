@@ -10,7 +10,7 @@ import { build } from 'vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 
 const root = resolve(fileURLToPath(import.meta.url), '../..')
-const widgets = ['stats', 'game-card']
+const widgets = ['app']
 const outDir = join(root, 'lib/mcp/ui/generated')
 mkdirSync(outDir, { recursive: true })
 

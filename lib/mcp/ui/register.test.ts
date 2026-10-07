@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { registerTools } from '../server'
-import { html as gameCardHtml } from './generated/game-card'
-import { html as statsHtml } from './generated/stats'
-import { GAME_CARD_URI, STATS_URI } from './register'
+import { html } from './generated/app'
+import { appOrigin } from './origin'
+import { APP_URI, appPage } from './register'
 
 // A recording stand-in for the MCP server: what gets registered, not what runs.
 function record() {
@@ -21,15 +21,31 @@ function record() {
   return { server, tools, resources }
 }
 
-describe('widget registration', () => {
+describe('view registration', () => {
   const { server, tools, resources } = record()
   registerTools(server as never)
 
-  it('links the stats and game views from exactly the two tools', () => {
-    const linked = [...tools].filter(([, c]) => c._meta?.ui)
-    expect(linked.map(([n]) => n).sort()).toEqual(['get_game', 'get_my_stats'])
-    expect(tools.get('get_my_stats')!._meta).toMatchObject({ ui: { resourceUri: STATS_URI } })
-    expect(tools.get('get_game')!._meta).toMatchObject({ ui: { resourceUri: GAME_CARD_URI } })
+  it('links the view from the read tools a player moves between, and only those', () => {
+    const linked = [...tools].filter(([, c]) => c._meta?.ui).map(([n]) => n).sort()
+    expect(linked).toEqual([
+      'get_game',
+      'get_my_balances',
+      'get_my_stats',
+      'get_outstanding_debt',
+      'list_games',
+      'list_my_groups',
+    ])
+    for (const n of linked) {
+      expect(tools.get(n)!._meta).toMatchObject({ ui: { resourceUri: APP_URI } })
+    }
+  })
+
+  it('never links a tool that changes something', () => {
+    for (const n of ['join_game', 'withdraw_from_game', 'create_game', 'edit_game', 'add_player',
+      'seat_from_waitlist', 'cancel_game', 'close_out_transfer', 'mark_transfer_paid',
+      'confirm_transfer_received', 'update_payment_handle']) {
+      expect(tools.get(n)!._meta?.ui, n).toBeUndefined()
+    }
   })
 
   it('does not hide any tool from the model', () => {
@@ -38,25 +54,37 @@ describe('widget registration', () => {
     }
   })
 
-  it('serves each view as an MCP App page with no network allowance', async () => {
-    for (const uri of [STATS_URI, GAME_CARD_URI]) {
-      const r = resources.get(uri)!
-      expect(r.config.mimeType).toBe('text/html;profile=mcp-app')
-      const out = (await r.read(new URL(uri))) as {
-        contents: { mimeType: string; text: string; _meta: { ui: Record<string, unknown> } }[]
-      }
-      expect(out.contents[0].mimeType).toBe('text/html;profile=mcp-app')
-      expect(out.contents[0].text.startsWith('<!doctype html>')).toBe(true)
-      // No csp means the host denies every outbound request.
-      expect(out.contents[0]._meta.ui).not.toHaveProperty('csp')
+  it('serves the view as an MCP App page with no network allowance', async () => {
+    const r = resources.get(APP_URI)!
+    expect(r.config.mimeType).toBe('text/html;profile=mcp-app')
+    const out = (await r.read(new URL(APP_URI))) as {
+      contents: { mimeType: string; text: string; _meta: { ui: Record<string, unknown> } }[]
     }
+    expect(out.contents[0].mimeType).toBe('text/html;profile=mcp-app')
+    expect(out.contents[0].text.startsWith('<!doctype html>')).toBe(true)
+    // No csp means the host denies every outbound request.
+    expect(out.contents[0]._meta.ui).not.toHaveProperty('csp')
   })
 })
 
-describe.each([
-  ['stats', statsHtml],
-  ['game-card', gameCardHtml],
-])('%s bundle', (_name, html) => {
+describe('where "Open in Poker Ledger" goes', () => {
+  it('is production only on production, and a preview points at itself', () => {
+    expect(appOrigin({ VERCEL_ENV: 'production' })).toBe('https://www.kevespoker.com')
+    expect(appOrigin({ VERCEL_ENV: 'preview', VERCEL_BRANCH_URL: 'x-git-b.vercel.app' })).toBe('https://x-git-b.vercel.app')
+    expect(appOrigin({ VERCEL_URL: 'x-123.vercel.app' })).toBe('https://x-123.vercel.app')
+    expect(appOrigin({})).toBe('http://localhost:3000')
+  })
+
+  it('is written into the page, and nothing else changes', () => {
+    expect(html).toContain('__APP_ORIGIN__')
+    const page = appPage('https://x.app')
+    expect(page).toContain('content="https://x.app"')
+    expect(page).not.toContain('__APP_ORIGIN__')
+    expect(page.length).toBeLessThan(html.length + 100)
+  })
+})
+
+describe('the bundle', () => {
   it('is one self-contained file within budget', () => {
     expect(html).not.toMatch(/<script[^>]+src=/i)
     expect(html).not.toMatch(/<link[^>]+href=/i)
