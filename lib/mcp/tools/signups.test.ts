@@ -240,3 +240,26 @@ describe('the agent marker', () => {
     expect(recorded(t.calls)).toEqual([])
   })
 })
+
+describe('approving an outcome, not just a game', () => {
+  it('a yes to "you would get a seat" does not cover a waitlist spot', async () => {
+    const config = open([{ member_id: 'a', status: 'confirmed', signup_order: 1 }])
+    const t = await setup(config)
+    const p = await call(t.handlers, 'join_game', { game_id: GAME })
+    expect(p.json).toMatchObject({ needs_confirmation: true })
+    expect(String(p.json?.preview)).toMatch(/get a seat/)
+
+    // Two people take the last seats before the user's yes arrives.
+    config.tables!.game_signups = [
+      { member_id: 'a', status: 'confirmed', signup_order: 1 },
+      { member_id: 'b', status: 'confirmed', signup_order: 2 },
+    ]
+    const r = await call(t.handlers, 'join_game', {
+      game_id: GAME,
+      confirmation_token: p.json?.confirmation_token,
+    })
+    expect(r.isError).toBe(true)
+    expect(r.text).toMatch(/arguments changed/)
+    expect(rpcCalls(t.calls, 'join_game_by_link')).toBe(0)
+  })
+})

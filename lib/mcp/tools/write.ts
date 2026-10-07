@@ -23,7 +23,17 @@ import { runTool, ToolError, type ToolContext } from './run'
 export type WritePlan =
   | { kind: 'already'; text: string }
   | { kind: 'refuse'; reason: string }
-  | { kind: 'confirm'; text: string }
+  | {
+      kind: 'confirm'
+      text: string
+      /**
+       * Facts the user is approving by saying yes — "you would get a seat",
+       * "this takes the table over its limit". They are folded into what the
+       * token is bound to, so if the facts differ by the time of the commit
+       * the old yes no longer covers it and the user is asked again.
+       */
+      bind?: Record<string, unknown>
+    }
 
 function secret(): string {
   const s = process.env.MCP_CONFIRM_SECRET
@@ -56,20 +66,6 @@ export function runWriteTool<R extends Record<string, unknown>>(opts: {
     const key = secret()
     const now = Date.now()
 
-    let verified: { jti: string; expiresAt: number } | null = null
-    if (opts.token) {
-      const check = verifyToken({
-        secret: key,
-        token: opts.token,
-        userId: tool.userId,
-        tool: opts.name,
-        args: opts.args,
-        now,
-      })
-      if (!check.ok) throw new ToolError(TOKEN_FAILURE_MESSAGE[check.reason])
-      verified = check
-    }
-
     // Facts are read fresh on both calls: what was true at preview may not be
     // true a minute later, and the database decides in the end regardless.
     const plan = await opts.plan(tool)
@@ -79,12 +75,30 @@ export function runWriteTool<R extends Record<string, unknown>>(opts: {
       return { changed: false, message: plan.text }
     }
 
+    // What the user is being asked to approve: the arguments, and the
+    // outcome the plan says they lead to.
+    const bound = { ...opts.args, ...(plan.bind ?? {}) }
+
+    let verified: { jti: string; expiresAt: number } | null = null
+    if (opts.token) {
+      const check = verifyToken({
+        secret: key,
+        token: opts.token,
+        userId: tool.userId,
+        tool: opts.name,
+        args: bound,
+        now,
+      })
+      if (!check.ok) throw new ToolError(TOKEN_FAILURE_MESSAGE[check.reason])
+      verified = check
+    }
+
     if (!verified) {
       const { token, expiresAt } = issueToken({
         secret: key,
         userId: tool.userId,
         tool: opts.name,
-        args: opts.args,
+        args: bound,
         now,
       })
       return {
