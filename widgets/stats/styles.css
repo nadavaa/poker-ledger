@@ -19,3 +19,6 @@
   max-width: 70%;
 }
 .hint { font-size: var(--font-text-xs-size, 12px); margin: 6px 0 0; }
+
+/* A tap focuses a point; only keyboard focus needs the ring. */
+circle:focus:not(:focus-visible) { outline: none; }

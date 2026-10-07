@@ -195,16 +195,18 @@ function render() {
       card.location ? h('div', { text: card.location }) : null,
       h('div', { class: 'seats', text: card.seats }),
       h('div', { class: `status ${card.standing.kind}`, text: `${card.standing.kind === 'seated' ? '✓ ' : card.standing.kind === 'waitlisted' ? '… ' : '○ '}${standingWords(card.standing)}` }),
-      h('h3', { text: `Players (${card.roster.length})` }),
-      card.roster.length ? people(card.roster, false) : h('p', { class: 'muted', text: 'Nobody yet.' }),
-      card.waitlist.length ? h('h3', { text: `Waitlist (${card.waitlist.length})` }) : null,
-      card.waitlist.length ? people(card.waitlist, true) : null,
+      // The action comes before the lists: on a phone the lists are long, and
+      // the preview and Confirm must never be below the fold.
       actions(card),
       note
         ? h('div', { class: 'note', attrs: { role: 'status' } },
             h('div', { text: note.text }),
             note.detail ? h('div', { class: 'muted small', text: note.detail }) : null)
-        : null
+        : null,
+      h('h3', { text: `Players (${card.roster.length})` }),
+      card.roster.length ? people(card.roster, false) : h('p', { class: 'muted', text: 'Nobody yet.' }),
+      card.waitlist.length ? h('h3', { text: `Waitlist (${card.waitlist.length})` }) : null,
+      card.waitlist.length ? people(card.waitlist, true) : null
     )
   )
 }
