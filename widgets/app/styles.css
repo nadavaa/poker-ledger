@@ -73,20 +73,19 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* One solid surface, edge to edge. A page whose colour scheme differs from
+   the chat's is painted opaque by the browser, so a rounded card would sit in
+   a visible box; the whole frame is the card instead. */
+html, body { background: var(--background); }
 body {
-  background: transparent;
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   font-size: 14px;
   line-height: 1.45;
   -webkit-text-size-adjust: 100%;
-  padding: 6px max(6px, var(--inset-right)) calc(6px + var(--inset-bottom)) max(6px, var(--inset-left));
-  padding-top: calc(6px + var(--inset-top));
+  padding: var(--inset-top) var(--inset-right) var(--inset-bottom) var(--inset-left);
 }
 #root {
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 18px;
   padding: 14px;
   max-width: 640px;
   margin: 0 auto;

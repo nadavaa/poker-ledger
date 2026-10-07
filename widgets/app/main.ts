@@ -51,6 +51,13 @@ type Phase =
   | { kind: 'working'; label: string }
   | { kind: 'confirm'; action: 'join' | 'withdraw'; text: string; token: string }
 
+/**
+ * Light whatever Claude's theme is, so it looks like the app by default.
+ * Set to 'host' to follow Claude's light and dark instead; both palettes are
+ * in styles.css.
+ */
+const THEME: 'light' | 'host' = 'light'
+
 const root = document.getElementById('root')!
 const origin = safeOrigin(document.querySelector('meta[name="app-origin"]')?.getAttribute('content'))
 
@@ -70,7 +77,7 @@ const app = startApp('Poker Ledger', (result) => {
   void begin(kind, parsed)
 }, (args) => {
   lastArgs = args
-})
+}, THEME === 'light' ? 'light' : undefined)
 
 const top = () => stack[stack.length - 1]
 

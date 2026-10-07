@@ -440,7 +440,9 @@ apps that support MCP Apps (Claude on web, desktop and mobile). Each tool still
 returns exactly the text it always did, so an app that does not draw the page,
 or an agent that only reads, loses nothing.
 
-It uses the app's own colours, cards and tabs, in light and dark, and opens on
+It uses the app's own colours, cards and tabs, always in light mode whatever
+theme the chat is in (`THEME` in `widgets/app/main.ts` switches it to follow
+the chat), and opens on
 the screen for whichever tool ran: `list_my_groups` (your groups), `list_games`
 (a group's games), `get_game` (one game), `get_my_stats` (a group's stats),
 `get_my_balances` (your results) and `get_outstanding_debt` (what you owe and

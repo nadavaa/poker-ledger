@@ -13,13 +13,16 @@ import type { ToolResultLike } from '@/lib/mcp/ui/shape'
 export function startApp(
   name: string,
   onResult: (result: ToolResultLike) => void,
-  onInput?: (args: Record<string, unknown>) => void
+  onInput?: (args: Record<string, unknown>) => void,
+  /** Show this theme whatever the host is in. Omit to follow the host. */
+  fixedTheme?: 'light' | 'dark'
 ): App {
   const app = new App({ name, version: '0.1.0' })
+  if (fixedTheme) applyDocumentTheme(fixedTheme)
 
   const applyContext = (ctx: McpUiHostContext | undefined) => {
     if (!ctx) return
-    if (ctx.theme) applyDocumentTheme(ctx.theme)
+    if (ctx.theme || fixedTheme) applyDocumentTheme(fixedTheme ?? ctx.theme!)
     // Colours, type sizes and radii. Host fonts are left alone on purpose:
     // loading one would be a network request, and these views make none.
     if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables)
