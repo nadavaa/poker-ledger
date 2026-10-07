@@ -26,7 +26,11 @@ export function AgentActivity({
         {shown.map((r, i) => (
           <li key={`${r.created_at}-${i}`} className="flex justify-between gap-2">
             <span className="min-w-0 truncate">
-              {agentActionLine(r, names.get(r.member_id) ?? 'Someone')}
+              {agentActionLine(
+                r,
+                names.get(r.member_id) ?? 'Someone',
+                r.target_member_id ? names.get(r.target_member_id) : undefined
+              )}
               <span className="text-muted-foreground"> · via AI agent</span>
             </span>
             <span className="shrink-0 text-xs text-muted-foreground">

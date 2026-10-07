@@ -162,7 +162,9 @@ export default async function GamePage({
     // from anyone who cannot see the payment itself.
     supabase
       .from('agent_actions')
-      .select('member_id, action, settlement_id, signup_order, created_at')
+      .select(
+        'member_id, action, settlement_id, signup_order, target_member_id, created_at'
+      )
       .eq('game_id', gameId)
       .order('created_at', { ascending: false }),
   ])
@@ -632,6 +634,7 @@ export default async function GamePage({
             kind: s.kind,
             paidViaAgent: agent.paidViaAgent(s.id),
             confirmedViaAgent: agent.confirmedViaAgent(s.id),
+            closedOutViaAgent: agent.closedOutViaAgent(s.id),
           }))}
           adjustments={(adjustments ?? []).map((a) => ({
             id: a.id,

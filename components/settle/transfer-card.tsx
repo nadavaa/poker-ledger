@@ -22,6 +22,8 @@ export type TransferRow = {
   paidViaAgent?: boolean
   /** The payee's AI agent confirmed it. */
   confirmedViaAgent?: boolean
+  /** The game admin's AI agent closed it out. */
+  closedOutViaAgent?: boolean
 }
 
 
@@ -190,12 +192,15 @@ export function TransferCard({
               {line.glyph}
             </span>
             {line.label}
-            {(transfer.paidViaAgent || transfer.confirmedViaAgent) && (
+            {(transfer.paidViaAgent ||
+              transfer.confirmedViaAgent ||
+              transfer.closedOutViaAgent) && (
               <span className="text-muted-foreground">
                 {' · '}
                 {[
                   transfer.paidViaAgent && 'marked paid via AI agent',
                   transfer.confirmedViaAgent && 'confirmed via AI agent',
+                  transfer.closedOutViaAgent && 'via AI agent',
                 ]
                   .filter(Boolean)
                   .join(', ')}

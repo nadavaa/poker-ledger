@@ -37,6 +37,25 @@ describe('agent marks', () => {
     expect(m.paidViaAgent('s2')).toBe(false)
   })
 
+  it('knows a close-out from a confirmation', () => {
+    const m = agentMarks([
+      row({ action: 'closed_out', settlement_id: 's9', signup_order: null }),
+    ])
+    expect(m.closedOutViaAgent('s9')).toBe(true)
+    expect(m.confirmedViaAgent('s9')).toBe(false)
+  })
+
+  it('names who was added or seated, and says what the admin did', () => {
+    expect(agentActionLine({ action: 'created_game' }, 'Nadav')).toBe('Nadav created the game')
+    expect(agentActionLine({ action: 'edited_game' }, 'Nadav')).toBe('Nadav edited the game')
+    expect(agentActionLine({ action: 'cancelled_game' }, 'Nadav')).toBe('Nadav cancelled the game')
+    expect(agentActionLine({ action: 'added_player' }, 'Nadav', 'Dean')).toBe('Nadav added Dean')
+    expect(agentActionLine({ action: 'seated_player' }, 'Nadav', 'Dean')).toBe(
+      'Nadav seated Dean from the waitlist'
+    )
+    expect(agentActionLine({ action: 'closed_out' }, 'Nadav')).toBe('Nadav closed out a payment')
+  })
+
   it('says what happened without amounts or counterparties', () => {
     expect(agentActionLine({ action: 'withdrew' }, 'Dean')).toBe('Dean withdrew')
     expect(agentActionLine({ action: 'marked_paid' }, 'Dean')).toBe(
