@@ -123,6 +123,27 @@ export type Standing =
 
 export type Person = { name: string; isMe: boolean; position?: number }
 
+export type GameMoney = {
+  pot: Money
+  note: string
+  players: {
+    name: string
+    isMe: boolean
+    boughtIn: Money
+    cashedOut: Money | null
+    net: Money | null
+  }[]
+}
+
+export type GameTransfer = {
+  kind: string
+  from: string
+  to: string
+  amount: Money
+  statusWords: string
+  myPart: string
+}
+
 export type GameCardView =
   | {
       kind: 'card'
@@ -147,6 +168,10 @@ export type GameCardView =
       status: string
       when: string
       seats: string
+      location: string | null
+      /** Only once the game has started; a scheduled game has none. */
+      money: GameMoney | null
+      transfers: GameTransfer[]
     }
 
 export function gameCardView(data: Record<string, unknown>): GameCardView | null {
@@ -168,6 +193,9 @@ export function gameCardView(data: Record<string, unknown>): GameCardView | null
       status,
       when: played?.local ?? '',
       seats,
+      location: typeof data.location === 'string' && data.location ? data.location : null,
+      money: moneyOf(data.money),
+      transfers: transfersOf(data.settlements),
     }
   }
 
@@ -201,6 +229,39 @@ export function gameCardView(data: Record<string, unknown>): GameCardView | null
     standing,
     action: standing.kind === 'none' ? 'join' : 'withdraw',
   }
+}
+
+function moneyOf(raw: unknown): GameMoney | null {
+  const m = raw as Record<string, unknown> | null
+  if (!m || !isMoney(m.pot) || !Array.isArray(m.players)) return null
+  return {
+    pot: m.pot,
+    note: typeof m.note === 'string' ? m.note : '',
+    players: (m.players as Record<string, unknown>[]).map((p) => ({
+      name: String(p.name ?? ''),
+      isMe: p.is_me === true,
+      boughtIn: isMoney(p.bought_in) ? p.bought_in : { cents: 0, display: '$0' },
+      cashedOut: isMoney(p.cashed_out) ? p.cashed_out : null,
+      net: isMoney(p.net) ? p.net : null,
+    })),
+  }
+}
+
+function transfersOf(raw: unknown): GameTransfer[] {
+  return (Array.isArray(raw) ? raw : []).flatMap((t: Record<string, unknown>) =>
+    isMoney(t.amount)
+      ? [
+          {
+            kind: String(t.kind ?? 'poker'),
+            from: String(t.from ?? ''),
+            to: String(t.to ?? ''),
+            amount: t.amount,
+            statusWords: String(t.status_words ?? ''),
+            myPart: String(t.my_part ?? ''),
+          },
+        ]
+      : []
+  )
 }
 
 export function standingWords(s: Standing): string {
@@ -256,4 +317,186 @@ export function contextLine(args: {
   const verb = args.action === 'join' ? 'joined' : 'withdrew from'
   const where = args.group && args.group !== args.title ? `${args.title} (${args.group})` : args.title
   return `The user ${verb} ${where} from the game card and confirmed it themselves. Result: ${args.message} Seats now: ${args.seats}.`
+}
+
+// ------------------------------------------------------- the app's screens
+//
+// The same tool results, shaped for the screens a player moves between:
+// groups, a group's games and members, what I owe, what I ended with.
+
+export type GroupItem = { id: string; name: string; role: string; timezone: string }
+
+export function groupsView(data: Record<string, unknown>): GroupItem[] {
+  return (Array.isArray(data.groups) ? data.groups : []).flatMap(
+    (g: Record<string, unknown>) =>
+      typeof g.group_id === 'string'
+        ? [{ id: g.group_id, name: String(g.name ?? ''), role: String(g.my_role ?? ''), timezone: String(g.timezone ?? '') }]
+        : []
+  )
+}
+
+export type GameListItem = {
+  id: string
+  title: string
+  when: string
+  status: string
+  location: string | null
+  seats: string
+  standing: Standing
+}
+
+export function gamesView(data: Record<string, unknown>): {
+  group: string
+  games: GameListItem[]
+  note: string | null
+} {
+  const games = (Array.isArray(data.games) ? data.games : []).flatMap(
+    (g: Record<string, unknown>): GameListItem[] => {
+      if (typeof g.game_id !== 'string') return []
+      const when = (g.played_at as Moment | undefined)?.local ?? ''
+      const iAm = g.i_am
+      const pos = typeof g.waitlist_position === 'number' ? g.waitlist_position : 0
+      return [
+        {
+          id: g.game_id,
+          title: typeof g.name === 'string' && g.name ? g.name : when,
+          when,
+          status: String(g.status ?? ''),
+          location: typeof g.location === 'string' && g.location ? g.location : null,
+          seats: (g.seats as { summary?: string } | undefined)?.summary ?? '',
+          standing:
+            iAm === 'seated'
+              ? { kind: 'seated' }
+              : iAm === 'waitlisted'
+                ? { kind: 'waitlisted', position: pos }
+                : { kind: 'none' },
+        },
+      ]
+    }
+  )
+  return {
+    group: typeof data.group === 'string' ? data.group : '',
+    games,
+    note: typeof data.note === 'string' ? data.note : null,
+  }
+}
+
+export function membersView(data: Record<string, unknown>): {
+  group: string
+  members: { id: string; name: string }[]
+} {
+  return {
+    group: typeof data.group === 'string' ? data.group : '',
+    members: (Array.isArray(data.members) ? data.members : []).flatMap(
+      (m: Record<string, unknown>) =>
+        typeof m.member_id === 'string' ? [{ id: m.member_id, name: String(m.name ?? '') }] : []
+    ),
+  }
+}
+
+export type ResultLine = {
+  gameId: string
+  group: string
+  title: string
+  when: string
+  boughtIn: Money
+  cashedOut: Money | null
+  net: Money
+}
+
+export function balancesView(data: Record<string, unknown>): {
+  total: Money | null
+  games: ResultLine[]
+} {
+  const games = (Array.isArray(data.games) ? data.games : []).flatMap(
+    (g: Record<string, unknown>): ResultLine[] =>
+      typeof g.game_id === 'string' && isMoney(g.bought_in) && isMoney(g.net)
+        ? [
+            {
+              gameId: g.game_id,
+              group: String(g.group ?? ''),
+              title: typeof g.name === 'string' && g.name ? g.name : (g.played_at as Moment | undefined)?.local ?? '',
+              when: (g.played_at as Moment | undefined)?.local ?? '',
+              boughtIn: g.bought_in,
+              cashedOut: isMoney(g.cashed_out) ? g.cashed_out : null,
+              net: g.net,
+            },
+          ]
+        : []
+  )
+  return { total: isMoney(data.total_net) ? data.total_net : null, games }
+}
+
+export type DebtLine = {
+  gameId: string
+  group: string
+  game: string
+  when: string
+  kind: string
+  with: string
+  amount: Money
+  statusWords: string
+}
+
+function debtLines(raw: unknown): DebtLine[] {
+  return (Array.isArray(raw) ? raw : []).flatMap((l: Record<string, unknown>): DebtLine[] =>
+    isMoney(l.amount)
+      ? [
+          {
+            gameId: String(l.game_id ?? ''),
+            group: String(l.group ?? ''),
+            game: typeof l.game === 'string' ? l.game : '',
+            when: (l.played_at as Moment | null | undefined)?.local ?? '',
+            kind: String(l.kind ?? 'poker'),
+            with: String(l.with ?? ''),
+            amount: l.amount,
+            statusWords: String(l.status_words ?? ''),
+          },
+        ]
+      : []
+  )
+}
+
+/** What I owe and what I am owed. Never netted, and poker never netted with food. */
+export function debtView(data: Record<string, unknown>): {
+  iOwe: DebtLine[]
+  owedToMe: DebtLine[]
+} {
+  return { iOwe: debtLines(data.i_owe), owedToMe: debtLines(data.owed_to_me) }
+}
+
+/** Which screen a tool's result belongs on, from the tool's name. */
+export type ScreenKind = 'groups' | 'games' | 'game' | 'stats' | 'balances' | 'debt' | 'members'
+
+export const SCREEN_OF_TOOL: Record<string, ScreenKind> = {
+  list_my_groups: 'groups',
+  list_games: 'games',
+  get_game: 'game',
+  get_my_stats: 'stats',
+  get_my_balances: 'balances',
+  get_outstanding_debt: 'debt',
+  list_group_members: 'members',
+}
+
+/** Only a web address the host can sensibly open: https, or local for development. */
+export function safeOrigin(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  try {
+    const u = new URL(raw)
+    const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1'
+    if (u.protocol === 'https:' || (local && u.protocol === 'http:')) return u.origin
+  } catch {
+    // fall through
+  }
+  return null
+}
+
+export function appLink(
+  origin: string | null,
+  to: { group: string } | { game: string }
+): string | null {
+  if (!origin) return null
+  return 'group' in to
+    ? `${origin}/groups/${encodeURIComponent(to.group)}`
+    : `${origin}/games/${encodeURIComponent(to.game)}`
 }

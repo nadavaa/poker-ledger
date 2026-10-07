@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { gameDetail, mapStats, type GameRow } from '../map'
 import {
+  gameDetail,
+  gameListItem,
+  mapBalances,
+  mapGroups,
+  mapOutstandingDebt,
+  mapStats,
+  type GameRow,
+} from '../map'
+import {
+  appLink,
+  balancesView,
   contextLine,
+  debtView,
+  gamesView,
+  groupsView,
+  membersView,
+  safeOrigin,
+  SCREEN_OF_TOOL,
   gameCardView,
   parseResult,
   sideOfZero,
@@ -244,5 +260,120 @@ describe('contextLine', () => {
     expect(line).toContain('joined Friday night')
     expect(line).toContain('confirmed it themselves')
     expect(line).toContain('2/2 · table full')
+  })
+})
+
+describe('the app screens', () => {
+  it('lists groups with my role', () => {
+    const groups = groupsView({
+      groups: mapGroups([{ id: 'g1', name: 'wef', timezone: null, role: 'owner' }]),
+    })
+    expect(groups).toEqual([
+      { id: 'g1', name: 'wef', role: 'owner', timezone: 'America/New_York' },
+    ])
+    expect(groupsView({})).toEqual([])
+  })
+
+  it('lists a group\u2019s games with my standing and the real seat wording', () => {
+    const game: GameRow = {
+      id: 'g1', name: null, scheduled_at: '2026-10-09T00:00:00Z', started_at: null,
+      settled_at: null, location: null, seat_limit: 2, status: 'scheduled', admin_member_id: 'm1',
+    }
+    const signups = [
+      { member_id: 'm1', status: 'confirmed' as const, signup_order: 1 },
+      { member_id: 'm2', status: 'confirmed' as const, signup_order: 2 },
+      { member_id: 'm3', status: 'waitlist' as const, signup_order: 3 },
+    ]
+    const item = (me: string) =>
+      gamesView({
+        group: 'wef',
+        games: [gameListItem({ game, timezone: TZ, signups, leftTable: 0, myMemberId: me })],
+      }).games[0]
+    expect(item('m3')).toMatchObject({
+      id: 'g1',
+      title: 'Thu, Oct 8, 8:00 PM',
+      seats: '2/2 · table full',
+      standing: { kind: 'waitlisted', position: 1 },
+    })
+    expect(item('m1').standing).toEqual({ kind: 'seated' })
+    expect(item('m9').standing).toEqual({ kind: 'none' })
+  })
+
+  it('reads members, and tolerates nothing', () => {
+    expect(
+      membersView({ group: 'wef', members: [{ member_id: 'a', name: 'Dean' }, { nope: 1 }] })
+    ).toEqual({ group: 'wef', members: [{ id: 'a', name: 'Dean' }] })
+    expect(membersView({}).members).toEqual([])
+  })
+
+  it('reads results with their total', () => {
+    const v = balancesView(
+      mapBalances([
+        {
+          game_id: 'g', game_name: null, group_name: 'wef', timezone: TZ,
+          played_at: '2026-09-17T00:00:00Z', buyin_cents: 5000, cashout_cents: 8000,
+          adjustment_cents: 0, net_cents: 3000,
+        },
+      ]) as unknown as Record<string, unknown>
+    )
+    expect(v.total?.cents).toBe(3000)
+    expect(v.games[0]).toMatchObject({ gameId: 'g', group: 'wef' })
+    expect(v.games[0].net.display).toBe('$30')
+  })
+
+  it('keeps what I owe and what I am owed apart', () => {
+    const v = debtView({
+      i_owe: [{ game_id: 'g', group: 'wef', kind: 'poker', with: 'Roger', amount: { cents: 800, display: '$8' }, status_words: 'not paid yet' }],
+      owed_to_me: [{ game_id: 'g', group: 'wef', kind: 'food', with: 'Izzy', amount: { cents: 250, display: '$2.50' }, status_words: 'not paid yet' }],
+    })
+    expect(v.iOwe).toHaveLength(1)
+    expect(v.owedToMe[0]).toMatchObject({ kind: 'food', with: 'Izzy' })
+    expect(debtView({})).toEqual({ iOwe: [], owedToMe: [] })
+  })
+
+  it('shows the pot and results on a game that has started, and none on a scheduled one', () => {
+    const base: GameRow = {
+      id: 'g1', name: 'Fri', scheduled_at: '2026-10-09T23:30:00Z', started_at: '2026-10-09T23:40:00Z',
+      settled_at: '2026-10-10T03:00:00Z', location: null, seat_limit: 8, status: 'settled', admin_member_id: 'm1',
+    }
+    const view = (status: GameRow['status']) =>
+      gameCardView(
+        gameDetail({
+          game: { ...base, status },
+          timezone: TZ, groupName: 'wef',
+          signups: [{ member_id: 'm1', status: 'confirmed', signup_order: 1 }],
+          people: [{ member_id: 'm1', display_name: 'Me' }],
+          totals: [{ member_id: 'm1', display_name: 'Me', buyin_cents: 5000, cashout_cents: 8000, adjustment_cents: 0, net_cents: 3000 }],
+          settlements: [], myMemberId: 'm1',
+        }) as unknown as Record<string, unknown>
+      )
+    const settled = view('settled')
+    if (settled?.kind !== 'summary') throw new Error('expected a summary')
+    expect(settled.money?.pot.cents).toBe(5000)
+    expect(settled.money?.players[0]).toMatchObject({ isMe: true })
+    expect(settled.money?.players[0].net?.cents).toBe(3000)
+    const active = view('active')
+    if (active?.kind !== 'summary') throw new Error('expected a summary')
+    // Counts and nets are the reconciliation's business until it is settled.
+    expect(active.money?.players[0].net).toBeNull()
+    const scheduled = view('scheduled')
+    expect(scheduled?.kind).toBe('card')
+  })
+
+  it('maps each tool to a screen', () => {
+    expect(SCREEN_OF_TOOL.get_game).toBe('game')
+    expect(SCREEN_OF_TOOL.list_my_groups).toBe('groups')
+    expect(SCREEN_OF_TOOL.join_game).toBeUndefined()
+  })
+
+  it('only ever opens https or local addresses, and builds links from ids', () => {
+    expect(safeOrigin('https://www.kevespoker.com/anything')).toBe('https://www.kevespoker.com')
+    expect(safeOrigin('http://localhost:3000')).toBe('http://localhost:3000')
+    expect(safeOrigin('http://evil.example')).toBeNull()
+    expect(safeOrigin('javascript:alert(1)')).toBeNull()
+    expect(safeOrigin('')).toBeNull()
+    expect(appLink('https://x.app', { game: 'a b' })).toBe('https://x.app/games/a%20b')
+    expect(appLink('https://x.app', { group: 'g' })).toBe('https://x.app/groups/g')
+    expect(appLink(null, { group: 'g' })).toBeNull()
   })
 })
