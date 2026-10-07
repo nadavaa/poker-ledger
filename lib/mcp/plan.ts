@@ -22,7 +22,7 @@ export type GameFacts = {
   seatLimit: number
 }
 
-function label(g: GameFacts): string {
+export function label(g: GameFacts): string {
   const when = formatTime(g.startedAt ?? g.scheduledAt, g.timezone, 'when')
   return `${g.name ? `${g.name}, ` : ''}${when} — ${g.groupName}`
 }

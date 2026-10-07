@@ -55,9 +55,10 @@ export function registerSignupTools(server: McpServer) {
             leftTable: g.leftTable,
             myMemberId: g.myMemberId,
           })
-          return plan.kind === 'refuse'
-            ? { kind: 'refuse', reason: plan.reason }
-            : { kind: plan.kind, text: plan.text }
+          if (plan.kind === 'refuse') return { kind: 'refuse', reason: plan.reason }
+          if (plan.kind === 'already') return { kind: 'already', text: plan.text }
+          // Approving "you would get a seat" does not cover a waitlist spot.
+          return { kind: 'confirm', text: plan.text, bind: { outcome: plan.outcome } }
         },
         afterCommit: async ({ db }, result) => {
           // Only a signup that now exists is worth a label; "already" and

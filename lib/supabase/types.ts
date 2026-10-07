@@ -467,7 +467,18 @@ export type Database = {
           game_id: string
           settlement_id: string | null
           signup_order: number | null
-          action: 'joined' | 'withdrew' | 'marked_paid' | 'confirmed_received'
+          target_member_id: string | null
+          action:
+            | 'joined'
+            | 'withdrew'
+            | 'marked_paid'
+            | 'confirmed_received'
+            | 'created_game'
+            | 'edited_game'
+            | 'added_player'
+            | 'seated_player'
+            | 'cancelled_game'
+            | 'closed_out'
           created_at: string
         }
         // Written only by record_agent_action().
@@ -653,9 +664,20 @@ export type Database = {
       }
       record_agent_action: {
         Args: {
-          p_action: 'joined' | 'withdrew' | 'marked_paid' | 'confirmed_received'
+          p_action:
+            | 'joined'
+            | 'withdrew'
+            | 'marked_paid'
+            | 'confirmed_received'
+            | 'created_game'
+            | 'edited_game'
+            | 'added_player'
+            | 'seated_player'
+            | 'cancelled_game'
+            | 'closed_out'
           p_game_id?: string | null
           p_settlement_id?: string | null
+          p_target_member_id?: string | null
         }
         Returns: undefined
       }

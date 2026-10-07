@@ -47,6 +47,7 @@ server of ours. In the Supabase dashboard:
    |---|---|
    | `20261006000000_mcp_write_support.sql` | `supabase/tests/mcp_write_support_20261006.sql` |
    | `20261006010000_agent_actions.sql` | `supabase/tests/agent_actions_20261006.sql` |
+   | `20261007000000_agent_actions_admin.sql` (phase 3) | `supabase/tests/agent_actions_admin_20261007.sql` |
 
    Then run the anon check from phase 1 (list public functions `anon` can
    execute); it should return no rows.
@@ -89,6 +90,20 @@ All as you, all through the same row-level security as the app.
 | `mark_transfer_paid(transfer_id)` | You are the payer and you sent it. Two-step. |
 | `confirm_transfer_received(transfer_id)` | You are the payee and it arrived. Two-step, can't be undone. |
 | `update_payment_handle(venmo?, zelle_phone?)` | Venmo and/or Zelle. Saves at once; shows the last four digits of a phone only. |
+| `list_group_members(group_id)` | Member ids and names, to turn "add Dean" into a `member_id`. |
+| `get_whatsapp_summary(game_id)` | The text of the app's *Copy summary for WhatsApp* button. Game admin, settled game. |
+| `create_game(group_id, date, time, …)` | Schedule a game. Date and time are the group's local clock. Two-step. |
+| `edit_game(game_id, date?, time?, location?, name?, seat_limit?)` | Game admin. Two-step. |
+| `add_player(game_id, member_id? \| guest_name?)` | Game admin. A seat, or the waitlist if full. Two-step. |
+| `seat_from_waitlist(game_id, member_id)` | Game admin. Over the limit only after the app's own question. Two-step. |
+| `cancel_game(game_id)` | Game admin or group owner. Keeps the roster and buy-ins. Two-step. |
+| `close_out_transfer(transfer_id)` | Game admin, a transfer they are not part of. Two-step, can't be undone. |
+
+**Admin tools** work only for the game admin (cancelling also for the group
+owner): being a group owner grants nothing over a game, and the database
+refuses anyone else. A confirmation is bound to the outcome it was shown for,
+so if the table fills or the group's defaults change between preview and yes,
+the token stops working and the agent must preview again.
 
 **Two-step:** the first call returns a preview and a `confirmation_token` and
 changes nothing; the agent shows the preview, waits for a yes, and calls again
@@ -166,4 +181,7 @@ group by tool order by calls desc;
 | *"Changes through an AI app are not switched on for this server yet"* | `MCP_CONFIRM_SECRET` is not set on this deployment |
 | *"That confirmation expired"* / *"already used"* | Ask for a fresh preview; each token lasts five minutes and works once |
 | *"Too many changes in a short time"* | The per-user limit (10 changes or 30 previews in ten minutes); wait |
+| *"Only the game admin can …"* | The user is not the one admin of that game. Group role does not change that |
+| *"… does not exist in America/New_York"* | The local time falls in the hour clocks skip, or the date is not real |
+| *"The arguments changed since the preview"* right after a yes | The table, the group's numbers or the transfer changed in between; preview again |
 | Changes work but no *via AI agent* label appears | `20261006010000_agent_actions.sql` is not applied, or `record_agent_action` failed; the tool reports a warning when it can't label |

@@ -58,3 +58,38 @@ export function gameSummary({
 
   return lines.join('\n')
 }
+
+/**
+ * The summary for a settled game, from the same rows the game screen holds.
+ * The Copy button and the AI connector both come through here, so the text
+ * cannot drift between them: the pot is the sum of buy-ins, players are the
+ * results table, and a transfer is named by whoever the member is today.
+ */
+export function settledGameSummary({
+  title,
+  rows,
+  transfers,
+  names,
+}: {
+  title: string
+  rows: { name: string; buyinCents: number; netCents: number }[]
+  transfers: {
+    fromMemberId: string
+    toMemberId: string
+    amountCents: number
+    status: string
+  }[]
+  names: Map<string, string>
+}): string {
+  return gameSummary({
+    title,
+    potCents: rows.reduce((s, r) => s + r.buyinCents, 0),
+    players: rows.map((r) => ({ name: r.name, netCents: r.netCents })),
+    transfers: transfers.map((t) => ({
+      fromName: names.get(t.fromMemberId) ?? 'Someone',
+      toName: names.get(t.toMemberId) ?? 'someone',
+      amountCents: t.amountCents,
+      confirmed: t.status === 'confirmed',
+    })),
+  })
+}

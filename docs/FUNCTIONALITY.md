@@ -327,8 +327,9 @@ the service role alone.
 ## Agents
 
 Players can connect their own AI app (Claude, ChatGPT) to Poker Ledger and
-ask about their poker in plain words, and do a handful of the things a player
-can do themselves. Setup is in [MCP.md](MCP.md); this is what the agent is
+ask about their poker in plain words, do a handful of the things a player can
+do themselves, and, if they run the game, a handful of the things a game admin
+can do. Setup is in [MCP.md](MCP.md); this is what the agent is
 and isn't allowed to do, and why.
 
 **It is you, signed in.** The connector signs in as the player, through the
@@ -358,6 +359,10 @@ database function the app's own button uses, never around it.
 - **Your balances** — what you ended each settled game with.
 - **What you owe and are owed** — with the handshake status and, on what you
   owe, a Venmo link. No money moves through Poker Ledger or through the agent.
+- **Who is in a group** — names and member ids only, so "add Dean" can be
+  turned into a member. No contact details, handles, roles or claim status.
+- **The WhatsApp summary** of a settled game — the same text the app's *Copy
+  summary for WhatsApp* button copies, from the same code, for the game admin.
 
 ### What it can do
 
@@ -374,6 +379,32 @@ Five player actions, and nothing an admin does.
 Joining only works for games in groups you already belong to: the game is read
 through row-level security first, so a link to someone else's game is *not
 found* rather than an invitation to join their group.
+
+### What the game admin can do
+
+A game has exactly one admin, and the database knows who. These work only for
+that person: **group role grants nothing over a game**, so an owner who is not
+the game admin cannot add a player here any more than in the app. (Cancelling
+is the one exception, as in the app: the game admin or the group owner.) A
+refusal is one sentence and the agent is told to say so rather than look for
+another way.
+
+| Action | What it does | Same as |
+|---|---|---|
+| Create a game | Date and time are read on the group's own clock, in its IANA timezone, so 8 PM is 8 PM at the table on either side of a clocks-change. Seat limit, buy-in and chip ratio come from the group and are snapshotted onto the game. The creator becomes the game admin and, unless they say otherwise, takes a seat. A time that does not exist, or a date that is not real, is refused rather than slid to another time | The new-game form |
+| Edit a game | Time, location, name, seat limit. The database decides what may change: time and seats only while scheduled; name and location until it is finished. Lowering the limit below the number confirmed is refused with the app's reason, and nobody is ever demoted. Raising it seats the waitlist in order | The edit form |
+| Add a player | An existing member, or a guest by name, who becomes an unclaimed member as in the app. A seat if there is room, the waitlist if not; adding never takes the table over its limit. A guest whose name matches an existing member is refused, with that member's id, so nobody ends up in the group twice. Never shows or creates a claim code | Add player |
+| Seat from the waitlist | If the table is full, the preview is the app's own question, word for word — *"This game is full (8/8). Adding Dean will make it 9 players. Continue?"* — and going over happens only after a yes to that | The waitlist panel |
+| Cancel a game | Keeps the roster, every buy-in and the audit trail; it only means no settlement will be computed. Refused for a settled game or one with unpaid transfers | The danger zone |
+| Close out a transfer | For a payee who will not confirm in the app. Never on a transfer the admin is part of: a payer cannot close out their own debt, and a payee confirms. The transfer then says who closed it out, not that the payee confirmed it | The close-out button |
+
+Each takes the same two steps as the player actions. One addition: **the yes
+is bound to the outcome it was given for, not just the request.** A yes to
+*"they would get a seat"* does not cover a waitlist spot if the table fills
+before the commit; a yes to a free seat does not go over the limit; a yes to
+a game created with the group's numbers does not cover changed numbers. When
+the facts differ the confirmation stops working and the user is asked again.
+The same applies to `join_game`.
 
 ### Nothing that matters happens on one call
 
@@ -411,9 +442,11 @@ for a player is one more fact worth showing:
   to the name, the way an admin logging their own buy-in gets a marker. The
   label belongs to that one signup: if someone joins by agent, withdraws, and
   rejoins by hand, the new signup carries no label.
-- A payment marked paid or confirmed by an agent says so on the transfer.
-- A short **Agent activity** list on the game covers the rest, including
-  withdrawals, which leave no row to label.
+- A payment marked paid, confirmed or closed out by an agent says so on the
+  transfer.
+- A short **Agent activity** list on the game covers the rest — a game
+  created, edited or cancelled, someone added or seated, a withdrawal — which
+  leave no single row to label.
 
 A payment marker is visible only to people who can already see that payment —
 the two parties and the game admin — so it can never reveal who owes whom. A
@@ -423,9 +456,14 @@ action still stands and the agent is told to say so.
 
 ### What it can't do, and why
 
-- **Anything an admin does.** No buy-ins, cash-outs, starting or settling a
-  game, seating anyone, closing out someone else's transfer. Those are the
-  game admin's, and a sentence misread by an agent should not move the pot.
+- **The parts of running a game that handle the chips and the pot.** No
+  starting a game, buy-ins, cash-outs, chip counts, reconciliation or settling;
+  no removing a player (that voids their buy-ins); no food orders. A sentence
+  misread by an agent should not move the pot.
+- **Anything about the group itself.** No role changes, removing members, group
+  settings, invite links or claim codes.
+- **Anything an admin does, for someone who is not the admin.** Ask a game
+  you do not run and the answer is the same as the app's.
 - **See anything in the live game** — the buy-in feed, cash-outs as they
   happen. The tap grid is a human's job at a table.
 - **See phone numbers.** The database function that returns a payee's Zelle
@@ -438,6 +476,8 @@ action still stands and the agent is told to say so.
   game in the app, but the agent only reports the ones you are party to.
 - **Change a lot, fast.** Each user has a limit on previews and on committed
   changes in any ten minutes.
+- **Create a game twice by accident.** A game already at that exact time is
+  flagged in the preview, and each confirmation works once.
 
 **Consent and revocation.** Any signed-in player can approve a connector; the
 screen names the app and lists what it can do. Disconnecting it in the AI app
@@ -476,6 +516,6 @@ Worth stating, because each one looks like a bug until you know why:
 
 ## Scale and shape
 
-41 migrations · 170 tests across 14 pure modules · one Next.js app on Vercel,
+42 migrations · 170 tests across 14 pure modules · one Next.js app on Vercel,
 one Supabase project. The testable rules live in `lib/` with no I/O:
 settlement, splitting, money, time, seats, stats, joins, game edits.
