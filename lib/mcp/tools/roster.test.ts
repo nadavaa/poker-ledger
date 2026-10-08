@@ -63,9 +63,9 @@ describe('list_group_members', () => {
     expect(text.members.map((m: { name: string }) => m.name)).toEqual(['Amy', 'Cy', 'Zed'])
     expect(raw.content[0].text).not.toMatch(/supabase|avatar|isMe/i)
     expect(raw._meta?.['poker-ledger/ui'].members).toEqual([
-      { avatar: 'https://proj.supabase.co/storage/v1/object/public/avatars/u1/a.webp', isMe: true },
-      { avatar: null, isMe: false },
-      { avatar: null, isMe: false },
+      { id: 'u1', avatar: 'https://proj.supabase.co/storage/v1/object/public/avatars/u1/a.webp', isMe: true },
+      { id: 'm3', avatar: null, isMe: false },
+      { id: 'u9', avatar: null, isMe: false },
     ])
   })
 })

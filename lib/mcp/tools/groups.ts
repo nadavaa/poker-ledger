@@ -34,7 +34,7 @@ export function registerGroupTools(server: McpServer) {
         const mine = rows.flatMap((r) =>
           r.groups ? [{ ...r.groups, role: r.role }] : []
         )
-        setUi({ groups: mine.map((g) => ({ avatar: groupAvatar(g.avatar_url) })) })
+        setUi({ groups: mine.map((g) => ({ id: g.id, avatar: groupAvatar(g.avatar_url) })) })
         return { groups: mapGroups(mine) }
       })
   )

@@ -311,7 +311,7 @@ describe('the app screens', () => {
   it('reads members, and tolerates nothing', () => {
     expect(
       membersView({ group: 'wef', members: [{ member_id: 'a', name: 'Dean' }, { nope: 1 }] })
-    ).toEqual({ group: 'wef', members: [{ id: 'a', name: 'Dean', avatar: null, isMe: false }] })
+    ).toEqual({ group: 'wef', members: [{ id: 'a', faceId: 'a', name: 'Dean', avatar: null, isMe: false }] })
     expect(membersView({}).members).toEqual([])
   })
 
@@ -406,7 +406,7 @@ describe('pictures and the view-only data', () => {
   const withMeta = (o: unknown, ui: unknown) => ({ ...text(o), _meta: { 'poker-ledger/ui': ui } })
 
   it('reads the view-only data from the result\u2019s _meta, and the text is unaffected', () => {
-    const r = parseResult(withMeta({ groups: [] }, { groups: [{ avatar: 'https://x/a.webp' }] }))
+    const r = parseResult(withMeta({ groups: [] }, { groups: [{ id: 'g1', avatar: 'https://x/a.webp' }] }))
     if (!r.ok) throw new Error('expected ok')
     expect(r.ui?.groups?.[0].avatar).toBe('https://x/a.webp')
     expect(r.data).toEqual({ groups: [] })
@@ -415,14 +415,14 @@ describe('pictures and the view-only data', () => {
   it('puts each picture beside the right group and member', () => {
     const g = groupsView(
       { groups: mapGroups([{ id: 'g1', name: 'A', timezone: null, role: 'owner' }, { id: 'g2', name: 'B', timezone: null, role: 'member' }]) },
-      { groups: [{ avatar: 'https://x/1' }, { avatar: null }] }
+      { groups: [{ id: 'g1', avatar: 'https://x/1' }, { id: 'g2', avatar: null }] }
     )
     expect(g.map((x) => [x.name, x.avatar])).toEqual([['A', 'https://x/1'], ['B', null]])
     const m = membersView(
       { group: 'wef', members: [{ member_id: 'a', name: 'Amy' }, { member_id: 'b', name: 'Bo' }] },
-      { members: [{ avatar: 'https://x/a', isMe: false }, { avatar: null, isMe: true }] }
+      { members: [{ id: 'pa', avatar: 'https://x/a', isMe: false }, { id: 'pb', avatar: null, isMe: true }] }
     )
-    expect(m.members.map((x) => [x.name, x.avatar, x.isMe])).toEqual([['Amy', 'https://x/a', false], ['Bo', null, true]])
+    expect(m.members.map((x) => [x.name, x.avatar, x.isMe, x.faceId])).toEqual([['Amy', 'https://x/a', false, 'pa'], ['Bo', null, true, 'pb']])
   })
 
   it('puts the roster, waitlist and results pictures beside the right people', () => {
@@ -442,13 +442,13 @@ describe('pictures and the view-only data', () => {
         totals: [], settlements: [], myMemberId: 'm1',
       }) as unknown as Record<string, unknown>,
       {
-        roster: [{ avatar: 'face-m1' }, { avatar: 'face-m2' }],
-        waitlist: [{ avatar: 'face-m3' }],
+        roster: [{ id: 'p1', avatar: 'face-m1' }, { id: 'p2', avatar: 'face-m2' }],
+        waitlist: [{ id: 'p3', avatar: 'face-m3' }],
         game: { groupId: 'grp', buyin: { cents: 5000, display: '$50' }, chips: 100, overdue: false },
       }
     )
     if (view?.kind !== 'card') throw new Error('expected a card')
-    expect(view.roster.map((p) => [p.name, p.avatar])).toEqual([['M1', 'face-m1'], ['M2', 'face-m2']])
+    expect(view.roster.map((p) => [p.name, p.avatar, p.faceId])).toEqual([['M1', 'face-m1', 'p1'], ['M2', 'face-m2', 'p2']])
     expect(view.waitlist.map((p) => [p.name, p.avatar])).toEqual([['M3', 'face-m3']])
     expect(view.groupId).toBe('grp')
     expect(view.stakes).toEqual({ buyin: { cents: 5000, display: '$50' }, chips: 100 })

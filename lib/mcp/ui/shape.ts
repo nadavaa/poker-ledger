@@ -152,7 +152,7 @@ export type Standing =
   | { kind: 'waitlisted'; position: number }
   | { kind: 'none' }
 
-export type Person = { name: string; isMe: boolean; position?: number; avatar: string | null }
+export type Person = { name: string; isMe: boolean; position?: number; avatar: string | null; faceId: string | null }
 
 export type GameMoney = {
   pot: Money
@@ -161,6 +161,7 @@ export type GameMoney = {
     name: string
     isMe: boolean
     avatar: string | null
+    faceId: string | null
     boughtIn: Money
     cashedOut: Money | null
     net: Money | null
@@ -245,11 +246,12 @@ export function gameCardView(data: Record<string, unknown>, ui: UiMeta | null = 
     }
   }
 
-  const people = (list: unknown, faces: { avatar: string | null }[] | undefined): Person[] =>
+  const people = (list: unknown, faces: { id: string; avatar: string | null }[] | undefined): Person[] =>
     (Array.isArray(list) ? list : []).map((p: Record<string, unknown>, i) => ({
       name: String(p.name ?? ''),
       isMe: p.is_me === true,
       avatar: faces?.[i]?.avatar ?? null,
+      faceId: faces?.[i]?.id ?? null,
       ...(typeof p.position === 'number' ? { position: p.position } : {}),
     }))
   const roster = people(data.roster, ui?.roster)
@@ -288,6 +290,7 @@ function moneyOf(raw: unknown, ui: UiMeta | null): GameMoney | null {
       name: String(p.name ?? ''),
       isMe: p.is_me === true,
       avatar: ui?.players?.[i]?.avatar ?? null,
+      faceId: ui?.players?.[i]?.id ?? null,
       boughtIn: isMoney(p.bought_in) ? p.bought_in : { cents: 0, display: '$0' },
       cashedOut: isMoney(p.cashed_out) ? p.cashed_out : null,
       net: isMoney(p.net) ? p.net : null,
@@ -481,7 +484,7 @@ export function limitGames<T>(games: T[], expanded: boolean, limit = GAMES_SHOWN
 
 export function membersView(data: Record<string, unknown>, ui: UiMeta | null = null): {
   group: string
-  members: { id: string; name: string; avatar: string | null; isMe: boolean }[]
+  members: { id: string; faceId: string; name: string; avatar: string | null; isMe: boolean }[]
 } {
   return {
     group: typeof data.group === 'string' ? data.group : '',
@@ -492,6 +495,7 @@ export function membersView(data: Record<string, unknown>, ui: UiMeta | null = n
               id: m.member_id,
               name: String(m.name ?? ''),
               avatar: ui?.members?.[i]?.avatar ?? null,
+              faceId: ui?.members?.[i]?.id ?? m.member_id,
               isMe: ui?.members?.[i]?.isMe === true,
             }]
           : []

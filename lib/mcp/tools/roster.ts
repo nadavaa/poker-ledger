@@ -38,10 +38,12 @@ export function registerRosterTools(server: McpServer) {
             member_id: m.id,
             name: resolveDisplayName(m.display_name, m.profiles?.display_name),
             avatar: personAvatar(m.profiles?.avatar_url),
+            // What the app colours a person's initials by.
+            faceId: m.profile_id ?? m.id,
             isMe: m.profile_id === userId,
           }))
           .sort((a, b) => a.name.localeCompare(b.name))
-        setUi({ members: members.map((m) => ({ avatar: m.avatar, isMe: m.isMe })) })
+        setUi({ members: members.map((m) => ({ id: m.faceId, avatar: m.avatar, isMe: m.isMe })) })
         return {
           group: group.name,
           members: members.map((m) => ({ member_id: m.member_id, name: m.name })),

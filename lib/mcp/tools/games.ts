@@ -209,9 +209,9 @@ export function registerGameTools(server: McpServer) {
         }))
         // Pictures in the same order the text lists the people.
         const face = new Map(
-          members.map((m) => [m.id, { avatar: personAvatar(m.profiles?.avatar_url) }])
+          members.map((m) => [m.id, { id: m.profile_id ?? m.id, avatar: personAvatar(m.profiles?.avatar_url) }])
         )
-        const faceOf = (id: string) => face.get(id) ?? { avatar: null }
+        const faceOf = (id: string) => face.get(id) ?? { id, avatar: null }
         const ordered = orderedSignups(signupRows)
         setUi({
           roster: ordered.confirmed.map((s) => faceOf(s.member_id)),

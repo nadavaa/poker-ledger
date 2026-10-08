@@ -5,17 +5,20 @@ import type { Money } from '../format'
 
 export const UI_META_KEY = 'poker-ledger/ui'
 
+/** A picture, and the id the app colours the initials circle by when there is none. */
+export type Face = { id: string; avatar: string | null }
+
 export type UiMeta = {
   /** list_my_groups: one per group. */
-  groups?: { avatar: string | null }[]
+  groups?: Face[]
   /** list_group_members: one per member. */
-  members?: { avatar: string | null; isMe: boolean }[]
+  members?: (Face & { isMe: boolean })[]
   /** list_games: one per game. Finished games only carry players and pot. */
   games?: { players: number | null; pot: Money | null; myNet: Money | null }[]
   /** get_game: parallel to roster, waitlist and money.players. */
-  roster?: { avatar: string | null }[]
-  waitlist?: { avatar: string | null }[]
-  players?: { avatar: string | null }[]
+  roster?: Face[]
+  waitlist?: Face[]
+  players?: Face[]
   /** get_game: what the status banner and the way back need. */
   game?: { groupId: string; buyin: Money; chips: number; overdue: boolean }
 }
