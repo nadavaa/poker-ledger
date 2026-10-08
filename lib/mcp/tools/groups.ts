@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/server'
 import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import { z } from 'zod'
 import { mapGroups } from '../map'
+import { groupAvatar } from '../ui/meta'
 import { appUi } from '../ui/register'
 import { must, runTool } from './run'
 
@@ -22,23 +23,19 @@ export function registerGroupTools(server: McpServer) {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     (_args, ctx) =>
-      runTool('list_my_groups', ctx, async ({ db, userId }) => {
+      runTool('list_my_groups', ctx, async ({ db, userId, setUi }) => {
         const rows = must(
           await db
             .from('group_members')
-            .select('role, groups(id, name, timezone)')
+            .select('role, groups(id, name, timezone, avatar_url)')
             .eq('profile_id', userId)
             .eq('is_active', true)
         )
-        return {
-          groups: mapGroups(
-            rows.flatMap((r) =>
-              r.groups
-                ? [{ ...r.groups, role: r.role }]
-                : []
-            )
-          ),
-        }
+        const mine = rows.flatMap((r) =>
+          r.groups ? [{ ...r.groups, role: r.role }] : []
+        )
+        setUi({ groups: mine.map((g) => ({ avatar: groupAvatar(g.avatar_url) })) })
+        return { groups: mapGroups(mine) }
       })
   )
 }

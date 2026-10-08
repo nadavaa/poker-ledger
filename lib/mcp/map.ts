@@ -200,6 +200,20 @@ const STATUS_WORDS: Record<SettlementRow['status'], string> = {
   deferred: 'deferred',
 }
 
+/** Confirmed and waitlisted players in the order a game shows them. */
+export function orderedSignups<T extends { status: string; signup_order: number }>(signups: T[]) {
+  const byOrder = (a: T, b: T) => a.signup_order - b.signup_order
+  return {
+    confirmed: signups.filter((s) => s.status === 'confirmed').sort(byOrder),
+    waitlisted: signups.filter((s) => s.status === 'waitlist').sort(byOrder),
+  }
+}
+
+/** A settled game lists the biggest winner first; before that, as stored. */
+export function orderedTotals<T extends { net_cents: number }>(totals: T[], settled: boolean) {
+  return [...totals].sort((a, b) => (settled ? b.net_cents - a.net_cents : 0))
+}
+
 export function gameDetail(args: {
   game: GameRow
   timezone: string | null
@@ -214,9 +228,7 @@ export function gameDetail(args: {
   const tz = tzOf(args.timezone)
   const names = nameMap(args.people)
 
-  const confirmed = signups
-    .filter((s) => s.status === 'confirmed')
-    .sort((a, b) => a.signup_order - b.signup_order)
+  const { confirmed, waitlisted } = orderedSignups(signups)
   const left = confirmed.filter((s) => s.left_table).length
 
   const roster = confirmed.map((s) => ({
@@ -224,9 +236,7 @@ export function gameDetail(args: {
     is_me: s.member_id === myMemberId,
     cashed_out_and_left: !!s.left_table,
   }))
-  const waitlist = signups
-    .filter((s) => s.status === 'waitlist')
-    .sort((a, b) => a.signup_order - b.signup_order)
+  const waitlist = waitlisted
     .map((s, i) => ({
       position: i + 1,
       name: nameOf(names, s.member_id),
@@ -252,8 +262,7 @@ export function gameDetail(args: {
     const settled = game.status === 'settled'
     moneyView = {
       pot: money(totals.reduce((sum, t) => sum + t.buyin_cents, 0)),
-      players: [...totals]
-        .sort((a, b) => (settled ? b.net_cents - a.net_cents : 0))
+      players: orderedTotals(totals, settled)
         .map((t) => ({
           name: nameOf(names, t.member_id),
           is_me: t.member_id === myMemberId,

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { registerTools } from '../server'
 import { html } from './generated/app'
 import { appOrigin } from './origin'
-import { APP_URI, appPage } from './register'
+import { APP_URI, appPage, pictureDomains } from './register'
 
 // A recording stand-in for the MCP server: what gets registered, not what runs.
 function record() {
@@ -54,7 +54,7 @@ describe('view registration', () => {
     }
   })
 
-  it('serves the view as an MCP App page with no network allowance', async () => {
+  it('serves the view as an MCP App page that may load pictures and nothing else', async () => {
     const r = resources.get(APP_URI)!
     expect(r.config.mimeType).toBe('text/html;profile=mcp-app')
     const out = (await r.read(new URL(APP_URI))) as {
@@ -62,8 +62,18 @@ describe('view registration', () => {
     }
     expect(out.contents[0].mimeType).toBe('text/html;profile=mcp-app')
     expect(out.contents[0].text.startsWith('<!doctype html>')).toBe(true)
-    // No csp means the host denies every outbound request.
-    expect(out.contents[0]._meta.ui).not.toHaveProperty('csp')
+    // Pictures only: no requests, frames or base address of its own.
+    const csp = out.contents[0]._meta.ui.csp as Record<string, string[]>
+    expect(Object.keys(csp)).toEqual(['resourceDomains'])
+  })
+
+  it('allows pictures from this project\u2019s storage and Google\u2019s picture host, and no one else', () => {
+    expect(pictureDomains({ NEXT_PUBLIC_SUPABASE_URL: 'https://proj.supabase.co/' })).toEqual([
+      'https://proj.supabase.co',
+      'https://*.googleusercontent.com',
+    ])
+    expect(pictureDomains({})).toEqual(['https://*.googleusercontent.com'])
+    expect(pictureDomains({ NEXT_PUBLIC_SUPABASE_URL: 'not a url' })).toEqual(['https://*.googleusercontent.com'])
   })
 })
 
