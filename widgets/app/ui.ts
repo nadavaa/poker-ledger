@@ -7,6 +7,34 @@ import { h } from '../shared/dom'
 export type Money = { cents: number; display: string }
 
 /**
+ * Why a picture did not show, so a screen can say so rather than leaving a
+ * circle of initials with no explanation. A picture the host blocks, or one
+ * that fails to load, lands here.
+ */
+export const pictureProblems = {
+  list: [] as string[],
+  policy: '',
+  listener: null as null | (() => void),
+}
+
+export function reportPictureProblem(message: string, policy = '') {
+  if (policy && !pictureProblems.policy) pictureProblems.policy = policy
+  if (!pictureProblems.list.includes(message)) {
+    pictureProblems.list.push(message)
+    pictureProblems.listener?.()
+  }
+}
+
+const hostOf = (u: string) => {
+  try {
+    return new URL(u).host
+  } catch {
+    return u.slice(0, 40)
+  }
+}
+export { hostOf }
+
+/**
  * A circle: the picture if there is one, otherwise initials on a colour from
  * the id, as in the app. A picture that does not load falls back to the same.
  */
@@ -28,7 +56,10 @@ export function avatar(name: string, id: string | null, url: string | null, size
     img.height = size
     // A picture host does not need to know which page asked for it.
     img.referrerPolicy = 'no-referrer'
-    img.addEventListener('error', showInitials)
+    img.addEventListener('error', () => {
+      reportPictureProblem(`${hostOf(url)} did not load`)
+      showInitials()
+    })
     img.src = url
     el.append(img)
   } else {

@@ -28,12 +28,21 @@ export function registerGameTools(server: McpServer) {
       display: {
         name: 'show_group',
         title: 'Show a group',
-        inputSchema: z.object({ group_id: z.uuid().describe('From list_my_groups.') }),
+        inputSchema: z.object({
+          group_id: z.uuid().describe('From list_my_groups.'),
+          tab: z
+            .enum(['games', 'members'])
+            .optional()
+            .describe(
+              'Which tab to open: "members" when the user asks to see who is in the group, otherwise "games" (the default).'
+            ),
+        }),
         description:
           SHOWN +
-          'Renders the screen for one group: its games (happening now, and history with each night\'s ' +
-          'players, pot and the user\'s result) and its members, with pictures. Use only when the user asks ' +
-          'to see a group. To find, count or compare games use list_games instead.',
+          'Renders the screen for one group, with a Games tab (happening now, and history with each night\'s ' +
+          'players, pot and the user\'s result) and a Members tab, with pictures. Use only when the user asks ' +
+          'to see a group or its members; pass tab "members" for the members. To find, count or compare ' +
+          'games, or to list names as text, use list_games or list_group_members instead.',
       },
       title: 'List games in a group',
       description:

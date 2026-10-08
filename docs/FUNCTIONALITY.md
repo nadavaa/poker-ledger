@@ -492,7 +492,9 @@ from two places: this project's public storage (where profile and group
 pictures live) and Google's picture host (a Google sign-in hands over a photo
 address). The host enforces that list; any other address, a request, a frame
 or a script is blocked. A picture that does not load falls back to initials on
-the person's colour, as in the app.
+the person's colour, as in the app, and the page says so in one small line at the
+foot (which address, which rule, and the policy the app applied), so a blocked
+picture is never a silent circle.
 
 The pictures and a few list numbers (players and pot for a finished game, and
 which member is you) reach the view in the result's `_meta`, which the app
