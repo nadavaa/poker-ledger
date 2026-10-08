@@ -402,6 +402,19 @@ export function gamesView(data: Record<string, unknown>): {
   }
 }
 
+/** How many games a group's list shows before "Show all". */
+export const GAMES_SHOWN = 5
+
+/**
+ * The games to draw. The server returns them newest first, so the first few
+ * are the most recent. A list only just over the limit is shown whole: a
+ * button to reveal one game is more work than the game.
+ */
+export function limitGames<T>(games: T[], expanded: boolean, limit = GAMES_SHOWN): { shown: T[]; hidden: number } {
+  if (expanded || games.length <= limit + 1) return { shown: games, hidden: 0 }
+  return { shown: games.slice(0, limit), hidden: games.length - limit }
+}
+
 export function membersView(data: Record<string, unknown>): {
   group: string
   members: { id: string; name: string }[]

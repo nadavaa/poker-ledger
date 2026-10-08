@@ -454,7 +454,7 @@ From there you can click through, as in the app: a group, then its **Games**,
 | Screen | What it shows |
 |---|---|
 | Your groups | Each group with your lifetime net and its member count; links to *What you owe* and *My results* |
-| A group: Games | Every game with its status, date, location, seats (`9/8 · 1 over`) and where you stand |
+| A group: Games | The five most recent games, each with its status, date, location, seats (`9/8 · 1 over`) and where you stand, and a **Show all** button for the rest (**Show fewer** folds it back). A list one game over the limit is shown whole |
 | A group: Members | Who is in the group, by name only |
 | A group: My Stats | Total net, the running-balance chart with a labelled zero line (tap a point for that game), average, win rate, best and worst game, streaks, total bought in |
 | A game, scheduled | Date and time on the group's clock, location, seats, players, waitlist, your status, and a **Join** or **Withdraw** button. No money, as on the screen |

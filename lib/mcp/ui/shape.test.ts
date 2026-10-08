@@ -14,6 +14,7 @@ import {
   debtView,
   gamesView,
   groupsView,
+  limitGames,
   membersView,
   safeOrigin,
   SCREEN_OF_TOOL,
@@ -382,5 +383,20 @@ describe('the app screens', () => {
     expect(appLink('https://x.app', { game: 'a b' })).toBe('https://x.app/games/a%20b')
     expect(appLink('https://x.app', { group: 'g' })).toBe('https://x.app/groups/g')
     expect(appLink(null, { group: 'g' })).toBeNull()
+  })
+})
+
+describe('limitGames', () => {
+  const ten = Array.from({ length: 10 }, (_, i) => i)
+  it('shows the five most recent, and says how many are hidden', () => {
+    expect(limitGames(ten, false)).toEqual({ shown: [0, 1, 2, 3, 4], hidden: 5 })
+  })
+  it('shows everything once expanded', () => {
+    expect(limitGames(ten, true)).toEqual({ shown: ten, hidden: 0 })
+  })
+  it('does not hide a single game behind a button', () => {
+    expect(limitGames(ten.slice(0, 6), false).hidden).toBe(0)
+    expect(limitGames(ten.slice(0, 7), false).hidden).toBe(2)
+    expect(limitGames([], false)).toEqual({ shown: [], hidden: 0 })
   })
 })

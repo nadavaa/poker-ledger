@@ -17,6 +17,7 @@ import {
   gameCardView,
   gamesView,
   groupsView,
+  limitGames,
   membersView,
   parseResult,
   safeOrigin,
@@ -69,6 +70,8 @@ let note: { text: string; detail?: string | null; error?: boolean } | null = nul
 let lastArgs: Record<string, unknown> = {}
 let resizer: ResizeObserver | null = null
 let contextFor = ''
+/** Groups whose full games list is showing. Everyone starts on the latest few. */
+const allGames = new Set<string>()
 
 const app = startApp('Poker Ledger', (result) => {
   const parsed = parseResult(result)
@@ -395,8 +398,10 @@ function gamesTab(r: Extract<Route, { s: 'group' }>): Node[] {
   return withData(keyOf.games(r.id), () => load(keyOf.games(r.id), 'list_games', { group_id: r.id }), (d) => {
     const v = gamesView(d)
     if (v.games.length === 0) return [h('p', { class: 'muted', text: 'No games yet.' })]
+    const expanded = allGames.has(r.id)
+    const { shown, hidden } = limitGames(v.games, expanded)
     return [
-      ...v.games.map((g) =>
+      ...shown.map((g) =>
         h('button', { class: 'item', attrs: { type: 'button' }, on: { click: () => go({ s: 'game', id: g.id }) } },
           h('div', { class: 'grow stack-sm', attrs: { style: 'gap:2px' } },
             h('div', { class: 'row', attrs: { style: 'gap:6px;flex-wrap:wrap' } },
@@ -407,6 +412,19 @@ function gamesTab(r: Extract<Route, { s: 'group' }>): Node[] {
             g.location ? h('div', { class: 'small muted wrap', text: g.location }) : null,
             h('div', { class: 'small money', text: g.seats })),
           h('span', { class: 'muted', text: '›' }))),
+      hidden > 0
+        ? h('button', {
+            class: 'btn', attrs: { type: 'button' },
+            text: `Show all ${v.games.length} games`,
+            on: { click: () => { allGames.add(r.id); render() } },
+          })
+        : expanded && v.games.length > 6
+          ? h('button', {
+              class: 'btn', attrs: { type: 'button' },
+              text: 'Show fewer',
+              on: { click: () => { allGames.delete(r.id); render() } },
+            })
+          : null,
       v.note ? h('p', { class: 'small muted', text: v.note }) : null,
     ].filter(Boolean) as Node[]
   })
