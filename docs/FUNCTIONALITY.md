@@ -435,19 +435,25 @@ shown only as its last four digits.
 
 ### Interactive view (MCP Apps)
 
-Six read tools can also draw a small version of the app inside the chat, in
-apps that support MCP Apps (Claude on web, desktop and mobile). Each tool still
-returns exactly the text it always did, so an app that does not draw the page,
-or an agent that only reads, loses nothing.
+Six **display tools** can draw a small version of the app inside the chat, in
+apps that support MCP Apps (Claude on web, desktop and mobile). Each returns
+exactly the text its lookup counterpart does, so an app that does not draw the
+page, or an agent that only reads, loses nothing.
+
+**A screen only when the screen is the answer.** The page is attached to the
+display tools, never to the lookups. The agent uses a lookup (`list_games`,
+`get_game`, `get_my_stats`, …, which draw nothing) for anything it works out by
+combining, counting, comparing or filtering, and a display tool (`show_groups`,
+`show_group`, `show_game`, `show_my_stats`, `show_balances`,
+`show_outstanding_debt`) once, only when you ask to see that screen. "What was my
+balance in September?" is answered in words; "show my stats for Poker @ NYC"
+draws the screen.
 
 It is laid out as the app's own screens are, from the app's own styles: the
 same cards, rows, tabs, state banner, spacing and money colours, with pictures
 for people and groups. It is always in light mode whatever theme the chat is in
 (`THEME` in `widgets/app/main.ts` switches it to follow the chat). Opened by
-whichever tool ran, it starts on that tool's screen: `list_my_groups` (your
-groups), `list_games` (a group's games), `get_game` (one game), `get_my_stats`
-(a group's stats), `get_my_balances` (your results) and `get_outstanding_debt`
-(what you owe and are owed).
+whichever display tool ran, it starts on that tool's screen.
 
 From there you can click through, as in the app: a group, then its **Games**,
 **Members** and **My Stats**, then a game, with Back and Home buttons.
@@ -505,9 +511,6 @@ cannot tell a tap from a model's call; what it checks is unchanged: the
 token is signed, bound to the user, the tool, the game and the outcome the
 user was shown, and works once. A join made through the card carries the same
 *via AI agent* label, because it goes through the same tool.
-
-Because `list_my_groups` is usually the first call in a conversation, the
-groups screen often appears at the start of a chat.
 
 ### Everything an agent does is visible
 

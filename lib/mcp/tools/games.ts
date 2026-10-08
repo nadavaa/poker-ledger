@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server'
-import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import { z } from 'zod'
+import { resolveDisplayName } from '../../names'
 import { playedAt, DEFAULT_TIME_ZONE } from '../../time'
 import {
   dayRange,
@@ -13,19 +13,28 @@ import {
 } from '../map'
 import { loadGroup, myMemberId } from './common'
 import { gameFacts, gameListFacts, personAvatar } from '../ui/meta'
-import { appUi } from '../ui/register'
-import { must, runTool, ToolError } from './run'
+import { registerPair, SHOWN } from './pair'
+import { must, ToolError } from './run'
 
 const STATUSES = ['scheduled', 'active', 'reconciling', 'settled', 'cancelled'] as const
 
 const LIST_LIMIT = 50
 
 export function registerGameTools(server: McpServer) {
-  registerAppTool(
+  registerPair(
     server,
     'list_games',
     {
-      _meta: appUi,
+      display: {
+        name: 'show_group',
+        title: 'Show a group',
+        inputSchema: z.object({ group_id: z.uuid().describe('From list_my_groups.') }),
+        description:
+          SHOWN +
+          'Renders the screen for one group: its games (happening now, and history with each night\'s ' +
+          'players, pot and the user\'s result) and its members, with pictures. Use only when the user asks ' +
+          'to see a group. To find, count or compare games use list_games instead.',
+      },
       title: 'List games in a group',
       description:
         'Use this to find games: upcoming ones to sign up for, recent ones ' +
@@ -46,8 +55,7 @@ export function registerGameTools(server: McpServer) {
       }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    (args, ctx) =>
-      runTool('list_games', ctx, async ({ db, userId, setUi }) => {
+    async (args, { db, userId, setUi }, withUi) => {
         const group = await loadGroup(db, args.group_id)
         const tz = group.timezone || DEFAULT_TIME_ZONE
         const range = parseRange(args.from, args.to, tz)
@@ -104,18 +112,38 @@ export function registerGameTools(server: McpServer) {
         const leftBy = new Map<string, number>()
         for (const l of left) leftBy.set(l.game_id, (leftBy.get(l.game_id) ?? 0) + 1)
 
-        // The list shows who played and the pot for a finished game, and my own
-        // result for a settled one. Visible to the group already; the view only.
-        const finished = shown.filter((g) => g.status !== 'scheduled' && g.status !== 'active')
-        const totals = finished.length
-          ? must(
-              await db
-                .from('game_player_totals')
-                .select('game_id, member_id, buyin_cents, net_cents')
-                .in('game_id', finished.map((g) => g.id))
-            )
-          : []
-        setUi({ games: gameListFacts({ games: shown, totals, myMemberId: me }) })
+        // The screen also shows who played and the pot for a finished game, my
+        // result for a settled one, and the group's members with their pictures.
+        // Visible to the group already; only the display tool fetches them.
+        if (withUi) {
+          const finished = shown.filter((g) => g.status !== 'scheduled' && g.status !== 'active')
+          const [totals, people] = await Promise.all([
+            finished.length
+              ? db
+                  .from('game_player_totals')
+                  .select('game_id, member_id, buyin_cents, net_cents')
+                  .in('game_id', finished.map((g) => g.id))
+                  .then(must)
+              : Promise.resolve([]),
+            db
+              .from('group_members')
+              .select('id, display_name, profile_id, profiles(display_name, avatar_url)')
+              .eq('group_id', group.id)
+              .eq('is_active', true)
+              .then(must),
+          ])
+          setUi({
+            games: gameListFacts({ games: shown, totals, myMemberId: me }),
+            groupMembers: people
+              .map((m) => ({
+                name: resolveDisplayName(m.display_name, m.profiles?.display_name),
+                id: m.profile_id ?? m.id,
+                avatar: personAvatar(m.profiles?.avatar_url),
+                isMe: m.profile_id === userId,
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name)),
+          })
+        }
 
         return {
           group: group.name,
@@ -135,14 +163,23 @@ export function registerGameTools(server: McpServer) {
               }
             : {}),
         }
-      })
+    }
   )
 
-  registerAppTool(
+  registerPair(
     server,
     'get_game',
     {
-      _meta: appUi,
+      display: {
+        name: 'show_game',
+        title: 'Show a game',
+        description:
+          SHOWN +
+          'Renders the screen for one game: the confirmed players and waitlist with pictures and the state ' +
+          'of the game, with Join or Withdraw on a scheduled game, and the pot and results once it has ' +
+          'started or settled. Use only when the user asks to see that game. As a lookup inside a ' +
+          'larger question use get_game instead.',
+      },
       title: 'Get one game',
       description:
         'Use this for the details of one game: who is seated and on the ' +
@@ -156,8 +193,7 @@ export function registerGameTools(server: McpServer) {
       inputSchema: z.object({ game_id: z.uuid() }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    (args, ctx) =>
-      runTool('get_game', ctx, async ({ db, userId, setUi }) => {
+    async (args, { db, userId, setUi }, withUi) => {
         const { data: game } = await db
           .from('games')
           .select(
@@ -213,7 +249,7 @@ export function registerGameTools(server: McpServer) {
         )
         const faceOf = (id: string) => face.get(id) ?? { id, avatar: null }
         const ordered = orderedSignups(signupRows)
-        setUi({
+        if (withUi) setUi({
           roster: ordered.confirmed.map((s) => faceOf(s.member_id)),
           waitlist: ordered.waitlisted.map((s) => faceOf(s.member_id)),
           players: orderedTotals(must(totals), game.status === 'settled').map((t) => faceOf(t.member_id)),
@@ -240,7 +276,7 @@ export function registerGameTools(server: McpServer) {
           settlements: must(settlements),
           myMemberId: members.find((m) => m.profile_id === userId)?.id ?? null,
         })
-      })
+    }
   )
 }
 

@@ -89,7 +89,6 @@ const top = () => stack[stack.length - 1]
 function kindOf(tool: string | undefined, data: Record<string, unknown>): ScreenKind | null {
   if (tool && SCREEN_OF_TOOL[tool]) return SCREEN_OF_TOOL[tool]
   if (Array.isArray(data.groups)) return 'groups'
-  if (Array.isArray(data.members)) return 'members'
   if ('per_game' in data) return 'stats'
   if ('i_owe' in data) return 'debt'
   if (typeof data.game_id === 'string' && 'roster' in data) return 'game'
@@ -114,7 +113,6 @@ async function call(name: string, args: Record<string, unknown>) {
 const keyOf = {
   groups: 'groups',
   games: (g: string) => `games:${g}`,
-  members: (g: string) => `members:${g}`,
   stats: (g: string) => `stats:${g}`,
   game: (id: string) => `game:${id}`,
   balances: 'balances',
@@ -128,21 +126,6 @@ async function load(key: string, tool: string, args: Record<string, unknown>, fo
   const parsed = parseResult(await call(tool, args))
   cache.set(key, parsed)
   return parsed
-}
-
-/**
- * Fetch something a screen wants but does not wait for, and redraw when it
- * arrives. Never fetches what is already here or on its way, and never
- * redraws unless something actually arrived: a redraw that asks for the same
- * thing again is a loop.
- */
-function loadInBackground(key: string, tool: string, args: Record<string, unknown>) {
-  if (cache.has(key) || inflight.has(key)) return
-  inflight.add(key)
-  void load(key, tool, args).then(() => {
-    inflight.delete(key)
-    render()
-  })
 }
 
 /** The first result becomes the first screen. Later screens fetch their own. */
@@ -175,10 +158,10 @@ async function begin(kind: ScreenKind | null, parsed: Parsed) {
       stack.push({ s: 'debt' })
       break
     default: {
-      // games, stats, members: all about one group, whose id the tool was given.
+      // games and stats: both about one group, whose id the tool was given.
       if (!gid) gid = await groupIdByName(groupName)
-      const tab: Tab = kind === 'games' ? 'games' : kind === 'members' ? 'members' : 'stats'
-      if (gid) cache.set(kind === 'games' ? keyOf.games(gid) : kind === 'members' ? keyOf.members(gid) : keyOf.stats(gid), parsed)
+      const tab: Tab = kind === 'games' ? 'games' : 'stats'
+      if (gid) cache.set(kind === 'games' ? keyOf.games(gid) : keyOf.stats(gid), parsed)
       stack.push({ s: 'group', id: gid, name: groupName, tab })
     }
   }
@@ -187,7 +170,7 @@ async function begin(kind: ScreenKind | null, parsed: Parsed) {
 
 async function groupIdByName(name: string): Promise<string> {
   if (!name) return ''
-  const r = await load('groups', 'list_my_groups', {})
+  const r = await load('groups', 'show_groups', {})
   if (!r.ok) return ''
   const hits = groupsView(r.data, r.ui).filter((g) => g.name === name)
   return hits.length === 1 ? hits[0].id : ''
@@ -353,27 +336,18 @@ function render() {
 // ----------------------------------------------------------------- groups
 
 function groupsScreen(): Node[] {
-  return withData('groups', () => load('groups', 'list_my_groups', {}), (p) => {
+  return withData('groups', () => load('groups', 'show_groups', {}), (p) => {
     const groups = groupsView(p.data, p.ui)
     if (groups.length === 0) {
       return [h('div', { class: 'card sect' },
         h('strong', { text: 'Start with a group' }),
         h('p', { class: 'muted', attrs: { style: 'margin:0' }, text: 'A group is the crew you play with. Create or join one in Poker Ledger, then it shows up here.' }))]
     }
-    // Lifetime and member counts arrive a moment after the list, so the list
-    // itself is never waiting on them.
-    for (const g of groups.slice(0, 8)) {
-      loadInBackground(keyOf.stats(g.id), 'get_my_stats', { group_id: g.id })
-      loadInBackground(keyOf.members(g.id), 'list_group_members', { group_id: g.id })
-    }
     return [
       h('section', { class: 'sect', attrs: { style: 'gap:12px' } },
         label('Your groups'),
         ...groups.map((g) => {
-          const stats = cache.get(keyOf.stats(g.id))
-          const sv = stats?.ok ? statsView(stats.data) : null
-          const mem = cache.get(keyOf.members(g.id))
-          const count = mem?.ok ? membersView(mem.data, mem.ui).members.length : null
+          const count = g.members
           return h('button', {
             class: 'card', attrs: { type: 'button', style: '--py:16px' },
             on: { click: () => go({ s: 'group', id: g.id, name: g.name, tab: 'games' }) },
@@ -384,9 +358,9 @@ function groupsScreen(): Node[] {
                 h('div', { class: 'grow' },
                   h('div', { class: 'trunc', text: g.name, attrs: { style: 'font-size:15.2px;font-weight:500' } }),
                   count === null ? null : h('div', { class: 'small muted money', text: `${count} ${count === 1 ? 'member' : 'members'}` }))),
-              sv && sv.kind === 'chart'
+              g.lifetime
                 ? h('div', { class: 'right', attrs: { style: 'display:flex;flex-direction:column;align-items:flex-end' } },
-                    h('div', { class: `money-display ${tone(sv.lifetime.cents)}`, text: signed(sv.lifetime), attrs: { style: 'font-size:24px' } }),
+                    h('div', { class: `money-display ${tone(g.lifetime.cents)}`, text: signed(g.lifetime), attrs: { style: 'font-size:24px' } }),
                     h('div', { class: 'label', text: 'lifetime', attrs: { style: 'letter-spacing:0.06em;font-size:11.2px' } }))
                 : null))
         })),
@@ -456,7 +430,7 @@ function historyRow(g: GameListItem) {
 }
 
 function gamesTab(r: Extract<Route, { s: 'group' }>): Node[] {
-  return withData(keyOf.games(r.id), () => load(keyOf.games(r.id), 'list_games', { group_id: r.id }), (p) => {
+  return withData(keyOf.games(r.id), () => load(keyOf.games(r.id), 'show_group', { group_id: r.id }), (p) => {
     const v = gamesView(p.data, p.ui)
     const { live, past } = splitGames(v.games)
     const expanded = allHistory.has(r.id)
@@ -479,13 +453,14 @@ function gamesTab(r: Extract<Route, { s: 'group' }>): Node[] {
   })
 }
 
+/** The members come with the group screen, so this is the same data as Games. */
 function membersTab(r: Extract<Route, { s: 'group' }>): Node[] {
-  return withData(keyOf.members(r.id), () => load(keyOf.members(r.id), 'list_group_members', { group_id: r.id }), (p) => {
-    const v = membersView(p.data, p.ui)
+  return withData(keyOf.games(r.id), () => load(keyOf.games(r.id), 'show_group', { group_id: r.id }), (p) => {
+    const members = membersView(p.ui)
     return [
       h('section', { class: 'sect' },
-        label(`Members (${v.members.length})`),
-        ...v.members.map((m) =>
+        label(`Members (${members.length})`),
+        ...members.map((m) =>
           h('div', { class: 'card', attrs: { style: '--py:12px' } },
             h('div', { class: 'row', attrs: { style: 'gap:12px' } },
               avatar(m.name, m.faceId, m.avatar, 40),
@@ -497,7 +472,7 @@ function membersTab(r: Extract<Route, { s: 'group' }>): Node[] {
 }
 
 function statsTab(r: Extract<Route, { s: 'group' }>): Node[] {
-  return withData(keyOf.stats(r.id), () => load(keyOf.stats(r.id), 'get_my_stats', { group_id: r.id }), (p) => {
+  return withData(keyOf.stats(r.id), () => load(keyOf.stats(r.id), 'show_my_stats', { group_id: r.id }), (p) => {
     const v = statsView(p.data)
     if (v.kind === 'empty') {
       return [h('div', { class: 'card center', attrs: { style: '--py:8px' } }, h('p', { class: 'muted', text: 'No settled games yet. Your stats show up once a game you played in has been counted and settled.' }))]
@@ -567,7 +542,7 @@ const toolFor = (a: 'join' | 'withdraw') => (a === 'join' ? 'join_game' : 'withd
 
 function gameScreen(r: Extract<Route, { s: 'game' }>): Node[] {
   const key = keyOf.game(r.id)
-  return withData(key, () => load(key, 'get_game', { game_id: r.id }), (p) => {
+  return withData(key, () => load(key, 'show_game', { game_id: r.id }), (p) => {
     const v = gameCardView(p.data, p.ui)
     if (!v) return [failed('That did not look like a game.', () => { cache.delete(key); render() })]
     tellModelAbout(v)
@@ -701,7 +676,7 @@ async function confirm(card: Card, p: Extract<Phase, { kind: 'confirm' }>) {
 /** The game, and every list that counted it, read again from the server. */
 async function refreshGame(id: string) {
   for (const k of [...cache.keys()]) if (k.startsWith('games:')) cache.delete(k)
-  const parsed = parseResult(await call('get_game', { game_id: id }))
+  const parsed = parseResult(await call('show_game', { game_id: id }))
   if (parsed.ok) cache.set(keyOf.game(id), parsed)
 }
 
@@ -766,7 +741,7 @@ function startedGame(v: Extract<GameCardView, { kind: 'summary' }>): Node[] {
 // -------------------------------------------------------- results and debt
 
 function balancesScreen(): Node[] {
-  return withData('balances', () => load('balances', 'get_my_balances', {}), (p) => {
+  return withData('balances', () => load('balances', 'show_balances', {}), (p) => {
     const v = balancesView(p.data)
     if (v.games.length === 0) return [h('p', { class: 'muted', text: 'No settled games yet.' })]
     return [
@@ -790,7 +765,7 @@ function balancesScreen(): Node[] {
 }
 
 function debtScreen(): Node[] {
-  return withData('debt', () => load('debt', 'get_outstanding_debt', {}), (p) => {
+  return withData('debt', () => load('debt', 'show_outstanding_debt', {}), (p) => {
     const v = debtView(p.data)
     const line = (l: ReturnType<typeof debtView>['iOwe'][number], owe: boolean) =>
       h('button', { class: 'card', attrs: { type: 'button', style: '--py:12px' }, on: { click: () => l.gameId && go({ s: 'game', id: l.gameId }) } },

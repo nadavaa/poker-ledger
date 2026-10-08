@@ -376,7 +376,16 @@ export function contextLine(args: {
 // The same tool results, shaped for the screens a player moves between:
 // groups, a group's games and members, what I owe, what I ended with.
 
-export type GroupItem = { id: string; name: string; role: string; timezone: string; avatar: string | null }
+export type GroupItem = {
+  id: string
+  name: string
+  role: string
+  timezone: string
+  avatar: string | null
+  /** Member count and my lifetime net, as the app's home shows them. */
+  members: number | null
+  lifetime: Money | null
+}
 
 export function groupsView(data: Record<string, unknown>, ui: UiMeta | null = null): GroupItem[] {
   return (Array.isArray(data.groups) ? data.groups : []).flatMap(
@@ -388,6 +397,8 @@ export function groupsView(data: Record<string, unknown>, ui: UiMeta | null = nu
             role: String(g.my_role ?? ''),
             timezone: String(g.timezone ?? ''),
             avatar: ui?.groups?.[i]?.avatar ?? null,
+            members: ui?.groups?.[i]?.members ?? null,
+            lifetime: ui?.groups?.[i]?.lifetime ?? null,
           }]
         : []
   )
@@ -483,25 +494,9 @@ export function limitGames<T>(games: T[], expanded: boolean, limit = GAMES_SHOWN
   return { shown: games.slice(0, limit), hidden: games.length - limit }
 }
 
-export function membersView(data: Record<string, unknown>, ui: UiMeta | null = null): {
-  group: string
-  members: { id: string; faceId: string; name: string; avatar: string | null; isMe: boolean }[]
-} {
-  return {
-    group: typeof data.group === 'string' ? data.group : '',
-    members: (Array.isArray(data.members) ? data.members : []).flatMap(
-      (m: Record<string, unknown>, i) =>
-        typeof m.member_id === 'string'
-          ? [{
-              id: m.member_id,
-              name: String(m.name ?? ''),
-              avatar: ui?.members?.[i]?.avatar ?? null,
-              faceId: ui?.members?.[i]?.id ?? m.member_id,
-              isMe: ui?.members?.[i]?.isMe === true,
-            }]
-          : []
-    ),
-  }
+/** A group's members, for its Members tab: they arrive with the group screen. */
+export function membersView(ui: UiMeta | null): { id: string; faceId: string; name: string; avatar: string | null; isMe: boolean }[] {
+  return (ui?.groupMembers ?? []).map((m) => ({ id: m.id, faceId: m.id, name: m.name, avatar: m.avatar, isMe: m.isMe }))
 }
 
 export type ResultLine = {
@@ -576,16 +571,15 @@ export function debtView(data: Record<string, unknown>): {
 }
 
 /** Which screen a tool's result belongs on, from the tool's name. */
-export type ScreenKind = 'groups' | 'games' | 'game' | 'stats' | 'balances' | 'debt' | 'members'
+export type ScreenKind = 'groups' | 'games' | 'game' | 'stats' | 'balances' | 'debt'
 
 export const SCREEN_OF_TOOL: Record<string, ScreenKind> = {
-  list_my_groups: 'groups',
-  list_games: 'games',
-  get_game: 'game',
-  get_my_stats: 'stats',
-  get_my_balances: 'balances',
-  get_outstanding_debt: 'debt',
-  list_group_members: 'members',
+  show_groups: 'groups',
+  show_group: 'games',
+  show_game: 'game',
+  show_my_stats: 'stats',
+  show_balances: 'balances',
+  show_outstanding_debt: 'debt',
 }
 
 /** Only a web address the host can sensibly open: https, or local for development. */

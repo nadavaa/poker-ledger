@@ -1,5 +1,4 @@
 import type { McpServer } from '@modelcontextprotocol/server'
-import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import { z } from 'zod'
 import { DEFAULT_TIME_ZONE } from '../../time'
 import {
@@ -13,15 +12,24 @@ import {
   type SettlementRow,
 } from '../map'
 import { loadGroup, mySettledResults } from './common'
-import { appUi } from '../ui/register'
-import { must, runTool, ToolError } from './run'
+import { registerPair, SHOWN } from './pair'
+import { must, ToolError } from './run'
 
 export function registerMoneyTools(server: McpServer) {
-  registerAppTool(
+  registerPair(
     server,
     'get_my_stats',
     {
-      _meta: appUi,
+      display: {
+        name: 'show_my_stats',
+        title: 'Show my stats in a group',
+        description:
+          SHOWN +
+          'Renders the user\'s stats screen for one group: total net, win rate, best and worst game, ' +
+          'streaks and the running-balance chart. Use only when the user asks to see their stats for a ' +
+          'group. For a single number, a comparison across groups or a custom period, use get_my_stats ' +
+          'and answer in text. Optional from/to (YYYY-MM-DD, inclusive) narrow the range.',
+      },
       title: 'My stats in a group',
       description:
         'Use this for questions about how the user has done in one group: ' +
@@ -40,8 +48,7 @@ export function registerMoneyTools(server: McpServer) {
       }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    (args, ctx) =>
-      runTool('get_my_stats', ctx, async ({ db, userId }) => {
+    async (args, { db, userId }) => {
         const group = await loadGroup(db, args.group_id)
         const tz = group.timezone || DEFAULT_TIME_ZONE
         let range
@@ -66,14 +73,21 @@ export function registerMoneyTools(server: McpServer) {
             tz
           ),
         }
-      })
+    }
   )
 
-  registerAppTool(
+  registerPair(
     server,
     'get_my_balances',
     {
-      _meta: appUi,
+      display: {
+        name: 'show_balances',
+        title: 'Show my results',
+        description:
+          SHOWN +
+          'Renders the user\'s results, game by game, with their total. Use only when the user asks to see ' +
+          'them. For totals or comparisons use get_my_balances. Omit group_id to cover all groups.',
+      },
       title: 'What I ended each game with',
       description:
         'Use this to answer "how did I do in each game?" or "what have I ' +
@@ -88,19 +102,25 @@ export function registerMoneyTools(server: McpServer) {
       }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    (args, ctx) =>
-      runTool('get_my_balances', ctx, async ({ db, userId }) => {
+    async (args, { db, userId }) => {
         if (args.group_id) await loadGroup(db, args.group_id)
         const rows = await mySettledResults(db, userId, args.group_id)
         return mapBalances(rows)
-      })
+    }
   )
 
-  registerAppTool(
+  registerPair(
     server,
     'get_outstanding_debt',
     {
-      _meta: appUi,
+      display: {
+        name: 'show_outstanding_debt',
+        title: 'Show what I owe and am owed',
+        description:
+          SHOWN +
+          'Renders what the user owes and is owed, poker and food kept apart. Use only when the user asks ' +
+          'to see it. For a figure or a comparison use get_outstanding_debt. Omit group_id to cover all groups.',
+      },
       title: 'What I owe and am owed',
       description:
         'Use this for "who do I still need to pay?" or "who owes me?". ' +
@@ -118,8 +138,7 @@ export function registerMoneyTools(server: McpServer) {
       }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    (args, ctx) =>
-      runTool('get_outstanding_debt', ctx, async ({ db, userId }) => {
+    async (args, { db, userId }) => {
         if (args.group_id) await loadGroup(db, args.group_id)
 
         let mineQuery = db
@@ -216,6 +235,6 @@ export function registerMoneyTools(server: McpServer) {
             myMemberByGroup.get(groupOfGame.get(gameId) ?? '') ?? null,
           payments,
         })
-      })
+    }
   )
 }

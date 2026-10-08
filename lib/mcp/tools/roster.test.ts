@@ -43,30 +43,18 @@ describe('list_group_members', () => {
     expect(r.isError).toBe(true)
   })
 
-  it('hands the view each member\u2019s picture and who is me, outside the text', async () => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://proj.supabase.co'
+  it('is data only: no picture data, and nothing for a screen', async () => {
     const t = await setup({
       tables: {
         groups: [{ id: GROUP, name: 'Tuesday', timezone: 'America/New_York' }],
-        group_members: [
-          { id: 'm2', display_name: 'Zed', profile_id: 'u9', profiles: { display_name: 'Zed', avatar_url: null } },
-          { id: 'm1', display_name: 'Amy', profile_id: 'u1', profiles: { display_name: 'Amy', avatar_url: 'u1/a.webp' } },
-          { id: 'm3', display_name: 'Cy', profile_id: null, profiles: null },
-        ],
+        group_members: [{ id: 'm1', display_name: 'Amy', profile_id: 'u1', profiles: { display_name: 'Amy', avatar_url: 'u1/a.webp' } }],
       },
     })
     const raw = (await t.handlers.get('list_group_members')!({ group_id: GROUP } as never, {
       http: { authInfo: { token: 't', extra: { userId: 'u1' } } },
-    } as never)) as { content: { text: string }[]; _meta?: Record<string, { members: unknown[] }> }
-    const text = JSON.parse(raw.content[0].text)
-    // The text stays names and ids, in the same order the pictures are in.
-    expect(text.members.map((m: { name: string }) => m.name)).toEqual(['Amy', 'Cy', 'Zed'])
-    expect(raw.content[0].text).not.toMatch(/supabase|avatar|isMe/i)
-    expect(raw._meta?.['poker-ledger/ui'].members).toEqual([
-      { id: 'u1', avatar: 'https://proj.supabase.co/storage/v1/object/public/avatars/u1/a.webp', isMe: true },
-      { id: 'm3', avatar: null, isMe: false },
-      { id: 'u9', avatar: null, isMe: false },
-    ])
+    } as never)) as { content: { text: string }[]; _meta?: unknown }
+    expect(raw._meta).toBeUndefined()
+    expect(raw.content[0].text).not.toMatch(/avatar|supabase|isMe/i)
   })
 })
 
