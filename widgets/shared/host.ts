@@ -14,15 +14,20 @@ export function startApp(
   name: string,
   onResult: (result: ToolResultLike) => void,
   onInput?: (args: Record<string, unknown>) => void,
-  /** Show this theme whatever the host is in. Omit to follow the host. */
-  fixedTheme?: 'light' | 'dark'
+  /**
+   * The palette to paint with, whatever the host is in. Omit to follow the
+   * host. The page's own colour scheme always follows the host, so the frame
+   * around a rounded card stays transparent.
+   */
+  palette?: 'light' | 'dark'
 ): App {
   const app = new App({ name, version: '0.1.0' })
-  if (fixedTheme) applyDocumentTheme(fixedTheme)
+  document.documentElement.dataset.palette = palette ?? 'light'
 
   const applyContext = (ctx: McpUiHostContext | undefined) => {
     if (!ctx) return
-    if (ctx.theme || fixedTheme) applyDocumentTheme(fixedTheme ?? ctx.theme!)
+    if (ctx.theme) applyDocumentTheme(ctx.theme)
+    document.documentElement.dataset.palette = palette ?? ctx.theme ?? 'light'
     // Colours, type sizes and radii. Host fonts are left alone on purpose:
     // loading one would be a network request, and these views make none.
     if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables)

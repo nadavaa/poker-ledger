@@ -52,14 +52,13 @@ type Phase =
   | { kind: 'confirm'; action: 'join' | 'withdraw'; text: string; token: string }
 
 /**
- * Light whatever Claude's theme is, so it looks like the app by default.
+ * Paint light whatever Claude's theme is, so it looks like the app by default.
  * Set to 'host' to follow Claude's light and dark instead; both palettes are
  * in styles.css.
  */
 const THEME: 'light' | 'host' = 'light'
 
 const root = document.getElementById('root')!
-const build = document.querySelector('meta[name="build"]')?.getAttribute('content') ?? ''
 const origin = safeOrigin(document.querySelector('meta[name="app-origin"]')?.getAttribute('content'))
 
 const stack: Route[] = []
@@ -247,7 +246,6 @@ function shell(r: Route, body: Node[], webUrl: string | null) {
       ? h('div', { class: 'footer' },
           h('button', { class: 'btn ghost', attrs: { type: 'button' }, on: { click: () => void openOnWeb(webUrl) } }, 'Open in Poker Ledger ↗'))
       : null,
-    build ? h('p', { class: 'small muted', attrs: { style: 'text-align:center;margin:8px 0 0;opacity:.6' }, text: `Poker Ledger · ${build}` }) : null,
     note && r.s !== 'game'
       ? h('div', { class: `note${note.error ? ' err' : ''}`, attrs: { role: 'status' } }, note.text)
       : null,

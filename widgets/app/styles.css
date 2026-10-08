@@ -1,7 +1,6 @@
-/* The app's own palette (app/globals.css), light and dark, picked by the
-   host's theme. Same tokens, same names, so a screen here reads like the app. */
+/* The app's own palette (app/globals.css). Light by default; dark is chosen by
+   data-palette. Same tokens, same names, so a screen here reads like the app. */
 :root {
-  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -28,31 +27,8 @@
   --bad: var(--down);
   --inset-top: 0px; --inset-right: 0px; --inset-bottom: 0px; --inset-left: 0px;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) { color-scheme: dark; }
-}
-:root[data-theme='dark'] { color-scheme: dark; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --background: oklch(0.13 0.004 250);
-    --foreground: oklch(0.97 0 0);
-    --card: oklch(0.185 0.005 250);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --border: oklch(1 0 0 / 12%);
-    --ring: oklch(0.556 0 0);
-    --up: oklch(0.82 0.17 152);
-    --up-soft: oklch(0.82 0.17 152 / 15%);
-    --down: oklch(0.72 0.18 25);
-    --down-soft: oklch(0.72 0.18 25 / 16%);
-    --pending: oklch(0.75 0.04 250);
-    --pending-soft: oklch(0.75 0.04 250 / 14%);
-    --live: oklch(0.82 0.17 152);
-  }
-}
-:root[data-theme='dark'] {
+/* Dark palette, used only if THEME in main.ts is set to follow the chat. */
+:root[data-palette='dark'] {
   --background: oklch(0.13 0.004 250);
   --foreground: oklch(0.97 0 0);
   --card: oklch(0.185 0.005 250);
@@ -73,19 +49,24 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-/* One solid surface, edge to edge. A page whose colour scheme differs from
-   the chat's is painted opaque by the browser, so a rounded card would sit in
-   a visible box; the whole frame is the card instead. */
-html, body { background: var(--background); }
+/* The card is the page's own surface; the frame around it stays transparent.
+   The page's colour scheme is left to follow the chat's (see host.ts), because
+   a page whose scheme differs from the chat's is painted opaque, which would
+   show square white corners behind a rounded card. */
+html, body { background: transparent; }
 body {
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   font-size: 14px;
   line-height: 1.45;
   -webkit-text-size-adjust: 100%;
-  padding: var(--inset-top) var(--inset-right) var(--inset-bottom) var(--inset-left);
+  padding: 6px max(6px, var(--inset-right)) calc(6px + var(--inset-bottom)) max(6px, var(--inset-left));
+  padding-top: calc(6px + var(--inset-top));
 }
 #root {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 18px;
   padding: 14px;
   max-width: 640px;
   margin: 0 auto;
