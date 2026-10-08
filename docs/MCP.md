@@ -86,7 +86,7 @@ All as you, all through the same row-level security as the app.
 | `get_my_balances(group_id?)` | What you ended each settled game with. |
 | `get_outstanding_debt(group_id?)` | Who you still owe and who owes you, with Venmo links and a `transfer_id` for each. |
 | `show_groups` | Draws the groups screen. A display tool: see below. |
-| `show_group(group_id)` | Draws one group: its games and members. |
+| `show_group(group_id, tab?)` | Draws one group: its games and members. `tab: "members"` opens on Members. |
 | `show_game(game_id)` | Draws one game, with Join or Withdraw on a scheduled one. |
 | `show_my_stats(group_id, from?, to?)` | Draws your stats and running balance for a group. |
 | `show_balances(group_id?)` | Draws your results game by game. |

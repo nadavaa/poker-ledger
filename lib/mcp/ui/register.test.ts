@@ -6,10 +6,10 @@ import { APP_URI, appPage, pictureDomains } from './register'
 
 // A recording stand-in for the MCP server: what gets registered, not what runs.
 function record() {
-  const tools = new Map<string, { _meta?: Record<string, unknown>; description?: string }>()
+  const tools = new Map<string, { _meta?: Record<string, unknown>; description?: string; inputSchema?: unknown }>()
   const resources = new Map<string, { config: Record<string, unknown>; read: (u: URL) => Promise<unknown> }>()
   const server = {
-    registerTool: (name: string, config: { _meta?: Record<string, unknown>; description?: string }) => {
+    registerTool: (name: string, config: { _meta?: Record<string, unknown>; description?: string; inputSchema?: unknown }) => {
       tools.set(name, config)
       return {}
     },
@@ -62,6 +62,16 @@ describe('view registration', () => {
       expect(tools.get(show)!.description, show).toContain(data)
     }
     expect(tools.get('list_group_members')!.description).toMatch(/^Returns data only, no UI\./)
+  })
+
+  it('lets the group screen be opened on its Members tab, and on nothing else', () => {
+    const schema = (tools.get('show_group') as unknown as { inputSchema: { safeParse: (v: unknown) => { success: boolean } } }).inputSchema
+    const group = '8b1f0000-0000-4000-8000-0000000000aa'
+    expect(schema.safeParse({ group_id: group }).success).toBe(true)
+    expect(schema.safeParse({ group_id: group, tab: 'members' }).success).toBe(true)
+    expect(schema.safeParse({ group_id: group, tab: 'games' }).success).toBe(true)
+    expect(schema.safeParse({ group_id: group, tab: 'stats' }).success).toBe(false)
+    expect(tools.get('show_group')!.description).toMatch(/tab "members"/)
   })
 
   it('never links a tool that changes something', () => {

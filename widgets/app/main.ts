@@ -37,7 +37,7 @@ import { formatCents } from '@/lib/money'
 import { h, mount } from '../shared/dom'
 import { startApp } from '../shared/host'
 import { drawChart, pointWords } from './chart'
-import { avatar, label, liveTag, signed, statBox, stateBanner, tone } from './ui'
+import { avatar, hostOf, label, liveTag, pictureProblems, reportPictureProblem, signed, statBox, stateBanner, tone } from './ui'
 
 /**
  * Paint light whatever Claude's theme is, so it looks like the app by default.
@@ -85,6 +85,23 @@ const app = startApp('Poker Ledger', (result) => {
 }, THEME === 'light' ? 'light' : undefined)
 
 const top = () => stack[stack.length - 1]
+
+// If the host blocks a picture, say which address and which rule, and what
+// policy it set. Without this a blocked picture is a silent circle of initials.
+document.addEventListener('securitypolicyviolation', (e) => {
+  reportPictureProblem(`${e.effectiveDirective} blocked ${hostOf(e.blockedURI)}`, e.originalPolicy)
+})
+pictureProblems.listener = () => paintProblems()
+
+function paintProblems() {
+  document.getElementById('picture-problems')?.remove()
+  if (!pictureProblems.list.length) return
+  const policy = pictureProblems.policy ? ` Policy: ${pictureProblems.policy.slice(0, 320)}` : ''
+  root.append(h('p', {
+    class: 'small muted', attrs: { id: 'picture-problems', style: 'margin:12px 0 0;overflow-wrap:anywhere' },
+    text: `Pictures not shown: ${pictureProblems.list.slice(0, 4).join('; ')}.${policy}`,
+  }))
+}
 
 function kindOf(tool: string | undefined, data: Record<string, unknown>): ScreenKind | null {
   if (tool && SCREEN_OF_TOOL[tool]) return SCREEN_OF_TOOL[tool]
@@ -160,7 +177,8 @@ async function begin(kind: ScreenKind | null, parsed: Parsed) {
     default: {
       // games and stats: both about one group, whose id the tool was given.
       if (!gid) gid = await groupIdByName(groupName)
-      const tab: Tab = kind === 'games' ? 'games' : 'stats'
+      // show_group can be asked to open on Members, which it passes as its tab.
+      const tab: Tab = kind === 'games' ? (lastArgs.tab === 'members' ? 'members' : 'games') : 'stats'
       if (gid) cache.set(kind === 'games' ? keyOf.games(gid) : keyOf.stats(gid), parsed)
       stack.push({ s: 'group', id: gid, name: groupName, tab })
     }
@@ -329,6 +347,7 @@ function render() {
       break
   }
   mount(root, ...shell(r, nodes, web, sub))
+  paintProblems()
   afterMount?.()
   afterMount = null
 }
