@@ -8,10 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:widgets": "node scripts/build-widgets.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@modelcontextprotocol/ext-apps": "^2.0.3",
     "@modelcontextprotocol/server": "^2.3.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
@@ -36,6 +38,8 @@
     "shadcn": "^4.19.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.3.3",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^4.1.11"
   }
 }

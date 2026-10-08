@@ -1,12 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/server'
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import { z } from 'zod'
 import { mapGroups } from '../map'
+import { appUi } from '../ui/register'
 import { must, runTool } from './run'
 
 export function registerGroupTools(server: McpServer) {
-  server.registerTool(
+  registerAppTool(
+    server,
     'list_my_groups',
     {
+      _meta: appUi,
       title: 'List my poker groups',
       description:
         'Use this first, or whenever you need a group_id for another tool. ' +

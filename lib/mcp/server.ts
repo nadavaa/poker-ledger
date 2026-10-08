@@ -7,6 +7,7 @@ import { registerPaymentHandleTool } from './tools/payment-handle'
 import { registerRosterTools } from './tools/roster'
 import { registerSignupTools } from './tools/signups'
 import { registerTransferTools } from './tools/transfers'
+import { registerWidgets } from './ui/register'
 
 export const SERVER_INFO = { name: 'poker-ledger', version: '0.1.0' }
 
@@ -25,4 +26,5 @@ export function registerTools(server: McpServer) {
   registerPaymentHandleTool(server)
   registerRosterTools(server)
   registerAdminTools(server)
+  registerWidgets(server)
 }
