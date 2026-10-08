@@ -17,6 +17,9 @@
   --pending: oklch(0.55 0.04 250);
   --pending-soft: oklch(0.55 0.04 250 / 12%);
   --live: oklch(0.52 0.15 152);
+  --live-soft: oklch(0.52 0.15 152 / 14%);
+  --amber: oklch(0.55 0.14 75);
+  --amber-soft: oklch(0.55 0.14 75 / 12%);
   --radius: 0.625rem;
   /* Names the shared chart code reads. */
   --fg: var(--foreground);
@@ -45,6 +48,9 @@
   --pending: oklch(0.75 0.04 250);
   --pending-soft: oklch(0.75 0.04 250 / 14%);
   --live: oklch(0.82 0.17 152);
+  --live-soft: oklch(0.82 0.17 152 / 16%);
+  --amber: oklch(0.87 0.16 90);
+  --amber-soft: oklch(0.87 0.16 90 / 12%);
 }
 
 * { box-sizing: border-box; }
@@ -58,7 +64,7 @@ body {
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.43;
   -webkit-text-size-adjust: 100%;
   padding: 6px max(6px, var(--inset-right)) calc(6px + var(--inset-bottom)) max(6px, var(--inset-left));
   padding-top: calc(6px + var(--inset-top));
@@ -67,8 +73,8 @@ body {
   background: var(--background);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 14px;
-  max-width: 640px;
+  padding: 16px;
+  max-width: 448px;   /* the app's max-w-md */
   margin: 0 auto;
 }
 button { font: inherit; color: inherit; }
@@ -77,109 +83,125 @@ button { font: inherit; color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .muted { color: var(--muted-foreground); }
 .small { font-size: 12px; }
-.stack { display: flex; flex-direction: column; gap: 12px; }
-.stack-sm { display: flex; flex-direction: column; gap: 8px; }
+.stack { display: flex; flex-direction: column; gap: 16px; }          /* page: gap-4 */
+.sect { display: flex; flex-direction: column; gap: 8px; }            /* section: gap-2 */
 .row { display: flex; align-items: center; gap: 10px; }
+.between { justify-content: space-between; }
 .grow { flex: 1; min-width: 0; }
 .right { text-align: right; flex-shrink: 0; }
 .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wrap { overflow-wrap: anywhere; }
 
-/* Header: back, title, home. */
-.head { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
-.head h1 { margin: 0; font-size: 18px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.iconbtn {
-  width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; border: 0; background: transparent;
-  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--foreground);
-}
-.iconbtn:hover { background: var(--muted); }
-.iconbtn svg { width: 20px; height: 20px; }
+/* Page header: a small way back, the title, a line under it. */
+.head { display: flex; flex-direction: column; margin-bottom: 16px; min-width: 0; }
+.back { align-self: flex-start; border: 0; background: transparent; padding: 0; font-size: 12px; color: var(--muted-foreground); cursor: pointer; text-align: left; }
+.back:hover { color: var(--foreground); }
+.head h1 { margin: 0; font-size: 18px; line-height: 1.55; font-weight: 600; letter-spacing: -0.025em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.head .sub { margin: 0; font-size: 14px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Section label, as in the app. */
 .label { margin: 0; font-size: 11.2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
 .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.label-row .aside { font-size: 12px; text-transform: none; letter-spacing: 0; }
 
+/* Card: ring, rounded-xl, 16px around plus the row's own extra (--py). */
 .card {
-  background: var(--card); border-radius: 12px; padding: 14px 16px;
+  display: block; background: var(--card); border-radius: 14px; padding: calc(16px + var(--py, 0px)) 16px; color: var(--foreground);
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
 }
-a.card, button.card { width: 100%; text-align: left; border: 0; cursor: pointer; transition: background-color 0.15s; }
-button.card.row { display: flex; align-items: center; }
-a.card:hover, button.card:hover { background: color-mix(in oklab, var(--muted) 50%, var(--card)); }
+.card.live { box-shadow: 0 0 0 1px color-mix(in oklab, var(--up) 35%, transparent); background: var(--live-soft); }
+button.card { width: 100%; text-align: left; border: 0; cursor: pointer; transition: background-color 0.15s; font: inherit; }
+button.card:hover { background: color-mix(in oklab, var(--muted) 50%, var(--card)); }
+button.card.live:hover { background: var(--live-soft); }
+.card.center { text-align: center; }
+
+/* A bordered row, as in the confirmed list. */
 .item {
-  display: flex; align-items: center; gap: 10px; justify-content: space-between;
-  border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 10px 12px;
+  display: flex; align-items: center; gap: 8px; justify-content: space-between;
+  border: 1px solid var(--border); background: var(--card); border-radius: 14px; padding: 10px 12px;
 }
 button.item { width: 100%; text-align: left; cursor: pointer; }
-button.item:hover { background: color-mix(in oklab, var(--muted) 50%, var(--card)); }
 
 .avatar {
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;
-  color: #fff; font-weight: 600; width: 32px; height: 32px; font-size: 12px;
+  overflow: hidden; font-weight: 600; width: 32px; height: 32px; font-size: 12.8px; line-height: 1;
 }
-.avatar.lg { width: 44px; height: 44px; font-size: 15px; }
-
-.chip {
-  display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 11.5px; font-weight: 500;
-  background: var(--muted); color: var(--foreground); text-transform: capitalize; white-space: nowrap;
-}
-.chip.up { background: var(--up-soft); color: var(--up); }
-.chip.down { background: var(--down-soft); color: var(--down); }
-.chip.pending { background: var(--pending-soft); color: var(--pending); }
-.chip.live { background: var(--up-soft); color: var(--live); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .money { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; letter-spacing: -0.02em; }
 .money-display { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; letter-spacing: -0.03em; line-height: 1; font-weight: 600; }
 .up { color: var(--up); }
 .down { color: var(--down); }
+.num { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 8px; background: var(--muted); color: var(--muted-foreground); font-size: 12px; }
 
 /* Segmented tabs, with the moving pill the app has. */
-.tabs { position: relative; display: flex; border-radius: 16px; background: color-mix(in oklab, var(--muted) 60%, transparent); padding: 4px; }
+.tabs { position: relative; display: flex; border-radius: 18px; background: color-mix(in oklab, var(--muted) 60%, transparent); padding: 4px; }
 .tabs .pill {
-  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 12px;
+  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 14px;
   background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 .tabs button {
-  position: relative; z-index: 1; flex: 1; min-height: 40px; border: 0; background: transparent; border-radius: 12px;
-  color: var(--muted-foreground); cursor: pointer;
+  position: relative; z-index: 1; flex: 1; padding: 12px; border: 0; background: transparent; border-radius: 14px;
+  color: var(--muted-foreground); cursor: pointer; font-size: 14px;
 }
 .tabs button[aria-current='true'] { color: var(--foreground); font-weight: 600; }
 
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.stat { border: 1px solid var(--border); background: var(--card); border-radius: 16px; padding: 10px 14px; min-width: 0; }
-.stat .v { margin-top: 2px; font-size: 15px; font-weight: 600; }
-.hero { text-align: center; padding: 22px 16px; }
-.hero .n { font-size: 48px; margin: 6px 0; }
+.stat { border: 1px solid var(--border); background: var(--card); border-radius: 18px; padding: 12px 14px; min-width: 0; }
+.stat .label { font-size: 11.2px; letter-spacing: 0.06em; }
+.stat .v { margin-top: 4px; font-size: 15.2px; font-weight: 600; }
 
+/* Buttons, at the app's sizes: default 44, small 40, large 48. */
 .btn {
-  min-height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--border);
-  background: var(--card); color: var(--foreground); cursor: pointer; font-weight: 600; font-size: 15px; width: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 14px;
+  border-radius: 10px; border: 1px solid var(--border); background: var(--background); color: var(--foreground);
+  cursor: pointer; font-weight: 500; font-size: 14px; white-space: nowrap;
 }
-.btn.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
-.btn.ghost { border-color: transparent; background: transparent; color: var(--muted-foreground); font-weight: 500; min-height: 40px; font-size: 13px; }
-.btn[disabled] { opacity: 0.55; cursor: default; }
+.btn.primary { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+.btn.sm { height: 40px; padding: 0 12px; font-size: 12.8px; border-radius: 8px; }
+.btn.lg { height: 48px; padding: 0 16px; border-radius: 14px; font-size: 16px; }
+.btn.block { width: 100%; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted-foreground); }
+.btn[disabled] { opacity: 0.5; cursor: default; }
 .btns { display: flex; gap: 8px; flex-wrap: wrap; }
-.btns .btn { flex: 1 1 140px; }
+.btns .btn { flex: 1 1 120px; }
 
-.status {
-  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 12px;
-  border: 2px solid var(--border); font-weight: 600;
-}
-.status.seated { border-color: var(--up); }
-.status.waitlisted { border-style: dashed; border-color: var(--muted-foreground); }
-.status.none { border-style: dotted; }
+/* The state banner: a colour and a shape, so neither alone carries it. */
+.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-radius: 14px; padding: 10px 14px; }
+.banner .what { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.banner .detail { font-size: 12px; opacity: 0.8; }
+.banner.scheduled { background: var(--pending-soft); color: var(--pending); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pending) 25%, transparent); }
+.banner.active { background: var(--live-soft); color: var(--up); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--up) 30%, transparent); }
+.banner.reconciling, .banner.overdue { background: var(--amber-soft); color: var(--amber); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--amber) 30%, transparent); }
+.banner.settled { background: var(--muted); color: var(--foreground); box-shadow: inset 0 0 0 1px var(--border); }
+.banner.cancelled { background: color-mix(in oklab, var(--muted) 60%, transparent); color: var(--muted-foreground); box-shadow: inset 0 0 0 1px var(--border); }
+.glyph-ring { width: 10px; height: 10px; border-radius: 999px; border: 2px solid currentColor; box-sizing: border-box; }
+.glyph-ring.filled { background: currentColor; }
+.glyph-square { width: 10px; height: 10px; border-radius: 3px; background: currentColor; }
+.glyph-dot { position: relative; display: inline-flex; width: 10px; height: 10px; }
+.glyph-dot::before { content: ''; position: absolute; inset: 0; border-radius: 999px; background: currentColor; opacity: 0.6; animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.glyph-dot::after { content: ''; position: relative; width: 10px; height: 10px; border-radius: 999px; background: currentColor; }
+@keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+svg.glyph { width: 12px; height: 12px; }
 
-.people { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.people li { display: inline-flex; align-items: baseline; gap: 6px; background: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; overflow-wrap: anywhere; }
-.people li.me { font-weight: 700; border-color: var(--foreground); }
-.you { font-size: 11.5px; border: 1px solid var(--border); border-radius: 999px; padding: 0 6px; font-weight: 600; }
+/* Game rows in "Happening now" and "History". */
+.livetag { display: inline-flex; align-items: center; gap: 6px; font-size: 11.2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.livetag.active { color: var(--up); }
+.livetag.scheduled { color: var(--pending); }
 
-.confirm { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--muted); }
+/* Results, as the app's settled table. */
+table.results { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.results th { text-align: left; font-size: 12px; font-weight: 500; color: var(--muted-foreground); padding: 4px 8px 4px 0; }
+table.results th.r, table.results td.r { text-align: right; }
+table.results td { padding: 10px 8px 10px 0; border-top: 1px solid var(--border); }
+table.results td.net { padding-right: 0; font-size: 18px; font-weight: 600; }
+.scroll-x { overflow-x: auto; }
+
+.confirm { border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; background: var(--muted); }
 .confirm p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .note { padding: 9px 12px; border-left: 4px solid var(--foreground); background: var(--muted); border-radius: 6px; overflow-wrap: anywhere; }
 .note.err { border-left-color: var(--down); }
-.banner { padding: 9px 12px; border-radius: 12px; background: var(--pending-soft); color: var(--foreground); }
-.footer { display: flex; justify-content: center; margin-top: 14px; }
+.footer { display: flex; justify-content: center; margin-top: 16px; }
 .tip {
   position: absolute; z-index: 2; pointer-events: none; background: var(--card); color: var(--foreground);
   border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; font-size: 13px;
@@ -187,5 +209,5 @@ button.item:hover { background: color-mix(in oklab, var(--muted) 50%, var(--card
 }
 .frame { position: relative; width: 100%; }
 circle:focus:not(:focus-visible) { outline: none; }
-.fade { animation: tab-in 0.2s ease-out; }
+.fade { animation: tab-in 0.22s cubic-bezier(0.23, 1, 0.32, 1); }
 @keyframes tab-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

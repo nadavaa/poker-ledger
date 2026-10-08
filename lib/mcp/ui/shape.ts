@@ -221,8 +221,9 @@ export function gameCardView(data: Record<string, unknown>, ui: UiMeta | null = 
   const played = (data.played_at as Moment | undefined) ?? sched
   const seats = (data.seats as { summary?: string } | undefined)?.summary ?? ''
   const group = typeof data.group === 'string' ? data.group : ''
+  // As the game page titles it: the name, or else when it is.
   const title =
-    typeof data.name === 'string' && data.name ? data.name : group || 'Game'
+    typeof data.name === 'string' && data.name ? data.name : played?.local || group || 'Game'
   const status = String(data.status ?? '')
   const facts = (when: string): GameFacts => ({
     groupId: ui?.game?.groupId ?? null,
