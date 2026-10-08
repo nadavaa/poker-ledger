@@ -85,6 +85,12 @@ All as you, all through the same row-level security as the app.
 | `get_my_stats(group_id, from?, to?)` | Lifetime net, streaks, biggest win/loss, per-game nets. |
 | `get_my_balances(group_id?)` | What you ended each settled game with. |
 | `get_outstanding_debt(group_id?)` | Who you still owe and who owes you, with Venmo links and a `transfer_id` for each. |
+| `show_groups` | Draws the groups screen. A display tool: see below. |
+| `show_group(group_id)` | Draws one group: its games and members. |
+| `show_game(game_id)` | Draws one game, with Join or Withdraw on a scheduled one. |
+| `show_my_stats(group_id, from?, to?)` | Draws your stats and running balance for a group. |
+| `show_balances(group_id?)` | Draws your results game by game. |
+| `show_outstanding_debt(group_id?)` | Draws what you owe and are owed. |
 | `join_game(game_id)` | Sign up, or join the waitlist. Two-step. |
 | `withdraw_from_game(game_id)` | Give up your seat. Two-step. |
 | `mark_transfer_paid(transfer_id)` | You are the payer and you sent it. Two-step. |
@@ -114,10 +120,34 @@ agent* on the game screen. The full rules are in the Agents section of
 Money comes back as integer cents and a display string; times as ISO 8601 and
 text in the group's own timezone.
 
+## Lookups and screens
+
+Every read tool that has a screen comes as a pair that shares one handler and
+returns the same text:
+
+| Lookup (data only) | Screen (draws the app view) |
+|---|---|
+| `list_my_groups` | `show_groups` |
+| `list_games` | `show_group` |
+| `get_game` | `show_game` |
+| `get_my_stats` | `show_my_stats` |
+| `get_my_balances` | `show_balances` |
+| `get_outstanding_debt` | `show_outstanding_debt` |
+
+The page is bound to a tool's definition, so the host draws it on **every** call
+of that tool. If the lookups were bound, a question answered by counting across
+five games would draw six screens. So the lookups carry no page and say so
+("Returns data only, no UI"), and only the `show_*` tools are bound, with a
+description telling the model to use one once, as the answer, when a single
+screen is the question. The page itself calls the `show_*` tools to move between
+screens; the host does not draw a new page for calls the page makes.
+`lib/mcp/tools/pair.ts` registers both from one handler, and a test checks that
+no lookup is bound and every screen is.
+
 ## The interactive view
 
-Six read tools (`list_my_groups`, `list_games`, `get_game`, `get_my_stats`,
-`get_my_balances`, `get_outstanding_debt`) link to one page,
+Six display tools (`show_groups`, `show_group`, `show_game`, `show_my_stats`,
+`show_balances`, `show_outstanding_debt`) link to one page,
 `ui://poker-ledger/app.html`, which apps with MCP Apps support draw in the chat
 as a small version of the app. What it shows and can do is in
 [FUNCTIONALITY.md](FUNCTIONALITY.md#interactive-view-mcp-apps).

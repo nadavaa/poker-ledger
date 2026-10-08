@@ -278,7 +278,7 @@ describe('the app screens', () => {
       groups: mapGroups([{ id: 'g1', name: 'wef', timezone: null, role: 'owner' }]),
     })
     expect(groups).toEqual([
-      { id: 'g1', name: 'wef', role: 'owner', timezone: 'America/New_York', avatar: null },
+      { id: 'g1', name: 'wef', role: 'owner', timezone: 'America/New_York', avatar: null, members: null, lifetime: null },
     ])
     expect(groupsView({})).toEqual([])
   })
@@ -308,11 +308,12 @@ describe('the app screens', () => {
     expect(item('m9').standing).toEqual({ kind: 'none' })
   })
 
-  it('reads members, and tolerates nothing', () => {
+  it('reads a group\u2019s members from the group screen, and tolerates nothing', () => {
     expect(
-      membersView({ group: 'wef', members: [{ member_id: 'a', name: 'Dean' }, { nope: 1 }] })
-    ).toEqual({ group: 'wef', members: [{ id: 'a', faceId: 'a', name: 'Dean', avatar: null, isMe: false }] })
-    expect(membersView({}).members).toEqual([])
+      membersView({ groupMembers: [{ id: 'pa', name: 'Dean', avatar: null, isMe: false }] })
+    ).toEqual([{ id: 'pa', faceId: 'pa', name: 'Dean', avatar: null, isMe: false }])
+    expect(membersView(null)).toEqual([])
+    expect(membersView({})).toEqual([])
   })
 
   it('reads results with their total', () => {
@@ -370,8 +371,12 @@ describe('the app screens', () => {
   })
 
   it('maps each tool to a screen', () => {
-    expect(SCREEN_OF_TOOL.get_game).toBe('game')
-    expect(SCREEN_OF_TOOL.list_my_groups).toBe('groups')
+    expect(SCREEN_OF_TOOL.show_game).toBe('game')
+    expect(SCREEN_OF_TOOL.show_groups).toBe('groups')
+    expect(SCREEN_OF_TOOL.show_group).toBe('games')
+    // A lookup is not a screen, and neither is a write.
+    expect(SCREEN_OF_TOOL.get_game).toBeUndefined()
+    expect(SCREEN_OF_TOOL.list_my_groups).toBeUndefined()
     expect(SCREEN_OF_TOOL.join_game).toBeUndefined()
   })
 
@@ -415,14 +420,24 @@ describe('pictures and the view-only data', () => {
   it('puts each picture beside the right group and member', () => {
     const g = groupsView(
       { groups: mapGroups([{ id: 'g1', name: 'A', timezone: null, role: 'owner' }, { id: 'g2', name: 'B', timezone: null, role: 'member' }]) },
-      { groups: [{ id: 'g1', avatar: 'https://x/1' }, { id: 'g2', avatar: null }] }
+      {
+        groups: [
+          { id: 'g1', avatar: 'https://x/1', members: 4, lifetime: { cents: 15500, display: '$155' } },
+          { id: 'g2', avatar: null, members: 1, lifetime: null },
+        ],
+      }
     )
-    expect(g.map((x) => [x.name, x.avatar])).toEqual([['A', 'https://x/1'], ['B', null]])
-    const m = membersView(
-      { group: 'wef', members: [{ member_id: 'a', name: 'Amy' }, { member_id: 'b', name: 'Bo' }] },
-      { members: [{ id: 'pa', avatar: 'https://x/a', isMe: false }, { id: 'pb', avatar: null, isMe: true }] }
-    )
-    expect(m.members.map((x) => [x.name, x.avatar, x.isMe, x.faceId])).toEqual([['Amy', 'https://x/a', false, 'pa'], ['Bo', null, true, 'pb']])
+    expect(g.map((x) => [x.name, x.avatar, x.members, x.lifetime?.display ?? null])).toEqual([
+      ['A', 'https://x/1', 4, '$155'],
+      ['B', null, 1, null],
+    ])
+    const m = membersView({
+      groupMembers: [
+        { id: 'pa', name: 'Amy', avatar: 'https://x/a', isMe: false },
+        { id: 'pb', name: 'Bo', avatar: null, isMe: true },
+      ],
+    })
+    expect(m.map((x) => [x.name, x.avatar, x.isMe, x.faceId])).toEqual([['Amy', 'https://x/a', false, 'pa'], ['Bo', null, true, 'pb']])
   })
 
   it('puts the roster, waitlist and results pictures beside the right people', () => {

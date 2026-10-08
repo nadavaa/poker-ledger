@@ -6,10 +6,10 @@ import { APP_URI, appPage, pictureDomains } from './register'
 
 // A recording stand-in for the MCP server: what gets registered, not what runs.
 function record() {
-  const tools = new Map<string, { _meta?: Record<string, unknown> }>()
+  const tools = new Map<string, { _meta?: Record<string, unknown>; description?: string }>()
   const resources = new Map<string, { config: Record<string, unknown>; read: (u: URL) => Promise<unknown> }>()
   const server = {
-    registerTool: (name: string, config: { _meta?: Record<string, unknown> }) => {
+    registerTool: (name: string, config: { _meta?: Record<string, unknown>; description?: string }) => {
       tools.set(name, config)
       return {}
     },
@@ -25,19 +25,43 @@ describe('view registration', () => {
   const { server, tools, resources } = record()
   registerTools(server as never)
 
-  it('links the view from the read tools a player moves between, and only those', () => {
+  // Each lookup has a twin that draws the screen: same data, bound to the page.
+  const PAIRS: [string, string][] = [
+    ['list_my_groups', 'show_groups'],
+    ['list_games', 'show_group'],
+    ['get_game', 'show_game'],
+    ['get_my_stats', 'show_my_stats'],
+    ['get_my_balances', 'show_balances'],
+    ['get_outstanding_debt', 'show_outstanding_debt'],
+  ]
+
+  it('binds the page to the display tools, and only to them', () => {
     const linked = [...tools].filter(([, c]) => c._meta?.ui).map(([n]) => n).sort()
-    expect(linked).toEqual([
-      'get_game',
-      'get_my_balances',
-      'get_my_stats',
-      'get_outstanding_debt',
-      'list_games',
-      'list_my_groups',
-    ])
-    for (const n of linked) {
-      expect(tools.get(n)!._meta).toMatchObject({ ui: { resourceUri: APP_URI } })
+    expect(linked).toEqual(PAIRS.map(([, show]) => show).sort())
+    for (const [, show] of PAIRS) {
+      expect(tools.get(show)!._meta).toMatchObject({ ui: { resourceUri: APP_URI } })
     }
+  })
+
+  it('keeps every data tool free of the page, so a lookup never draws a screen', () => {
+    for (const [data] of PAIRS) {
+      expect(tools.has(data), data).toBe(true)
+      expect(tools.get(data)!._meta?.ui, data).toBeUndefined()
+      expect(JSON.stringify(tools.get(data)!._meta ?? {}), data).not.toMatch(/resourceUri|outputTemplate/)
+    }
+    expect(tools.get('list_group_members')!._meta?.ui).toBeUndefined()
+    expect(tools.get('get_whatsapp_summary')!._meta?.ui).toBeUndefined()
+  })
+
+  it('tells the model which to use: data tools say they draw nothing, display tools say once', () => {
+    for (const [data, show] of PAIRS) {
+      expect(tools.get(data)!.description, data).toMatch(/^Returns data only, no UI\./)
+      expect(tools.get(data)!.description, data).toMatch(/combining, counting, comparing or filtering/)
+      expect(tools.get(show)!.description, show).toMatch(/at most once per answer/i)
+      expect(tools.get(show)!.description, show).toMatch(/Do not use for intermediate lookups/)
+      expect(tools.get(show)!.description, show).toContain(data)
+    }
+    expect(tools.get('list_group_members')!.description).toMatch(/^Returns data only, no UI\./)
   })
 
   it('never links a tool that changes something', () => {

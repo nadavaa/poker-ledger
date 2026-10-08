@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { resolveDisplayName } from '../../names'
 import { settledGameSummary } from '../../summary'
 import { DEFAULT_TIME_ZONE, formatTime, playedAt } from '../../time'
-import { personAvatar } from '../ui/meta'
 import { loadGroup } from './common'
+import { DATA_ONLY } from './pair'
 import { must, runTool, ToolError } from './run'
 
 export function registerRosterTools(server: McpServer) {
@@ -13,6 +13,7 @@ export function registerRosterTools(server: McpServer) {
     {
       title: 'List a group\'s members',
       description:
+        DATA_ONLY +
         'Use this to turn a name into a member_id, for example before add_player or ' +
         'seat_from_waitlist ("add Dean"). Returns the active members of one group as ' +
         'member_id and name, and nothing else: no emails, phone numbers, payment ' +
@@ -22,31 +23,23 @@ export function registerRosterTools(server: McpServer) {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     (args, ctx) =>
-      runTool('list_group_members', ctx, async ({ db, userId, setUi }) => {
+      runTool('list_group_members', ctx, async ({ db }) => {
         const group = await loadGroup(db, args.group_id)
         const rows = must(
           await db
             .from('group_members')
-            .select('id, display_name, profile_id, profiles(display_name, avatar_url)')
+            .select('id, display_name, profiles(display_name)')
             .eq('group_id', group.id)
             .eq('is_active', true)
         )
-        // Name, picture and "is this me" together, so sorting them keeps them
-        // together; the text result gets only the name and the id.
-        const members = rows
-          .map((m) => ({
-            member_id: m.id,
-            name: resolveDisplayName(m.display_name, m.profiles?.display_name),
-            avatar: personAvatar(m.profiles?.avatar_url),
-            // What the app colours a person's initials by.
-            faceId: m.profile_id ?? m.id,
-            isMe: m.profile_id === userId,
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name))
-        setUi({ members: members.map((m) => ({ id: m.faceId, avatar: m.avatar, isMe: m.isMe })) })
         return {
           group: group.name,
-          members: members.map((m) => ({ member_id: m.member_id, name: m.name })),
+          members: rows
+            .map((m) => ({
+              member_id: m.id,
+              name: resolveDisplayName(m.display_name, m.profiles?.display_name),
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
         }
       })
   )
