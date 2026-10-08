@@ -440,13 +440,14 @@ apps that support MCP Apps (Claude on web, desktop and mobile). Each tool still
 returns exactly the text it always did, so an app that does not draw the page,
 or an agent that only reads, loses nothing.
 
-It uses the app's own colours, cards and tabs, always in light mode whatever
-theme the chat is in (`THEME` in `widgets/app/main.ts` switches it to follow
-the chat), and opens on
-the screen for whichever tool ran: `list_my_groups` (your groups), `list_games`
-(a group's games), `get_game` (one game), `get_my_stats` (a group's stats),
-`get_my_balances` (your results) and `get_outstanding_debt` (what you owe and
-are owed).
+It is laid out as the app's own screens are, from the app's own styles: the
+same cards, rows, tabs, state banner, spacing and money colours, with pictures
+for people and groups. It is always in light mode whatever theme the chat is in
+(`THEME` in `widgets/app/main.ts` switches it to follow the chat). Opened by
+whichever tool ran, it starts on that tool's screen: `list_my_groups` (your
+groups), `list_games` (a group's games), `get_game` (one game), `get_my_stats`
+(a group's stats), `get_my_balances` (your results) and `get_outstanding_debt`
+(what you owe and are owed).
 
 From there you can click through, as in the app: a group, then its **Games**,
 **Members** and **My Stats**, then a game, with Back and Home buttons.
@@ -454,11 +455,11 @@ From there you can click through, as in the app: a group, then its **Games**,
 | Screen | What it shows |
 |---|---|
 | Your groups | Each group with your lifetime net and its member count; links to *What you owe* and *My results* |
-| A group: Games | The five most recent games, each with its status, date, location, seats (`9/8 · 1 over`) and where you stand, and a **Show all** button for the rest (**Show fewer** folds it back). A list one game over the limit is shown whole |
-| A group: Members | Who is in the group, by name only |
+| A group: Games | **Happening now** (scheduled and running games, soonest first, each with its live tag and seats) and **History** (finished games: the night, how many played, the pot, and your result). History shows the five most recent with a **Show all** button for the rest (**Show fewer** folds it back); a history one game over the limit is shown whole |
+| A group: Members | Who is in the group, with their picture, and *(you)* beside your own name. No roles, games played or contact details, which the agent is not given |
 | A group: My Stats | Total net, the running-balance chart with a labelled zero line (tap a point for that game), average, win rate, best and worst game, streaks, total bought in |
-| A game, scheduled | Date and time on the group's clock, location, seats, players, waitlist, your status, and a **Join** or **Withdraw** button. No money, as on the screen |
-| A game, started or settled | The pot; buy-ins, or once settled each player's in, out and net; and who pays whom. Read-only |
+| A game, scheduled | The state banner (with the buy-in in chips, or *Never started* once the start time has passed), your status with a small **I'm in** / **Join waitlist** / **Withdraw** button, then the confirmed players as rows with their pictures and the waitlist numbered. No money, as on the screen |
+| A game, started or settled | The state banner; once settled the total pot and the Player / In / Out / Net table, and your settlements (or who pays whom, for the game admin). While running, who is in and what each put in. Read-only |
 | What you owe | Poker and food kept apart, owed and owing never netted. No Venmo links and no buttons |
 | My results | Your net in every settled game, newest first |
 
@@ -477,14 +478,26 @@ open the matching page of the site (the group, or the game) in the browser. The
 site it points at is the one the server is running as: production on
 production, a preview's own address on a preview.
 
-**What the view can't do.** It has no access of its own: no database, no
-token, no network, and nothing loads from outside. Everything it shows came in
-a tool result, and everything it does is a call to a tool through the app, as
-you, under the same row-level security. It cannot do anything an admin does,
-move money, mark a payment, or show the live game (buy-ins, cash-outs,
-settling). Those stay in Poker Ledger, which is what the link is for. Names and
-places from the database are shown as text, never as markup. The app's font
-is not loaded, so type is the device's own.
+**What the view can't do.** It has no access of its own: no database, no token,
+and no way to make a request. Everything it shows came in a tool result, and
+everything it does is a call to a tool through the app, as you, under the same
+row-level security. The one thing it loads from outside is pictures, and only
+from two places: this project's public storage (where profile and group
+pictures live) and Google's picture host (a Google sign-in hands over a photo
+address). The host enforces that list; any other address, a request, a frame
+or a script is blocked. A picture that does not load falls back to initials on
+the person's colour, as in the app.
+
+The pictures and a few list numbers (players and pot for a finished game, and
+which member is you) reach the view in the result's `_meta`, which the app
+hands to the page and does not show to the model. The text every tool returns
+is unchanged, and everything in `_meta` is already visible to the signed-in
+user in the group.
+
+It cannot do anything an admin does, move money, mark a payment, or show the
+live game (buy-ins, cash-outs, settling). Those stay in Poker Ledger, which is
+what the link is for. The app's font is not loaded, so type is the device's own.
+Names and places from the database are shown as text, never as markup.
 
 One difference worth knowing. With only the chat, "never confirm for the user"
 is a request to the model. In the card it is the Confirm button. The server

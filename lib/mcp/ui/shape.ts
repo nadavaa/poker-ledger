@@ -7,16 +7,20 @@
 //
 // Pure, like the rest of lib/: no Supabase, no Next, no React, no DOM.
 
+import { formatTime } from '../../time'
+import { UI_META_KEY, type UiMeta } from './meta-types'
+
 type Money = { cents: number; display: string }
 type Moment = { iso: string; local: string; timezone: string }
 
 export type ToolResultLike = {
   isError?: boolean
   content?: { type: string; text?: string }[]
+  _meta?: Record<string, unknown>
 }
 
 export type Parsed =
-  | { ok: true; data: Record<string, unknown> }
+  | { ok: true; data: Record<string, unknown>; ui: UiMeta | null }
   | { ok: false; message: string }
 
 const UNREADABLE = 'Poker Ledger sent something this view could not read.'
@@ -29,7 +33,12 @@ export function parseResult(result: ToolResultLike | null | undefined): Parsed {
   try {
     const data: unknown = JSON.parse(text)
     if (data && typeof data === 'object' && !Array.isArray(data)) {
-      return { ok: true, data: data as Record<string, unknown> }
+      const ui = result?._meta?.[UI_META_KEY]
+      return {
+        ok: true,
+        data: data as Record<string, unknown>,
+        ui: ui && typeof ui === 'object' ? (ui as UiMeta) : null,
+      }
     }
   } catch {
     // fall through
@@ -73,9 +82,10 @@ export type StatsView =
       longestLoss: number
     }
 
+/** "2 wins", "1 loss", "None": the app's own wording for a streak. */
 export function streakWords(kind: 'win' | 'loss' | 'none', length: number): string {
-  if (kind === 'none' || length <= 0) return 'No streak'
-  return `${length} ${kind === 'win' ? 'win' : 'loss'}${length === 1 ? '' : kind === 'win' ? 's' : 'es'} in a row`
+  if (kind === 'none' || length <= 0) return 'None'
+  return `${length} ${kind === 'win' ? 'win' : 'loss'}${length === 1 ? '' : kind === 'win' ? 's' : 'es'}`
 }
 
 export function statsView(data: Record<string, unknown>): StatsView {
@@ -142,7 +152,7 @@ export type Standing =
   | { kind: 'waitlisted'; position: number }
   | { kind: 'none' }
 
-export type Person = { name: string; isMe: boolean; position?: number }
+export type Person = { name: string; isMe: boolean; position?: number; avatar: string | null; faceId: string | null }
 
 export type GameMoney = {
   pot: Money
@@ -150,6 +160,8 @@ export type GameMoney = {
   players: {
     name: string
     isMe: boolean
+    avatar: string | null
+    faceId: string | null
     boughtIn: Money
     cashedOut: Money | null
     net: Money | null
@@ -165,13 +177,22 @@ export type GameTransfer = {
   myPart: string
 }
 
+/** What is shown on every game's page, scheduled or not. */
+export type GameFacts = {
+  /** The group to go back to; null when the server did not say. */
+  groupId: string | null
+  stakes: { buyin: Money; chips: number } | null
+  overdue: boolean
+  /** The headline time: when it was played, or is scheduled. */
+  when: string
+}
+
 export type GameCardView =
-  | {
+  | ({
       kind: 'card'
       gameId: string
       title: string
       group: string
-      when: string
       timezone: string
       location: string | null
       seats: string
@@ -180,30 +201,36 @@ export type GameCardView =
       standing: Standing
       /** Which action the button offers. */
       action: 'join' | 'withdraw'
-    }
-  | {
+    } & GameFacts)
+  | ({
       kind: 'summary'
       gameId: string
       title: string
       group: string
       status: string
-      when: string
       seats: string
       location: string | null
       /** Only once the game has started; a scheduled game has none. */
       money: GameMoney | null
       transfers: GameTransfer[]
-    }
+    } & GameFacts)
 
-export function gameCardView(data: Record<string, unknown>): GameCardView | null {
+export function gameCardView(data: Record<string, unknown>, ui: UiMeta | null = null): GameCardView | null {
   if (typeof data.game_id !== 'string') return null
   const sched = data.scheduled_at as Moment | undefined
   const played = (data.played_at as Moment | undefined) ?? sched
   const seats = (data.seats as { summary?: string } | undefined)?.summary ?? ''
   const group = typeof data.group === 'string' ? data.group : ''
+  // As the game page titles it: the name, or else when it is.
   const title =
-    typeof data.name === 'string' && data.name ? data.name : group || 'Game'
+    typeof data.name === 'string' && data.name ? data.name : played?.local || group || 'Game'
   const status = String(data.status ?? '')
+  const facts = (when: string): GameFacts => ({
+    groupId: ui?.game?.groupId ?? null,
+    stakes: ui?.game ? { buyin: ui.game.buyin, chips: ui.game.chips } : null,
+    overdue: ui?.game?.overdue === true,
+    when,
+  })
 
   if (status !== 'scheduled') {
     return {
@@ -212,22 +239,24 @@ export function gameCardView(data: Record<string, unknown>): GameCardView | null
       title,
       group,
       status,
-      when: played?.local ?? '',
       seats,
       location: typeof data.location === 'string' && data.location ? data.location : null,
-      money: moneyOf(data.money),
+      money: moneyOf(data.money, ui),
       transfers: transfersOf(data.settlements),
+      ...facts(played?.local ?? ''),
     }
   }
 
-  const people = (list: unknown): Person[] =>
-    (Array.isArray(list) ? list : []).map((p: Record<string, unknown>) => ({
+  const people = (list: unknown, faces: { id: string; avatar: string | null }[] | undefined): Person[] =>
+    (Array.isArray(list) ? list : []).map((p: Record<string, unknown>, i) => ({
       name: String(p.name ?? ''),
       isMe: p.is_me === true,
+      avatar: faces?.[i]?.avatar ?? null,
+      faceId: faces?.[i]?.id ?? null,
       ...(typeof p.position === 'number' ? { position: p.position } : {}),
     }))
-  const roster = people(data.roster)
-  const waitlist = people(data.waitlist)
+  const roster = people(data.roster, ui?.roster)
+  const waitlist = people(data.waitlist, ui?.waitlist)
 
   const myWait = waitlist.find((p) => p.isMe)
   const standing: Standing = roster.some((p) => p.isMe)
@@ -241,7 +270,6 @@ export function gameCardView(data: Record<string, unknown>): GameCardView | null
     gameId: data.game_id,
     title,
     group,
-    when: sched?.local ?? '',
     timezone: sched?.timezone ?? '',
     location: typeof data.location === 'string' && data.location ? data.location : null,
     seats,
@@ -249,18 +277,21 @@ export function gameCardView(data: Record<string, unknown>): GameCardView | null
     waitlist,
     standing,
     action: standing.kind === 'none' ? 'join' : 'withdraw',
+    ...facts(sched?.local ?? ''),
   }
 }
 
-function moneyOf(raw: unknown): GameMoney | null {
+function moneyOf(raw: unknown, ui: UiMeta | null): GameMoney | null {
   const m = raw as Record<string, unknown> | null
   if (!m || !isMoney(m.pot) || !Array.isArray(m.players)) return null
   return {
     pot: m.pot,
     note: typeof m.note === 'string' ? m.note : '',
-    players: (m.players as Record<string, unknown>[]).map((p) => ({
+    players: (m.players as Record<string, unknown>[]).map((p, i) => ({
       name: String(p.name ?? ''),
       isMe: p.is_me === true,
+      avatar: ui?.players?.[i]?.avatar ?? null,
+      faceId: ui?.players?.[i]?.id ?? null,
       boughtIn: isMoney(p.bought_in) ? p.bought_in : { cents: 0, display: '$0' },
       cashedOut: isMoney(p.cashed_out) ? p.cashed_out : null,
       net: isMoney(p.net) ? p.net : null,
@@ -345,13 +376,19 @@ export function contextLine(args: {
 // The same tool results, shaped for the screens a player moves between:
 // groups, a group's games and members, what I owe, what I ended with.
 
-export type GroupItem = { id: string; name: string; role: string; timezone: string }
+export type GroupItem = { id: string; name: string; role: string; timezone: string; avatar: string | null }
 
-export function groupsView(data: Record<string, unknown>): GroupItem[] {
+export function groupsView(data: Record<string, unknown>, ui: UiMeta | null = null): GroupItem[] {
   return (Array.isArray(data.groups) ? data.groups : []).flatMap(
-    (g: Record<string, unknown>) =>
+    (g: Record<string, unknown>, i): GroupItem[] =>
       typeof g.group_id === 'string'
-        ? [{ id: g.group_id, name: String(g.name ?? ''), role: String(g.my_role ?? ''), timezone: String(g.timezone ?? '') }]
+        ? [{
+            id: g.group_id,
+            name: String(g.name ?? ''),
+            role: String(g.my_role ?? ''),
+            timezone: String(g.timezone ?? ''),
+            avatar: ui?.groups?.[i]?.avatar ?? null,
+          }]
         : []
   )
 }
@@ -359,38 +396,58 @@ export function groupsView(data: Record<string, unknown>): GroupItem[] {
 export type GameListItem = {
   id: string
   title: string
+  /** The headline time, as the group reads it. */
   when: string
+  /** The night, as the app's history reads it: "Sep 7, 2026". */
+  day: string
+  playedIso: string
   status: string
   location: string | null
   seats: string
+  seatsTaken: number
+  seatLimit: number
   standing: Standing
+  /** Finished games only. */
+  players: number | null
+  pot: Money | null
+  myNet: Money | null
 }
 
-export function gamesView(data: Record<string, unknown>): {
+export function gamesView(data: Record<string, unknown>, ui: UiMeta | null = null): {
   group: string
   games: GameListItem[]
   note: string | null
 } {
   const games = (Array.isArray(data.games) ? data.games : []).flatMap(
-    (g: Record<string, unknown>): GameListItem[] => {
+    (g: Record<string, unknown>, i): GameListItem[] => {
       if (typeof g.game_id !== 'string') return []
-      const when = (g.played_at as Moment | undefined)?.local ?? ''
+      const at = g.played_at as Moment | undefined
+      const when = at?.local ?? ''
       const iAm = g.i_am
       const pos = typeof g.waitlist_position === 'number' ? g.waitlist_position : 0
+      const seats = g.seats as { summary?: string; taken?: number; limit?: number } | undefined
+      const extra = ui?.games?.[i]
       return [
         {
           id: g.game_id,
           title: typeof g.name === 'string' && g.name ? g.name : when,
           when,
+          day: at?.iso && at.timezone ? formatTime(at.iso, at.timezone, 'day') : when,
+          playedIso: at?.iso ?? '',
           status: String(g.status ?? ''),
           location: typeof g.location === 'string' && g.location ? g.location : null,
-          seats: (g.seats as { summary?: string } | undefined)?.summary ?? '',
+          seats: seats?.summary ?? '',
+          seatsTaken: seats?.taken ?? 0,
+          seatLimit: seats?.limit ?? 0,
           standing:
             iAm === 'seated'
               ? { kind: 'seated' }
               : iAm === 'waitlisted'
                 ? { kind: 'waitlisted', position: pos }
                 : { kind: 'none' },
+          players: extra?.players ?? null,
+          pot: extra?.pot ?? null,
+          myNet: extra?.myNet ?? null,
         },
       ]
     }
@@ -402,28 +459,47 @@ export function gamesView(data: Record<string, unknown>): {
   }
 }
 
-/** How many games a group's list shows before "Show all". */
+/**
+ * Games not yet finished (soonest first), and the rest (newest first): the
+ * group page's "Happening now" and "History".
+ */
+export function splitGames<T extends { status: string; playedIso: string }>(games: T[]): { live: T[]; past: T[] } {
+  const isLive = (g: T) => g.status === 'scheduled' || g.status === 'active'
+  return {
+    live: games.filter(isLive).sort((a, b) => a.playedIso.localeCompare(b.playedIso)),
+    past: games.filter((g) => !isLive(g)).sort((a, b) => b.playedIso.localeCompare(a.playedIso)),
+  }
+}
+
+/** How many games a group's history shows before "Show all". */
 export const GAMES_SHOWN = 5
 
 /**
- * The games to draw. The server returns them newest first, so the first few
- * are the most recent. A list only just over the limit is shown whole: a
- * button to reveal one game is more work than the game.
+ * The games to draw. A list only just over the limit is shown whole: a button
+ * to reveal one game is more work than the game.
  */
 export function limitGames<T>(games: T[], expanded: boolean, limit = GAMES_SHOWN): { shown: T[]; hidden: number } {
   if (expanded || games.length <= limit + 1) return { shown: games, hidden: 0 }
   return { shown: games.slice(0, limit), hidden: games.length - limit }
 }
 
-export function membersView(data: Record<string, unknown>): {
+export function membersView(data: Record<string, unknown>, ui: UiMeta | null = null): {
   group: string
-  members: { id: string; name: string }[]
+  members: { id: string; faceId: string; name: string; avatar: string | null; isMe: boolean }[]
 } {
   return {
     group: typeof data.group === 'string' ? data.group : '',
     members: (Array.isArray(data.members) ? data.members : []).flatMap(
-      (m: Record<string, unknown>) =>
-        typeof m.member_id === 'string' ? [{ id: m.member_id, name: String(m.name ?? '') }] : []
+      (m: Record<string, unknown>, i) =>
+        typeof m.member_id === 'string'
+          ? [{
+              id: m.member_id,
+              name: String(m.name ?? ''),
+              avatar: ui?.members?.[i]?.avatar ?? null,
+              faceId: ui?.members?.[i]?.id ?? m.member_id,
+              isMe: ui?.members?.[i]?.isMe === true,
+            }]
+          : []
     ),
   }
 }

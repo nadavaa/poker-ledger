@@ -126,7 +126,7 @@ The source is in `widgets/app`. It builds to one self-contained HTML file that
 the server returns as the resource, so **after changing anything in
 `widgets/`, run `npm run build:widgets` and commit the result in
 `lib/mcp/ui/generated/`**. A test checks that the file is one document, under
-the size budget, and names no web address of its own. The page needs no
+the size budget, and names no web address of its own. The page may load pictures from this project's storage and Google's picture host, and nothing else (`pictureDomains` in `lib/mcp/ui/register.ts`). The page needs no
 configuration beyond the connector. "Open in Poker Ledger" goes to
 `www.kevespoker.com` on production and to the deployment's own address on a
 preview (`lib/mcp/ui/origin.ts`).

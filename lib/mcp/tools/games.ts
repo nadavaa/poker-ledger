@@ -7,9 +7,12 @@ import {
   gameDetail,
   gameListItem,
   inRange,
+  orderedSignups,
+  orderedTotals,
   type SignupRow,
 } from '../map'
 import { loadGroup, myMemberId } from './common'
+import { gameFacts, gameListFacts, personAvatar } from '../ui/meta'
 import { appUi } from '../ui/register'
 import { must, runTool, ToolError } from './run'
 
@@ -44,7 +47,7 @@ export function registerGameTools(server: McpServer) {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     (args, ctx) =>
-      runTool('list_games', ctx, async ({ db, userId }) => {
+      runTool('list_games', ctx, async ({ db, userId, setUi }) => {
         const group = await loadGroup(db, args.group_id)
         const tz = group.timezone || DEFAULT_TIME_ZONE
         const range = parseRange(args.from, args.to, tz)
@@ -101,6 +104,19 @@ export function registerGameTools(server: McpServer) {
         const leftBy = new Map<string, number>()
         for (const l of left) leftBy.set(l.game_id, (leftBy.get(l.game_id) ?? 0) + 1)
 
+        // The list shows who played and the pot for a finished game, and my own
+        // result for a settled one. Visible to the group already; the view only.
+        const finished = shown.filter((g) => g.status !== 'scheduled' && g.status !== 'active')
+        const totals = finished.length
+          ? must(
+              await db
+                .from('game_player_totals')
+                .select('game_id, member_id, buyin_cents, net_cents')
+                .in('game_id', finished.map((g) => g.id))
+            )
+          : []
+        setUi({ games: gameListFacts({ games: shown, totals, myMemberId: me }) })
+
         return {
           group: group.name,
           timezone: tz,
@@ -141,11 +157,11 @@ export function registerGameTools(server: McpServer) {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     (args, ctx) =>
-      runTool('get_game', ctx, async ({ db, userId }) => {
+      runTool('get_game', ctx, async ({ db, userId, setUi }) => {
         const { data: game } = await db
           .from('games')
           .select(
-            'id, group_id, name, scheduled_at, started_at, settled_at, location, seat_limit, status, admin_member_id, groups(name, timezone)'
+            'id, group_id, name, scheduled_at, started_at, settled_at, location, seat_limit, status, admin_member_id, default_buyin_cents, chips_per_dollar, groups(name, timezone)'
           )
           .eq('id', args.game_id)
           .maybeSingle()
@@ -162,7 +178,7 @@ export function registerGameTools(server: McpServer) {
             .eq('game_id', game.id),
           db
             .from('group_members')
-            .select('id, display_name, profile_id, profiles(display_name)')
+            .select('id, display_name, profile_id, profiles(display_name, avatar_url)')
             .eq('group_id', game.group_id),
           db
             .from('game_player_totals')
@@ -187,14 +203,34 @@ export function registerGameTools(server: McpServer) {
         const members = must(people)
         const leftIds = new Set(must(left).map((c) => c.member_id))
 
+        const signupRows = must(signups).map((s) => ({
+          ...s,
+          left_table: leftIds.has(s.member_id),
+        }))
+        // Pictures in the same order the text lists the people.
+        const face = new Map(
+          members.map((m) => [m.id, { id: m.profile_id ?? m.id, avatar: personAvatar(m.profiles?.avatar_url) }])
+        )
+        const faceOf = (id: string) => face.get(id) ?? { id, avatar: null }
+        const ordered = orderedSignups(signupRows)
+        setUi({
+          roster: ordered.confirmed.map((s) => faceOf(s.member_id)),
+          waitlist: ordered.waitlisted.map((s) => faceOf(s.member_id)),
+          players: orderedTotals(must(totals), game.status === 'settled').map((t) => faceOf(t.member_id)),
+          game: gameFacts({
+            groupId: game.group_id,
+            status: game.status,
+            scheduledAt: game.scheduled_at,
+            buyinCents: game.default_buyin_cents,
+            chipsPerDollar: Number(game.chips_per_dollar),
+          }),
+        })
+
         return gameDetail({
           game,
           timezone: game.groups?.timezone ?? null,
           groupName: game.groups?.name ?? '',
-          signups: must(signups).map((s) => ({
-            ...s,
-            left_table: leftIds.has(s.member_id),
-          })),
+          signups: signupRows,
           people: members.map((m) => ({
             member_id: m.id,
             display_name: m.display_name,

@@ -13,10 +13,26 @@ export const APP_URI = 'ui://poker-ledger/app.html'
 /** The tool's side of the link. The shape the spec defines. */
 export const appUi = { ui: { resourceUri: APP_URI } }
 
-// No `csp` on purpose: with none, the host blocks every network request from
-// the page. The view gets its data from tool results and calls tools through
-// the host; it loads nothing and holds no secrets.
-const META = { ui: { prefersBorder: false } }
+// The page may load pictures, and nothing else. It has no connect, frame or
+// base allowance, so it still cannot make a request of its own: it gets its
+// data from tool results and calls tools through the host. Pictures come from
+// two places only: this project's public storage, where profile and group
+// pictures are kept, and Google's picture host, because a Google sign-in
+// hands over a photo address.
+const GOOGLE_PICTURES = 'https://*.googleusercontent.com'
+
+export function pictureDomains(env: Record<string, string | undefined> = process.env): string[] {
+  const out: string[] = []
+  try {
+    if (env.NEXT_PUBLIC_SUPABASE_URL) out.push(new URL(env.NEXT_PUBLIC_SUPABASE_URL).origin)
+  } catch {
+    // no storage address, so no storage pictures
+  }
+  out.push(GOOGLE_PICTURES)
+  return out
+}
+
+const meta = () => ({ ui: { prefersBorder: false, csp: { resourceDomains: pictureDomains() } } })
 
 /** The page, told which address "Open in Poker Ledger" should go to. */
 export function appPage(origin: string = appOrigin()): string {
@@ -28,9 +44,9 @@ export function registerWidgets(server: McpServer) {
     server,
     'Poker Ledger view',
     APP_URI,
-    { mimeType: RESOURCE_MIME_TYPE, _meta: META },
+    { mimeType: RESOURCE_MIME_TYPE, _meta: meta() },
     async () => ({
-      contents: [{ uri: APP_URI, mimeType: RESOURCE_MIME_TYPE, text: appPage(), _meta: META }],
+      contents: [{ uri: APP_URI, mimeType: RESOURCE_MIME_TYPE, text: appPage(), _meta: meta() }],
     })
   )
 }

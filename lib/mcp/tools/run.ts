@@ -2,6 +2,7 @@ import type { CallToolResult, ServerContext } from '@modelcontextprotocol/server
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { callerOf, userClient } from '../auth'
 import { recordToolCall } from '../log'
+import { UI_META_KEY, type UiMeta } from '../ui/meta-types'
 import type { Database } from '../../supabase/types'
 
 /** A mistake the agent can act on. Its message is shown as written. */
@@ -15,6 +16,8 @@ export type ToolContext = {
   userId: string
   /** Writes say which half of the two-step this call turned out to be. */
   setPhase: (phase: Phase) => void
+  /** Data for the view only. Goes in the result's _meta, never in its text. */
+  setUi: (ui: UiMeta) => void
 }
 
 /**
@@ -34,6 +37,7 @@ export async function runTool(
   let ok = true
   let phase: Phase = 'read'
   let db: Db | null = null
+  let ui: UiMeta | null = null
   try {
     const caller = callerOf(ctx.http?.authInfo)
     db = userClient(caller.token)
@@ -43,8 +47,14 @@ export async function runTool(
       setPhase: (p) => {
         phase = p
       },
+      setUi: (u) => {
+        ui = u
+      },
     })
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] }
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      ...(ui ? { _meta: { [UI_META_KEY]: ui } } : {}),
+    }
   } catch (error) {
     ok = false
     const message =
