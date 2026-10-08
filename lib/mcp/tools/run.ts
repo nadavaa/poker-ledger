@@ -2,7 +2,7 @@ import type { CallToolResult, ServerContext } from '@modelcontextprotocol/server
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { callerOf, userClient } from '../auth'
 import { recordToolCall } from '../log'
-import { UI_META_KEY, type UiMeta } from '../ui/meta'
+import { UI_META_KEY, type UiMeta } from '../ui/meta-types'
 import type { Database } from '../../supabase/types'
 
 /** A mistake the agent can act on. Its message is shown as written. */

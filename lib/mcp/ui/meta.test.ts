@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { gameDetail, orderedSignups, orderedTotals, type GameRow } from '../map'
-import { gameListFacts, groupAvatar, personAvatar } from './meta'
+import { gameFacts, gameListFacts, groupAvatar, personAvatar } from './meta'
 
 describe('pictures', () => {
   it('builds a public address from a stored path, passes a web address through, and never invents one', () => {
@@ -81,5 +81,21 @@ describe('what a game row in the list shows', () => {
   it('has no result of mine for a game I was not in', () => {
     const [a] = gameListFacts({ games: [{ id: 'a', status: 'settled' }], totals, myMemberId: 'someone-else' })
     expect(a.myNet).toBeNull()
+  })
+})
+
+describe('what the game banner needs', () => {
+  const base = { groupId: 'grp', scheduledAt: '2026-10-09T23:30:00Z', buyinCents: 5000, chipsPerDollar: 2 }
+  it('prices the buy-in in chips with the game\u2019s own ratio', () => {
+    const f = gameFacts({ ...base, status: 'scheduled', now: Date.parse('2026-10-01T00:00:00Z') })
+    expect(f.buyin).toEqual({ cents: 5000, display: '$50' })
+    expect(f.chips).toBe(100)
+    expect(f.groupId).toBe('grp')
+  })
+  it('is overdue only when it is still scheduled and the start time has passed', () => {
+    const late = Date.parse('2026-10-10T00:00:00Z')
+    expect(gameFacts({ ...base, status: 'scheduled', now: late }).overdue).toBe(true)
+    expect(gameFacts({ ...base, status: 'active', now: late }).overdue).toBe(false)
+    expect(gameFacts({ ...base, status: 'scheduled', now: Date.parse('2026-10-09T00:00:00Z') }).overdue).toBe(false)
   })
 })

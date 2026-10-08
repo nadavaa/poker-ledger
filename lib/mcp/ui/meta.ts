@@ -8,22 +8,11 @@
 // can never end up beside the wrong name.
 
 import { avatarSrc } from '../../avatar'
-import { money, type Money } from '../format'
+import { centsToChips } from '../../money'
+import { money } from '../format'
 
-export const UI_META_KEY = 'poker-ledger/ui'
-
-export type UiMeta = {
-  /** list_my_groups: one per group. */
-  groups?: { avatar: string | null }[]
-  /** list_group_members: one per member. */
-  members?: { avatar: string | null; isMe: boolean }[]
-  /** list_games: one per game. Finished games only carry players and pot. */
-  games?: { players: number | null; pot: Money | null; myNet: Money | null }[]
-  /** get_game: parallel to roster, waitlist and money.players. */
-  roster?: { avatar: string | null }[]
-  waitlist?: { avatar: string | null }[]
-  players?: { avatar: string | null }[]
-}
+export { UI_META_KEY, type UiMeta } from './meta-types'
+import type { UiMeta } from './meta-types'
 
 export const personAvatar = (url: string | null | undefined) => avatarSrc(url, 'avatars')
 export const groupAvatar = (url: string | null | undefined) => avatarSrc(url, 'group-avatars')
@@ -51,4 +40,22 @@ export function gameListFacts(args: {
       myNet: g.status === 'settled' && mine ? money(mine.net_cents) : null,
     }
   })
+}
+
+/** What the banner on a game needs, and the group to go back to. */
+export function gameFacts(args: {
+  groupId: string
+  status: string
+  scheduledAt: string
+  buyinCents: number
+  chipsPerDollar: number
+  now?: number
+}): NonNullable<UiMeta['game']> {
+  return {
+    groupId: args.groupId,
+    buyin: money(args.buyinCents),
+    chips: centsToChips(args.buyinCents, args.chipsPerDollar),
+    // Start time passed and nobody ever hit Start, as the game page says.
+    overdue: args.status === 'scheduled' && new Date(args.scheduledAt).getTime() < (args.now ?? Date.now()),
+  }
 }

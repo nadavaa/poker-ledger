@@ -15,6 +15,7 @@ import {
   gamesView,
   groupsView,
   limitGames,
+  splitGames,
   membersView,
   safeOrigin,
   SCREEN_OF_TOOL,
@@ -38,7 +39,7 @@ const TZ = 'America/New_York'
 
 describe('parseResult', () => {
   it('reads the text content as an object', () => {
-    expect(parseResult(text({ a: 1 }))).toEqual({ ok: true, data: { a: 1 } })
+    expect(parseResult(text({ a: 1 }))).toEqual({ ok: true, data: { a: 1 }, ui: null })
   })
   it('passes a refusal through in its own words', () => {
     expect(parseResult(text('Game not found.', true))).toEqual({
@@ -109,11 +110,11 @@ describe('statsView', () => {
   })
 
   it('words a streak', () => {
-    expect(streakWords('win', 1)).toBe('1 win in a row')
-    expect(streakWords('win', 3)).toBe('3 wins in a row')
-    expect(streakWords('loss', 1)).toBe('1 loss in a row')
-    expect(streakWords('loss', 2)).toBe('2 losses in a row')
-    expect(streakWords('none', 0)).toBe('No streak')
+    expect(streakWords('win', 1)).toBe('1 win')
+    expect(streakWords('win', 3)).toBe('3 wins')
+    expect(streakWords('loss', 1)).toBe('1 loss')
+    expect(streakWords('loss', 2)).toBe('2 losses')
+    expect(streakWords('none', 0)).toBe('None')
   })
 })
 
@@ -277,7 +278,7 @@ describe('the app screens', () => {
       groups: mapGroups([{ id: 'g1', name: 'wef', timezone: null, role: 'owner' }]),
     })
     expect(groups).toEqual([
-      { id: 'g1', name: 'wef', role: 'owner', timezone: 'America/New_York' },
+      { id: 'g1', name: 'wef', role: 'owner', timezone: 'America/New_York', avatar: null },
     ])
     expect(groupsView({})).toEqual([])
   })
@@ -310,7 +311,7 @@ describe('the app screens', () => {
   it('reads members, and tolerates nothing', () => {
     expect(
       membersView({ group: 'wef', members: [{ member_id: 'a', name: 'Dean' }, { nope: 1 }] })
-    ).toEqual({ group: 'wef', members: [{ id: 'a', name: 'Dean' }] })
+    ).toEqual({ group: 'wef', members: [{ id: 'a', name: 'Dean', avatar: null, isMe: false }] })
     expect(membersView({}).members).toEqual([])
   })
 
@@ -398,5 +399,110 @@ describe('limitGames', () => {
     expect(limitGames(ten.slice(0, 6), false).hidden).toBe(0)
     expect(limitGames(ten.slice(0, 7), false).hidden).toBe(2)
     expect(limitGames([], false)).toEqual({ shown: [], hidden: 0 })
+  })
+})
+
+describe('pictures and the view-only data', () => {
+  const withMeta = (o: unknown, ui: unknown) => ({ ...text(o), _meta: { 'poker-ledger/ui': ui } })
+
+  it('reads the view-only data from the result\u2019s _meta, and the text is unaffected', () => {
+    const r = parseResult(withMeta({ groups: [] }, { groups: [{ avatar: 'https://x/a.webp' }] }))
+    if (!r.ok) throw new Error('expected ok')
+    expect(r.ui?.groups?.[0].avatar).toBe('https://x/a.webp')
+    expect(r.data).toEqual({ groups: [] })
+  })
+
+  it('puts each picture beside the right group and member', () => {
+    const g = groupsView(
+      { groups: mapGroups([{ id: 'g1', name: 'A', timezone: null, role: 'owner' }, { id: 'g2', name: 'B', timezone: null, role: 'member' }]) },
+      { groups: [{ avatar: 'https://x/1' }, { avatar: null }] }
+    )
+    expect(g.map((x) => [x.name, x.avatar])).toEqual([['A', 'https://x/1'], ['B', null]])
+    const m = membersView(
+      { group: 'wef', members: [{ member_id: 'a', name: 'Amy' }, { member_id: 'b', name: 'Bo' }] },
+      { members: [{ avatar: 'https://x/a', isMe: false }, { avatar: null, isMe: true }] }
+    )
+    expect(m.members.map((x) => [x.name, x.avatar, x.isMe])).toEqual([['Amy', 'https://x/a', false], ['Bo', null, true]])
+  })
+
+  it('puts the roster, waitlist and results pictures beside the right people', () => {
+    const game: GameRow = {
+      id: 'g', name: 'G', scheduled_at: '2026-10-09T23:30:00Z', started_at: null, settled_at: null,
+      location: null, seat_limit: 2, status: 'scheduled', admin_member_id: 'm1',
+    }
+    const view = gameCardView(
+      gameDetail({
+        game, timezone: TZ, groupName: 'wef',
+        signups: [
+          { member_id: 'm2', status: 'confirmed', signup_order: 2 },
+          { member_id: 'm1', status: 'confirmed', signup_order: 1 },
+          { member_id: 'm3', status: 'waitlist', signup_order: 3 },
+        ],
+        people: ['m1', 'm2', 'm3'].map((id) => ({ member_id: id, display_name: id.toUpperCase() })),
+        totals: [], settlements: [], myMemberId: 'm1',
+      }) as unknown as Record<string, unknown>,
+      {
+        roster: [{ avatar: 'face-m1' }, { avatar: 'face-m2' }],
+        waitlist: [{ avatar: 'face-m3' }],
+        game: { groupId: 'grp', buyin: { cents: 5000, display: '$50' }, chips: 100, overdue: false },
+      }
+    )
+    if (view?.kind !== 'card') throw new Error('expected a card')
+    expect(view.roster.map((p) => [p.name, p.avatar])).toEqual([['M1', 'face-m1'], ['M2', 'face-m2']])
+    expect(view.waitlist.map((p) => [p.name, p.avatar])).toEqual([['M3', 'face-m3']])
+    expect(view.groupId).toBe('grp')
+    expect(view.stakes).toEqual({ buyin: { cents: 5000, display: '$50' }, chips: 100 })
+    expect(view.overdue).toBe(false)
+  })
+
+  it('is fine with no view-only data at all', () => {
+    const v = gameCardView({ game_id: 'g', status: 'scheduled', roster: [{ name: 'A', is_me: false }], waitlist: [] })
+    if (v?.kind !== 'card') throw new Error('expected a card')
+    expect(v.roster[0].avatar).toBeNull()
+    expect(v.groupId).toBeNull()
+    expect(v.stakes).toBeNull()
+  })
+})
+
+describe('the games list as the app lays it out', () => {
+  const row = (id: string, status: string, iso: string, extra: Record<string, unknown> = {}) => ({
+    game_id: id, name: id, status, location: null,
+    played_at: { iso, local: 'x', timezone: TZ },
+    seats: { taken: 3, limit: 8, summary: '3/8 · 5 free' }, i_am: 'not_signed_up', waitlist_position: null,
+    ...extra,
+  })
+
+  it('splits happening-now (soonest first) from history (newest first)', () => {
+    const v = gamesView({
+      group: 'wef',
+      games: [
+        row('old', 'settled', '2026-08-01T00:00:00Z'),
+        row('later', 'scheduled', '2026-10-20T00:00:00Z'),
+        row('new', 'settled', '2026-09-01T00:00:00Z'),
+        row('soon', 'active', '2026-10-07T00:00:00Z'),
+        row('cancelled', 'cancelled', '2026-07-01T00:00:00Z'),
+      ],
+    })
+    const { live, past } = splitGames(v.games)
+    expect(live.map((g) => g.id)).toEqual(['soon', 'later'])
+    expect(past.map((g) => g.id)).toEqual(['new', 'old', 'cancelled'])
+  })
+
+  it('carries the date the history shows, the seats, and the players, pot and my result', () => {
+    const v = gamesView(
+      { group: 'wef', games: [row('a', 'settled', '2026-09-07T23:10:00Z')] },
+      { games: [{ players: 4, pot: { cents: 20000, display: '$200' }, myNet: { cents: -3000, display: '-$30' } }] }
+    )
+    expect(v.games[0]).toMatchObject({
+      day: 'Sep 7, 2026', seatsTaken: 3, seatLimit: 8, players: 4,
+      pot: { display: '$200' }, myNet: { cents: -3000 },
+    })
+  })
+
+  it('caps the history, not the games happening now', () => {
+    const past = Array.from({ length: 9 }, (_, i) => ({ status: 'settled', playedIso: `2026-0${i + 1}-01` }))
+    const { shown, hidden } = limitGames(splitGames(past).past, false)
+    expect(shown).toHaveLength(5)
+    expect(hidden).toBe(4)
   })
 })

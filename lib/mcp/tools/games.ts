@@ -12,7 +12,7 @@ import {
   type SignupRow,
 } from '../map'
 import { loadGroup, myMemberId } from './common'
-import { gameListFacts, personAvatar } from '../ui/meta'
+import { gameFacts, gameListFacts, personAvatar } from '../ui/meta'
 import { appUi } from '../ui/register'
 import { must, runTool, ToolError } from './run'
 
@@ -161,7 +161,7 @@ export function registerGameTools(server: McpServer) {
         const { data: game } = await db
           .from('games')
           .select(
-            'id, group_id, name, scheduled_at, started_at, settled_at, location, seat_limit, status, admin_member_id, groups(name, timezone)'
+            'id, group_id, name, scheduled_at, started_at, settled_at, location, seat_limit, status, admin_member_id, default_buyin_cents, chips_per_dollar, groups(name, timezone)'
           )
           .eq('id', args.game_id)
           .maybeSingle()
@@ -217,6 +217,13 @@ export function registerGameTools(server: McpServer) {
           roster: ordered.confirmed.map((s) => faceOf(s.member_id)),
           waitlist: ordered.waitlisted.map((s) => faceOf(s.member_id)),
           players: orderedTotals(must(totals), game.status === 'settled').map((t) => faceOf(t.member_id)),
+          game: gameFacts({
+            groupId: game.group_id,
+            status: game.status,
+            scheduledAt: game.scheduled_at,
+            buyinCents: game.default_buyin_cents,
+            chipsPerDollar: Number(game.chips_per_dollar),
+          }),
         })
 
         return gameDetail({
