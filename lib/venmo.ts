@@ -42,7 +42,11 @@ export const VENMO_NOTE_MAX = 280
 export function encodeNote(quote?: string | null): string {
   if (USE_QUOTE_NOTES && quote && quote.trim() !== '') {
     try {
-      return encodeURIComponent([...quote].slice(0, VENMO_NOTE_MAX).join(''))
+      // Spaces go out as no-break spaces: the URL carries %20, but Venmo
+      // re-encodes it form-style and the note shows a literal "+".
+      return encodeURIComponent(
+        [...quote].slice(0, VENMO_NOTE_MAX).join('').replace(/ /g, '\u00a0'),
+      )
     } catch {
       // fall through to the spade
     }

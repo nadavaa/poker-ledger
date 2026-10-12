@@ -126,7 +126,16 @@ describe('quote notes', () => {
     const q = VENMO_QUOTES[0]
     const { web } = venmoLink('gilad', 100, q)
     expect(web).not.toContain(q)
-    expect(new URL(web).searchParams.get('note')).toBe(q)
+    expect(new URL(web).searchParams.get('note')).toBe(
+      q.replace(/ /g, '\u00a0'),
+    )
+  })
+
+  it('sends spaces as no-break spaces, never + or a plain space', () => {
+    const { web } = venmoLink('g', 100, 'שני קנגרו ו')
+    expect(web).toContain('%C2%A0')
+    expect(web).not.toContain('%20')
+    expect(web).not.toContain('+')
   })
 
   it('round-trips every quote, punctuation included', () => {
@@ -134,7 +143,7 @@ describe('quote notes', () => {
       const note = new URL(
         venmoLink('g', 100, q).app.replace('venmo://', 'https://x/'),
       ).searchParams.get('note')
-      expect(note).toBe(q)
+      expect(note).toBe(q.replace(/ /g, '\u00a0'))
     }
   })
 
