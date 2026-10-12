@@ -21,6 +21,36 @@ export type VenmoLinks = { app: string; web: string }
 export const VENMO_NOTE = '\u2660\ufe0f'
 
 /**
+ * One-line switch: false puts the plain spade back on every link. Flip it if
+ * Hebrew renders badly in Venmo on some phones.
+ */
+export const USE_QUOTE_NOTES = true
+
+/**
+ * Venmo's note limit. Not confirmed against Venmo docs; a deliberately
+ * generous figure that every quote is far under. Truncation is by code point
+ * so a character is never cut in half.
+ */
+export const VENMO_NOTE_MAX = 280
+
+/**
+ * The percent-encoded note for a link. A quote when quote notes are on and
+ * one was given, otherwise — or if the quote is blank or will not encode
+ * (encodeURIComponent throws on a lone surrogate) — the spade, never an empty
+ * or broken note.
+ */
+export function encodeNote(quote?: string | null): string {
+  if (USE_QUOTE_NOTES && quote && quote.trim() !== '') {
+    try {
+      return encodeURIComponent([...quote].slice(0, VENMO_NOTE_MAX).join(''))
+    } catch {
+      // fall through to the spade
+    }
+  }
+  return encodeURIComponent(VENMO_NOTE)
+}
+
+/**
  * One place where a handle is cleaned up: trim it, drop a leading @, and turn
  * an empty string into null so "no handle" is a single representable state.
  */
@@ -61,7 +91,7 @@ export function isValidHandle(raw: string | null | undefined): boolean {
  */
 export function resolveVenmoHandle(
   memberHandle: string | null | undefined,
-  profileHandle: string | null | undefined
+  profileHandle: string | null | undefined,
 ): string | null {
   return normalizeHandle(memberHandle) ?? normalizeHandle(profileHandle)
 }
@@ -74,9 +104,13 @@ export function resolveVenmoHandle(
  * the Venmo app when it's installed and opens the site when it isn't. A bare
  * `venmo://` href silently does nothing in a desktop browser.
  */
-export function venmoLink(handle: string, cents: number): VenmoLinks {
+export function venmoLink(
+  handle: string,
+  cents: number,
+  quote?: string | null,
+): VenmoLinks {
   const amount = centsToDollars(cents)
-  const n = encodeURIComponent(VENMO_NOTE)
+  const n = encodeNote(quote)
   const h = encodeURIComponent(normalizeHandle(handle) ?? '')
   return {
     app: `venmo://paycharge?txn=pay&recipients=${h}&amount=${amount}&note=${n}`,

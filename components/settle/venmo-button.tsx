@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { pickQuote } from '@/lib/quotes'
 import { venmoLink } from '@/lib/venmo'
 import { Button } from '@/components/ui/button'
 
@@ -23,19 +25,23 @@ export function VenmoButton({
   amountCents: number
   payeeName: string
 }) {
+  // Picked once, after mount: picking during render would differ between the
+  // server and the client and mismatch the href. Until then the helper falls
+  // back to the spade, and once set the note never changes for this button.
+  const [quote, setQuote] = useState<string | null>(null)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only pick
+  useEffect(() => setQuote(pickQuote()), [])
+
   if (!handle) return null
 
-  // The note is the helper's, not this component's: every Venmo link in the
-  // app carries the same one.
-  const links = venmoLink(handle, amountCents)
+  // Encoding, truncation and the spade fallback are the helper's.
+  const links = venmoLink(handle, amountCents, quote)
 
   return (
     <Button
       size="sm"
       className="rounded-xl"
-      render={
-        <a href={links.web} target="_blank" rel="noopener noreferrer" />
-      }
+      render={<a href={links.web} target="_blank" rel="noopener noreferrer" />}
       nativeButton={false}
     >
       Pay {payeeName}
