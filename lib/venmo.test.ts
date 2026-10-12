@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { VENMO_QUOTES, pickQuote } from './quotes'
 import {
   VENMO_NOTE,
+  VENMO_NOTE_MAX,
   handleProblem,
   isValidHandle,
   normalizeHandle,
@@ -27,7 +29,7 @@ describe('normalizeHandle', () => {
 describe('resolveVenmoHandle', () => {
   it('prefers the group member override', () => {
     expect(resolveVenmoHandle('@group-handle', 'profile-handle')).toBe(
-      'group-handle'
+      'group-handle',
     )
   })
 
@@ -47,7 +49,7 @@ describe('venmoLink', () => {
   it('builds a pay link with the amount prefilled', () => {
     const { web } = venmoLink('@gilad', 8000)
     expect(web).toBe(
-      'https://venmo.com/gilad?txn=pay&amount=80.00&note=%E2%99%A0%EF%B8%8F'
+      'https://venmo.com/gilad?txn=pay&amount=80.00&note=%E2%99%A0%EF%B8%8F',
     )
   })
 
@@ -77,8 +79,8 @@ describe('venmoLink', () => {
     const { web } = venmoLink('gilad', 8000)
     expect(web).toBe(
       `https://venmo.com/gilad?txn=pay&amount=80.00&note=${encodeURIComponent(
-        VENMO_NOTE
-      )}`
+        VENMO_NOTE,
+      )}`,
     )
   })
 })
@@ -116,5 +118,48 @@ describe('handleProblem', () => {
 
   it('builds the same link either way it was typed', () => {
     expect(venmoLink('@gilad', 8000).web).toBe(venmoLink('gilad', 8000).web)
+  })
+})
+
+describe('quote notes', () => {
+  it('carries a Hebrew quote as UTF-8 percent-escapes that round-trip', () => {
+    const q = VENMO_QUOTES[0]
+    const { web } = venmoLink('gilad', 100, q)
+    expect(web).not.toContain(q)
+    expect(new URL(web).searchParams.get('note')).toBe(q)
+  })
+
+  it('round-trips every quote, punctuation included', () => {
+    for (const q of VENMO_QUOTES) {
+      const note = new URL(
+        venmoLink('g', 100, q).app.replace('venmo://', 'https://x/'),
+      ).searchParams.get('note')
+      expect(note).toBe(q)
+    }
+  })
+
+  it('falls back to the spade for a blank or unencodable quote', () => {
+    const spade = venmoLink('g', 100).web
+    expect(venmoLink('g', 100, '').web).toBe(spade)
+    expect(venmoLink('g', 100, '   ').web).toBe(spade)
+    expect(venmoLink('g', 100, '\ud800').web).toBe(spade)
+  })
+
+  it('truncates an over-long note without splitting a character', () => {
+    const note = new URL(
+      venmoLink('g', 100, 'א'.repeat(500)).web,
+    ).searchParams.get('note')
+    expect([...note!].length).toBe(VENMO_NOTE_MAX)
+  })
+})
+
+describe('pickQuote', () => {
+  it('never repeats back-to-back', () => {
+    let prev = pickQuote(VENMO_QUOTES, () => 0)
+    for (let i = 0; i < 50; i++) {
+      const next = pickQuote(VENMO_QUOTES, () => 0)
+      expect(next).not.toBe(prev)
+      prev = next
+    }
   })
 })
