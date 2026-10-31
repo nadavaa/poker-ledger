@@ -18,13 +18,22 @@ const PUBLIC_PREFIXES = [
   // redirect to /login would be gibberish to an agent.
   '/api/mcp',
   '/.well-known',
+  // Public how-to guides: static text, nothing about any group or player.
+  '/guides',
 ]
 
 // Matched exactly, never as prefixes. A prefix entry for '/' would match every
 // path and make the whole site public, so the public front door is named one
 // path at a time. '/' itself renders the landing page for signed-out visitors
 // and the dashboard for signed-in ones.
-const PUBLIC_EXACT = ['/', '/robots.txt', '/sitemap.xml']
+const PUBLIC_EXACT = [
+  '/',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/llms.txt',
+  '/og',
+  '/ai-connector',
+]
 
 export function isPublicPath(pathname: string): boolean {
   return (

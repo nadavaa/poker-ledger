@@ -6,6 +6,11 @@ describe('isPublicPath', () => {
     '/',
     '/robots.txt',
     '/sitemap.xml',
+    '/llms.txt',
+    '/og',
+    '/ai-connector',
+    '/guides',
+    '/guides/settle-a-home-poker-game',
     '/login',
     '/auth/callback',
     '/manifest.webmanifest',
@@ -38,7 +43,7 @@ describe('isPublicPath', () => {
     '/api/other',
     '/robots.txt/x',
     '/sitemap.xml/x',
-    '/llms.txt',
+    '/guidesx',
     '/anything-else',
   ])('sends a signed-out visitor from %s to /login', (path) => {
     expect(isPublicPath(path)).toBe(false)

@@ -1,0 +1,187 @@
+/* Public pages only. Everything is scoped under .lp so the app is untouched.
+   One accent (felt green), tinted neutrals, no pure black or white ground. */
+
+.lp {
+  --lp-accent: oklch(0.45 0.1 160);
+  --lp-dark: oklch(0.17 0.025 165);
+  --lp-dark-ink: oklch(0.95 0.01 100);
+  --lp-dark-soft: oklch(0.76 0.02 160);
+  --lp-dark-line: oklch(1 0 0 / 14%);
+
+  --background: oklch(0.985 0.006 100);
+  --foreground: oklch(0.2 0.02 165);
+  --card: oklch(0.995 0.003 100);
+  --card-foreground: oklch(0.2 0.02 165);
+  --muted: oklch(0.955 0.008 100);
+  --muted-foreground: oklch(0.45 0.02 165);
+  --border: oklch(0.9 0.01 100);
+  --input: oklch(0.9 0.01 100);
+  --primary: oklch(0.24 0.04 165);
+  --primary-foreground: oklch(0.985 0.006 100);
+  --secondary: oklch(0.955 0.008 100);
+  --secondary-foreground: oklch(0.24 0.04 165);
+  --accent: oklch(0.955 0.008 100);
+  --accent-foreground: oklch(0.24 0.04 165);
+
+  background: var(--background);
+  color: var(--foreground);
+  letter-spacing: -0.005em;
+}
+
+.dark .lp {
+  --lp-accent: oklch(0.78 0.12 160);
+  --background: oklch(0.15 0.015 165);
+  --foreground: oklch(0.96 0.008 100);
+  --card: oklch(0.19 0.015 165);
+  --card-foreground: oklch(0.96 0.008 100);
+  --muted: oklch(0.2 0.015 165);
+  --muted-foreground: oklch(0.74 0.02 160);
+  --border: oklch(1 0 0 / 13%);
+  --input: oklch(1 0 0 / 15%);
+  --primary: oklch(0.94 0.01 100);
+  --primary-foreground: oklch(0.2 0.03 165);
+  --secondary: oklch(0.22 0.015 165);
+  --secondary-foreground: oklch(0.96 0.008 100);
+  --accent: oklch(0.22 0.015 165);
+  --accent-foreground: oklch(0.96 0.008 100);
+}
+
+/* Display type: tight at size, balanced, never wider than it needs. */
+.lp .lp-display {
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.lp .lp-h2 {
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+.lp p {
+  text-wrap: pretty;
+}
+
+/* A dark ground restates ink as well as the tokens: color is inherited as a
+   computed value, so redefining the token alone would not re-ink the text. */
+.lp .lp-dark {
+  --background: var(--lp-dark);
+  --foreground: var(--lp-dark-ink);
+  --muted-foreground: var(--lp-dark-soft);
+  --border: var(--lp-dark-line);
+  --card: oklch(0.21 0.025 165);
+  --primary: var(--lp-dark-ink);
+  --primary-foreground: var(--lp-dark);
+  --lp-accent: oklch(0.8 0.12 160);
+  background: var(--lp-dark);
+  color: var(--lp-dark-ink);
+}
+
+.lp .lp-rule {
+  height: 1px;
+  background: var(--border);
+}
+
+/* ---------- Hero chips ---------- */
+
+.lp-chip {
+  display: block;
+}
+.lp-layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+@keyframes lp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes lp-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) rotate(var(--r, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--r, 0deg));
+  }
+}
+.lp-rise {
+  opacity: 0;
+  animation: lp-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+.lp-drop {
+  opacity: 0;
+  animation: lp-settle 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* ---------- Phone ---------- */
+
+.lp-phone {
+  width: 18rem;
+  height: 34rem;
+  border-radius: 2.6rem;
+  padding: 0.5rem;
+  background: oklch(0.1 0.01 165);
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 10%),
+    0 40px 60px -28px oklch(0 0 0 / 60%);
+  position: relative;
+  flex: none;
+}
+.lp-phone-screen {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2.1rem;
+  /* The screen is always the light app, whatever the page theme. */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.52 0 0);
+  --border: oklch(0.922 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --up: oklch(0.52 0.15 152);
+  --down: oklch(0.55 0.21 27);
+  --pending: oklch(0.55 0.04 250);
+  --live: oklch(0.52 0.15 152);
+  background: var(--background);
+  color: var(--foreground);
+}
+.lp-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Story: stage and narrator ---------- */
+
+.lp-story-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  align-items: center;
+  overflow: hidden;
+}
+.lp-cap {
+  grid-area: 1 / 1;
+  transition: none;
+}
+.lp-rail-fill {
+  transform-origin: top;
+}
