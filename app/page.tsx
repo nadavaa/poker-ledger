@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -9,6 +10,29 @@ import { Input } from '@/components/ui/input'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { Avatar } from '@/components/avatar'
 import { PaymentBanner } from '@/components/payment-banner'
+import { LandingPage } from '@/components/landing/landing-page'
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from '@/lib/landing-copy'
+
+// Applies to the signed-out landing page, the only public page. The signed-in
+// dashboard at the same address is private and never shared.
+export const metadata: Metadata = {
+  title: { absolute: SITE_TITLE },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    type: 'website',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+}
 
 export default async function HomePage({
   searchParams,
@@ -19,7 +43,7 @@ export default async function HomePage({
   const supabase = await createClient()
 
   const user = await getSessionUser(supabase)
-  if (!user) redirect('/login')
+  if (!user) return <LandingPage />
 
   const [{ data: profile }, { data: memberships }, { data: payment }] =
     await Promise.all([
