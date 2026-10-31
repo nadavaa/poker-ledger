@@ -1,23 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// The PWA shell has to be readable by a browser that has never signed in:
-// the manifest and service worker are fetched before any session exists, and
-// the offline page is what you get when there is no network to sign in with.
-const PUBLIC_PATHS = [
-  '/login',
-  '/auth',
-  '/manifest.webmanifest',
-  '/sw.js',
-  '/icon',
-  '/apple-icon',
-  '/offline',
-  // The MCP endpoint and its discovery documents are called by an AI client
-  // with a bearer token and no cookies. They answer 401 themselves; a
-  // redirect to /login would be gibberish to an agent.
-  '/api/mcp',
-  '/.well-known',
-]
+import { isPublicPath } from './public-paths'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -49,9 +33,7 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims
 
   const { pathname } = request.nextUrl
-  const isPublic = PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  )
+  const isPublic = isPublicPath(pathname)
 
   // The owner gate, checked here and again in the page. A non-owner gets a
   // 404, not a 403: the route does not exist as far as anyone else is
