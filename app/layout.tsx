@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorker } from "@/components/pwa/service-worker";
 import { NavTransitions } from "@/components/nav-transitions";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/landing-copy";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,9 +24,14 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+// Title, description and the canonical host only. Share-preview tags (Open
+// Graph, Twitter) are set on the public landing page alone, so invite, claim,
+// game and group links stay generic when pasted into a chat.
 export const metadata: Metadata = {
-  title: "Poker Ledger",
-  description: "Track home poker cash games",
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
+  title: { default: SITE_TITLE, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

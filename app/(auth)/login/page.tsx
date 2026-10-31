@@ -78,7 +78,7 @@ function LoginForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-center">Poker Ledger</CardTitle>
+        <CardTitle className="text-center">KevesPoker</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {/* Background cut out, so it sits on the card in either theme
