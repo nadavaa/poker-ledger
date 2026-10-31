@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Poker Ledger',
-    short_name: 'Ledger',
+    name: 'KevesPoker',
+    short_name: 'KevesPoker',
     description: 'Track home poker cash games: buy-ins, cashouts, settlement.',
     start_url: '/',
     display: 'standalone',
