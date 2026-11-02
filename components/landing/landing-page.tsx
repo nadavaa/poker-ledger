@@ -108,12 +108,6 @@ export function LandingPage() {
                 {c.hero.watch}
               </Link>
             </div>
-            <p
-              className="lp-rise text-sm text-muted-foreground"
-              style={{ ['--d' as string]: '320ms' }}
-            >
-              {c.hero.note}
-            </p>
           </div>
           <HeroArt />
         </section>
@@ -131,69 +125,8 @@ export function LandingPage() {
           <PhoneStory />
         </section>
 
-        <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-24 lg:grid-cols-[0.8fr_1.6fr] lg:gap-16 lg:py-32">
-          <div className="flex flex-col gap-4">
-            <h2 className="lp-h2 text-3xl sm:text-4xl">{c.problem.heading}</h2>
-          </div>
-          <div className="flex flex-col gap-4 text-xl text-muted-foreground sm:text-2xl">
-            {c.problem.body.map((p) => (
-              <p key={p} className="leading-snug">
-                {p}
-              </p>
-            ))}
-          </div>
-        </section>
-
-        <div className="lp-rule mx-auto w-full max-w-6xl" />
-
-        <section
-          id="how"
-          className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col gap-10 px-4 py-24"
-        >
-          <h2 className="lp-h2 text-3xl sm:text-4xl">{c.howItWorks.heading}</h2>
-          <ol className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-5">
-            {c.howItWorks.steps.map((s, i) => (
-              <li key={s.title} className="flex flex-col gap-2 border-t pt-4">
-                <span className="money text-sm text-[color:var(--lp-accent)]">
-                  Step {i + 1}
-                </span>
-                <h3 className="text-lg font-semibold tracking-tight">
-                  {s.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="bg-muted/60">
-          <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 py-24 lg:grid-cols-[0.8fr_1.6fr] lg:gap-16">
-            <h2 className="lp-h2 text-3xl sm:text-4xl">{c.trust.heading}</h2>
-            <dl className="grid gap-x-12 gap-y-9 sm:grid-cols-2">
-              {c.trust.items.map((t) => (
-                <div key={t.title} className="flex flex-col gap-1.5 border-t pt-4">
-                  <dt className="font-semibold tracking-tight">{t.title}</dt>
-                  <dd className="text-muted-foreground">{t.body}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
-
-        <section className="mx-auto grid w-full max-w-6xl gap-14 px-4 py-24 md:grid-cols-2">
-          <div className="flex flex-col gap-4">
-            <h2 className="lp-h2 text-3xl sm:text-4xl">{c.money.heading}</h2>
-            {c.money.body.map((p) => (
-              <p key={p} className="text-muted-foreground">
-                {p}
-              </p>
-            ))}
-          </div>
-          <div className="flex flex-col gap-10">
-            <div className="flex flex-col gap-3">
-              <h2 className="lp-h2 text-2xl sm:text-3xl">{c.who.heading}</h2>
-              <p className="text-muted-foreground">{c.who.body}</p>
-            </div>
+        <section className="mx-auto w-full max-w-6xl px-4 pb-20 pt-4">
+          <div className="flex max-w-xl flex-col gap-10">
             <div className="flex flex-col gap-3">
               <h3 className="font-semibold">{c.features.heading}</h3>
               <Bullets items={c.features.items} />
@@ -221,18 +154,7 @@ export function LandingPage() {
             <code className="block overflow-x-auto rounded-lg bg-muted px-3 py-2 text-sm">
               {MCP_URL}
             </code>
-            <p className="mt-2 text-sm font-medium">Things to ask</p>
-            <ul className="flex flex-col gap-1.5 text-muted-foreground">
-              {c.connector.examples.map((e) => (
-                <li key={e}>“{e}”</li>
-              ))}
-            </ul>
           </div>
-        </section>
-
-        <section className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 pb-24">
-          <h2 className="lp-h2 text-2xl sm:text-3xl">{c.install.heading}</h2>
-          <p className="max-w-2xl text-muted-foreground">{c.install.body}</p>
         </section>
 
         <section
@@ -247,7 +169,7 @@ export function LandingPage() {
                   {q}
                   <span
                     aria-hidden
-                    className="text-2xl font-light text-muted-foreground transition-transform duration-200 group-open:rotate-45"
+                    className="text-2xl font-light text-muted-foreground transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-45"
                   >
                     +
                   </span>
