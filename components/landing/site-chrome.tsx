@@ -6,7 +6,7 @@ import '@/components/landing/landing.css'
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b bg-background">
+    <header className="sticky top-0 z-30 border-b lp-header">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
         <Link href="/" className="text-lg font-semibold tracking-tight">
           {SITE_NAME}

@@ -185,3 +185,37 @@
 .lp-rail-fill {
   transform-origin: top;
 }
+
+/* ---------- Header: translucent layer, solid when transparency is off ---------- */
+
+.lp-header {
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .lp-header {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* ---------- FAQ: answers ease open where ::details-content is supported ---------- */
+
+.lp {
+  interpolate-size: allow-keywords;
+}
+.lp details::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition:
+    block-size 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    content-visibility 200ms allow-discrete;
+}
+.lp details[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}

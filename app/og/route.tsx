@@ -25,7 +25,7 @@ export function GET() {
             Track your home poker game. Settle up without the arguments.
           </div>
           <div style={{ fontSize: 34, opacity: 0.7 }}>
-            Buy-ins, cash-outs and who owes whom. Free for now.
+            Buy-ins, cash-outs and who owes whom.
           </div>
         </div>
       </div>

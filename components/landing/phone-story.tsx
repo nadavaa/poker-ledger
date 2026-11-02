@@ -36,12 +36,15 @@ function useReducedMotion() {
   )
 }
 
+// Captions and phone screens share one cell each, so they fade one after the
+// other: the outgoing one is gone (B - F to B) before the incoming starts
+// (B to B + F). A crossfade would show two screens of text on top of each other.
 function sceneOpacity(i: number, p: number) {
-  const inn = i === 0 ? 1 : ramp(p, BOUNDS[i] - FADE, BOUNDS[i] + FADE)
+  const inn = i === 0 ? 1 : ramp(p, BOUNDS[i], BOUNDS[i] + FADE)
   const out =
     i === SCENE_COUNT - 1
       ? 1
-      : 1 - ramp(p, BOUNDS[i + 1] - FADE, BOUNDS[i + 1] + FADE)
+      : 1 - ramp(p, BOUNDS[i + 1] - FADE, BOUNDS[i + 1])
   return Math.min(inn, out)
 }
 
@@ -174,18 +177,21 @@ function Pinned() {
               }}
             >
               <PhoneFrame>
-                {scenes.map((s, i) => (
-                  <div
-                    key={s.title}
-                    className="absolute inset-0"
-                    style={{
-                      opacity: sceneOpacity(i, p),
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <Scene i={i} t={localT(i, p)} />
-                  </div>
-                ))}
+                {scenes.map((s, i) => {
+                  const o = sceneOpacity(i, p)
+                  // Hidden screens are not rendered: only the visible one (or
+                  // two, mid-fade) costs anything per scroll frame.
+                  if (o <= 0.001) return null
+                  return (
+                    <div
+                      key={s.title}
+                      className="absolute inset-0"
+                      style={{ opacity: o, pointerEvents: 'none' }}
+                    >
+                      <Scene i={i} t={localT(i, p)} />
+                    </div>
+                  )
+                })}
               </PhoneFrame>
             </div>
           </div>
