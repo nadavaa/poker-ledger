@@ -28,6 +28,7 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-brand: var(--brand);
   --color-up: var(--up);
   --color-up-soft: var(--up-soft);
   --color-down: var(--down);
@@ -36,6 +37,8 @@
   --color-pending-soft: var(--pending-soft);
   --color-live: var(--live);
   --color-live-soft: var(--live-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -61,29 +64,33 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* One palette for the whole site, from the landing page: tinted neutrals
+     (no pure black or white ground), ink with a hint of felt green, and one
+     accent, --brand, used sparingly. */
+  --background: oklch(0.985 0.006 100);
+  --foreground: oklch(0.2 0.02 165);
+  --card: oklch(0.995 0.003 100);
+  --card-foreground: oklch(0.2 0.02 165);
+  --popover: oklch(0.995 0.003 100);
+  --popover-foreground: oklch(0.2 0.02 165);
+  --primary: oklch(0.24 0.04 165);
+  --primary-foreground: oklch(0.985 0.006 100);
+  --secondary: oklch(0.955 0.008 100);
+  --secondary-foreground: oklch(0.24 0.04 165);
+  --muted: oklch(0.955 0.008 100);
+  --muted-foreground: oklch(0.45 0.02 165);
+  --accent: oklch(0.955 0.008 100);
+  --accent-foreground: oklch(0.24 0.04 165);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: oklch(0.9 0.01 100);
+  --input: oklch(0.9 0.01 100);
+  --ring: oklch(0.45 0.1 160);
+  --brand: oklch(0.45 0.1 160);
+  --chart-1: oklch(0.87 0.02 160);
+  --chart-2: oklch(0.6 0.05 160);
+  --chart-3: oklch(0.45 0.1 160);
+  --chart-4: oklch(0.36 0.06 165);
+  --chart-5: oklch(0.24 0.04 165);
   --radius: 0.625rem;
 
   /* Semantic money colours. Green is up, red is down, and pending is a
@@ -96,38 +103,44 @@
   --pending-soft: oklch(0.55 0.04 250 / 12%);
   --live: oklch(0.52 0.15 152);
   --live-soft: oklch(0.52 0.15 152 / 14%);
+  /* Needs attention: chips being counted, a game that never started, a
+     payment waiting to be confirmed. Amber, dark enough to read on light. */
+  --warn: oklch(0.55 0.13 70);
+  --warn-soft: oklch(0.8 0.15 85 / 18%);
 
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.985 0.006 100);
+  --sidebar-foreground: oklch(0.2 0.02 165);
+  --sidebar-primary: oklch(0.24 0.04 165);
+  --sidebar-primary-foreground: oklch(0.985 0.006 100);
+  --sidebar-accent: oklch(0.955 0.008 100);
+  --sidebar-accent-foreground: oklch(0.24 0.04 165);
+  --sidebar-border: oklch(0.9 0.01 100);
+  --sidebar-ring: oklch(0.45 0.1 160);
 }
 
 .dark {
-  /* Tuned for a dim room: a deep, near-black ground so the screen isn't a
-     lamp, with cards lifted just enough to separate. */
-  --background: oklch(0.13 0.004 250);
-  --foreground: oklch(0.97 0 0);
-  --card: oklch(0.185 0.005 250);
-  --card-foreground: oklch(0.97 0 0);
-  --popover: oklch(0.21 0.006 250);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Tuned for a dim room: a deep green-black ground (the landing page's dark
+     felt) so the screen isn't a lamp, with cards lifted just enough to
+     separate. */
+  --background: oklch(0.15 0.015 165);
+  --foreground: oklch(0.96 0.008 100);
+  --card: oklch(0.19 0.015 165);
+  --card-foreground: oklch(0.96 0.008 100);
+  --popover: oklch(0.21 0.015 165);
+  --popover-foreground: oklch(0.96 0.008 100);
+  --primary: oklch(0.94 0.01 100);
+  --primary-foreground: oklch(0.2 0.03 165);
+  --secondary: oklch(0.24 0.015 165);
+  --secondary-foreground: oklch(0.96 0.008 100);
+  --muted: oklch(0.24 0.015 165);
+  --muted-foreground: oklch(0.74 0.02 160);
+  --accent: oklch(0.24 0.015 165);
+  --accent-foreground: oklch(0.96 0.008 100);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 12%);
+  --border: oklch(1 0 0 / 13%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.78 0.12 160);
+  --brand: oklch(0.78 0.12 160);
 
   /* Brighter and less saturated than the light-mode pair: on a near-black
      ground, a mid green reads as muddy and a full red vibrates. */
@@ -139,19 +152,21 @@
   --pending-soft: oklch(0.75 0.04 250 / 14%);
   --live: oklch(0.82 0.17 152);
   --live-soft: oklch(0.82 0.17 152 / 16%);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --warn: oklch(0.85 0.15 85);
+  --warn-soft: oklch(0.8 0.15 85 / 13%);
+  --chart-1: oklch(0.36 0.04 165);
+  --chart-2: oklch(0.5 0.06 160);
+  --chart-3: oklch(0.65 0.09 160);
+  --chart-4: oklch(0.78 0.12 160);
+  --chart-5: oklch(0.9 0.04 160);
+  --sidebar: oklch(0.19 0.015 165);
+  --sidebar-foreground: oklch(0.96 0.008 100);
+  --sidebar-primary: oklch(0.78 0.12 160);
+  --sidebar-primary-foreground: oklch(0.2 0.03 165);
+  --sidebar-accent: oklch(0.24 0.015 165);
+  --sidebar-accent-foreground: oklch(0.96 0.008 100);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.78 0.12 160);
 }
 
 /* Tab panels arrive rather than blink. Short and ease-out: the content is

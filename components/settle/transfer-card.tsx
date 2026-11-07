@@ -64,7 +64,7 @@ function statusLine({
   if (status === 'paid') {
     return {
       glyph: '◐',
-      tone: 'text-amber-500',
+      tone: 'text-warn',
       label:
         role === 'payer'
           ? `Paid — waiting for ${payeeName} to confirm`

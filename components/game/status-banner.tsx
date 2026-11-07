@@ -40,13 +40,13 @@ export function StatusBanner({
     scheduled: 'bg-pending-soft text-pending ring-1 ring-inset ring-pending/25',
     active: 'bg-live-soft text-up ring-1 ring-inset ring-up/30',
     reconciling:
-      'bg-amber-400/12 text-amber-300 ring-1 ring-inset ring-amber-400/30',
+      'bg-warn-soft text-warn ring-1 ring-inset ring-warn/30',
     settled: 'bg-muted text-foreground ring-1 ring-inset ring-border',
     cancelled: 'bg-muted/60 text-muted-foreground ring-1 ring-inset ring-border',
   }
 
   const overdueSurface =
-    'bg-amber-400/12 text-amber-300 ring-1 ring-inset ring-amber-400/30'
+    'bg-warn-soft text-warn ring-1 ring-inset ring-warn/30'
 
   return (
     <div
@@ -81,7 +81,7 @@ function Glyph({ status, overdue }: { status: GameState; overdue?: boolean }) {
     )
   }
   if (status === 'reconciling') {
-    return <span aria-hidden className="size-2.5 rounded-[3px] bg-amber-300" />
+    return <span aria-hidden className="size-2.5 rounded-[3px] bg-warn" />
   }
   if (status === 'settled') {
     return (
