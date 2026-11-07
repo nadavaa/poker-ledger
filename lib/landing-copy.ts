@@ -10,7 +10,7 @@ export const MCP_URL = `${SITE_URL}/api/mcp`
 
 export const SITE_TITLE = 'KevesPoker: track home poker cash games'
 export const SITE_DESCRIPTION =
-  'A web app that tracks buy-ins, cash-outs and who owes whom in home poker cash games, and works out the fewest payments to settle up.'
+  'A web app that tracks buy-ins, cash-outs and who owes whom in home poker cash games, and works out a short list of payments to settle up.'
 
 export const nav = [
   { href: '/#how-it-works', label: 'How it works' },
@@ -23,7 +23,7 @@ export const nav = [
 export const landing = {
   hero: {
     headline: 'Track your home poker game. Settle up without the arguments.',
-    sub: 'Track buy-ins and cash-outs, check the chips, and get the fewest payments to settle up.',
+    sub: 'Track buy-ins and cash-outs, check the chips, and get a short list of who pays whom.',
     cta: 'Get started',
     signIn: 'Sign in',
     watch: 'Watch a game play out',
@@ -65,7 +65,7 @@ export const landing = {
           },
           {
             title: 'Settle up',
-            body: 'Tap Settle up at the end to get the fewest payments.',
+            body: 'Tap Settle up at the end for a short list of payments.',
           },
         ],
       },
@@ -94,7 +94,7 @@ export const landing = {
       },
       {
         title: 'Five payments settle six players',
-        body: 'The fewest transfers that zero everyone out, each tracked from paid to confirmed. No money moves through KevesPoker.',
+        body: 'Never more payments than players minus one, each tracked from paid to confirmed. No money moves through KevesPoker.',
       },
     ],
   },
@@ -181,7 +181,7 @@ export const landing = {
 export const login = {
   heading: 'Sign in or create your account',
   sub: 'One step for both. New here? Your account is made the first time you sign in.',
-  pitch: 'Track buy-ins and cash-outs, check the chips, and get the fewest payments to settle up.',
+  pitch: 'Track buy-ins and cash-outs, check the chips, and get a short list of who pays whom.',
   noPasswords: 'No passwords. We email you a link, or you use Google.',
   emailLabel: 'Email',
   send: 'Email me a sign-in link',
