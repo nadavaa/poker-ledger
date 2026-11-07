@@ -13,6 +13,7 @@ export const SITE_DESCRIPTION =
   'A web app that tracks buy-ins, cash-outs and who owes whom in home poker cash games, and works out the fewest payments to settle up.'
 
 export const nav = [
+  { href: '/#how-it-works', label: 'How it works' },
   { href: '/#story', label: 'Watch a game' },
   { href: '/ai-connector', label: 'AI connector' },
   { href: '/guides', label: 'Guides' },
@@ -26,6 +27,53 @@ export const landing = {
     cta: 'Get started',
     signIn: 'Sign in',
     watch: 'Watch a game play out',
+  },
+
+  // The whole workflow in order, as the organizer does it. Button names match
+  // the app's own labels (Copy invite, Create game, Start game, Settle up).
+  howItWorks: {
+    heading: 'How it works',
+    intro: 'Set up your group once. After that, every game night runs the same way.',
+    phases: [
+      {
+        title: 'Set up your group',
+        steps: [
+          {
+            title: 'Create a group',
+            body: 'One group for your regular game. Its buy-in and chip value carry over to every game you make.',
+          },
+          {
+            title: 'Add your friends',
+            body: 'Share the group’s invite link and they join in one tap. Or add someone by name before they sign up, and send them a link to claim their profile and history later.',
+          },
+        ],
+      },
+      {
+        title: 'Run a game',
+        steps: [
+          {
+            title: 'Create a game',
+            body: 'Pick the night and add the people from the group who are playing. Players can also join it themselves.',
+          },
+          {
+            title: 'Start it at the table',
+            body: 'When everyone sits down, tap Start game. From then on every buy-in is logged and the pot updates for everyone.',
+          },
+          {
+            title: 'Cash out anyone who leaves early',
+            body: 'Count their chips and record them. Their seat frees up and the game keeps going.',
+          },
+          {
+            title: 'Settle up',
+            body: 'When the game is over, count the chips and tap Settle up. You get the fewest payments to square everyone.',
+          },
+        ],
+      },
+    ],
+    adminNote: {
+      title: 'One person keeps the book',
+      body: 'Only the game’s admin can add or correct buy-ins. Everyone at the table sees each one live, with who logged it and when.',
+    },
   },
 
   story: {
