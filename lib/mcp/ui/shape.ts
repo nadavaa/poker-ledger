@@ -8,7 +8,10 @@
 // Pure, like the rest of lib/: no Supabase, no Next, no React, no DOM.
 
 import { formatTime } from '../../time'
+import { streakWords } from '../../stats'
 import { UI_META_KEY, type UiMeta } from './meta-types'
+
+export { streakWords }
 
 type Money = { cents: number; display: string }
 type Moment = { iso: string; local: string; timezone: string }
@@ -82,11 +85,6 @@ export type StatsView =
       longestLoss: number
     }
 
-/** "2 wins", "1 loss", "None": the app's own wording for a streak. */
-export function streakWords(kind: 'win' | 'loss' | 'none', length: number): string {
-  if (kind === 'none' || length <= 0) return 'None'
-  return `${length} ${kind === 'win' ? 'win' : 'loss'}${length === 1 ? '' : kind === 'win' ? 's' : 'es'}`
-}
 
 export function statsView(data: Record<string, unknown>): StatsView {
   const perGame = Array.isArray(data.per_game) ? data.per_game : []
