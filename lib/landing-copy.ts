@@ -33,18 +33,18 @@ export const landing = {
   // the app's own labels (Copy invite, Create game, Start game, Settle up).
   howItWorks: {
     heading: 'How it works',
-    intro: 'Set up your group once. After that, every game night runs the same way.',
+    intro: 'Set up your group once, then every game night runs the same way.',
     phases: [
       {
         title: 'Set up your group',
         steps: [
           {
             title: 'Create a group',
-            body: 'One group for your regular game. Its buy-in and chip value carry over to every game you make.',
+            body: 'One group for your regular game.',
           },
           {
             title: 'Add your friends',
-            body: 'Share the group’s invite link and they join in one tap. Or add someone by name before they sign up, and send them a link to claim their profile and history later.',
+            body: 'Share the invite link, or add them by name before they sign up.',
           },
         ],
       },
@@ -53,26 +53,26 @@ export const landing = {
         steps: [
           {
             title: 'Create a game',
-            body: 'Pick the night and add the people from the group who are playing. Players can also join it themselves.',
+            body: 'Pick the night and add who’s playing.',
           },
           {
             title: 'Start it at the table',
-            body: 'When everyone sits down, tap Start game. From then on every buy-in is logged and the pot updates for everyone.',
+            body: 'Tap Start game when everyone sits down.',
           },
           {
             title: 'Cash out anyone who leaves early',
-            body: 'Count their chips and record them. Their seat frees up and the game keeps going.',
+            body: 'Record their chips and the game keeps going.',
           },
           {
             title: 'Settle up',
-            body: 'When the game is over, count the chips and tap Settle up. You get the fewest payments to square everyone.',
+            body: 'Tap Settle up at the end to get the fewest payments.',
           },
         ],
       },
     ],
     adminNote: {
       title: 'One person keeps the book',
-      body: 'Only the game’s admin can add or correct buy-ins. Everyone at the table sees each one live, with who logged it and when.',
+      body: 'Only the game’s admin can add or edit buy-ins, and everyone sees each one live.',
     },
   },
 
