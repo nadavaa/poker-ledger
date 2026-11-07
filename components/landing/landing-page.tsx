@@ -125,13 +125,23 @@ export function LandingPage() {
               {c.howItWorks.intro}
             </p>
           </div>
-          <div className="mt-12 grid gap-12 md:grid-cols-2 md:gap-16">
+          {/* Desktop: steps 1-2 top left, the admin note under them beside
+              steps 5-6, steps 3-6 down the right. Phone: one column, the note
+              last, after the steps it's about. */}
+          <div className="mt-12 grid gap-12 md:grid-cols-2 md:grid-rows-[auto_1fr] md:gap-x-16 md:gap-y-10">
             {c.howItWorks.phases.map((phase, p) => {
               const start = c.howItWorks.phases
                 .slice(0, p)
                 .reduce((sum, ph) => sum + ph.steps.length, 0)
               return (
-                <div key={phase.title} className="flex flex-col gap-6">
+                <div
+                  key={phase.title}
+                  className={`flex flex-col gap-6 ${
+                    p === 0
+                      ? 'md:col-start-1 md:row-start-1'
+                      : 'md:col-start-2 md:row-span-2 md:row-start-1'
+                  }`}
+                >
                   <h3 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                     {phase.title}
                   </h3>
@@ -157,15 +167,15 @@ export function LandingPage() {
                 </div>
               )
             })}
-          </div>
-          <div className="mt-14 flex max-w-2xl gap-4 rounded-2xl border bg-card p-5">
-            <span
-              aria-hidden
-              className="mt-[0.7em] h-px w-4 shrink-0 bg-[color:var(--lp-accent)]"
-            />
-            <div className="flex flex-col gap-1">
-              <p className="font-semibold">{c.howItWorks.adminNote.title}</p>
-              <p className="text-muted-foreground">{c.howItWorks.adminNote.body}</p>
+            <div className="flex gap-4 self-start rounded-2xl border bg-card p-5 md:col-start-1 md:row-start-2">
+              <span
+                aria-hidden
+                className="mt-[0.7em] h-px w-4 shrink-0 bg-[color:var(--lp-accent)]"
+              />
+              <div className="flex flex-col gap-1">
+                <p className="font-semibold">{c.howItWorks.adminNote.title}</p>
+                <p className="text-muted-foreground">{c.howItWorks.adminNote.body}</p>
+              </div>
             </div>
           </div>
         </section>

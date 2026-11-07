@@ -72,7 +72,7 @@ export const landing = {
     ],
     adminNote: {
       title: 'One person keeps the book',
-      body: 'Only the game’s admin can add or edit buy-ins, and everyone sees each one live.',
+      body: 'There is only one admin per game, and only they can add or edit buy-ins.',
     },
   },
 
