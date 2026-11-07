@@ -127,3 +127,34 @@ export const landing = {
 
   footer: 'KevesPoker. No money moves through the app.',
 } as const
+
+// The sign-in page. Signing in and signing up are the same step: the first
+// magic link or Google sign-in creates the account.
+export const login = {
+  heading: 'Sign in or create your account',
+  sub: 'One step for both. New here? Your account is made the first time you sign in.',
+  pitch: 'Track buy-ins and cash-outs, check the chips, and get the fewest payments to settle up.',
+  noPasswords: 'No passwords. We email you a link, or you use Google.',
+  emailLabel: 'Email',
+  send: 'Email me a sign-in link',
+  sending: 'Sending…',
+  or: 'or',
+  google: 'Continue with Google',
+  back: 'What is KevesPoker?',
+  invite: {
+    'group-invite': 'You’ve been invited to a poker group. Sign in or create an account to see it and join.',
+    claim: 'Someone saved your games under your name. Sign in or create an account to claim them.',
+    'game-invite': 'You’ve been invited to a game. Sign in or create an account to grab a seat.',
+    connector: 'Sign in to connect your AI app to KevesPoker.',
+  },
+  sent: {
+    heading: 'Check your email',
+    body: (email: string) =>
+      `We sent a link to ${email}. Open it on this device to sign in. If you’re new, it creates your account too.`,
+    spam: 'Not there after a minute? Check spam or promotions.',
+    resend: 'Send it again',
+    resendIn: (s: number) => `Send again in ${s}s`,
+    resent: 'Sent again.',
+    change: 'Use a different email',
+  },
+} as const
