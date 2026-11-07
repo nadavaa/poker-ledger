@@ -124,6 +124,14 @@ export default async function AdminPage() {
 
   const data = await load()
 
+  // Not cached with the metrics: a note someone just sent should be here on
+  // the next refresh, not in five minutes.
+  const { data: feedback, error: feedbackError } = (await createAdminClient()
+    ?.from('feedback')
+    .select('id, kind, message, page_path, created_at, profiles(display_name)')
+    .order('created_at', { ascending: false })
+    .limit(50)) ?? { data: null, error: null }
+
   if (!data) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-3 p-4">
@@ -174,6 +182,41 @@ export default async function AdminPage() {
           {data.error}
         </p>
       )}
+
+      <section className="flex flex-col gap-2">
+        <h2 className={SECTION}>Feedback ({feedback?.length ?? 0})</h2>
+        {feedbackError && (
+          <p className="rounded-xl bg-down-soft px-3 py-2 text-sm text-down">
+            {feedbackError.message}
+          </p>
+        )}
+        {!feedbackError && (feedback ?? []).length === 0 && (
+          <p className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-center text-sm text-muted-foreground">
+            No feedback yet.
+          </p>
+        )}
+        {(feedback ?? []).map((f) => (
+          <div key={f.id} className="flex flex-col gap-1 rounded-2xl border border-border bg-card px-3.5 py-3">
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 font-medium ${
+                    f.kind === 'bug' ? 'bg-down-soft text-down' : 'bg-live-soft text-live'
+                  }`}
+                >
+                  {f.kind === 'bug' ? 'Bug' : 'Idea'}
+                </span>
+                {f.profiles?.display_name ?? 'Unnamed'}
+              </span>
+              <span>{formatTime(f.created_at, TZ, 'day')}</span>
+            </div>
+            <p className="whitespace-pre-wrap text-sm">{f.message}</p>
+            {f.page_path && (
+              <p className="text-[0.7rem] text-muted-foreground">from {f.page_path}</p>
+            )}
+          </div>
+        ))}
+      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className={SECTION}>What changed</h2>

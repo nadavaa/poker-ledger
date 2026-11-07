@@ -12,6 +12,7 @@ import { Avatar } from '@/components/avatar'
 import { PaymentBanner } from '@/components/payment-banner'
 import { LandingPage } from '@/components/landing/landing-page'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from '@/lib/landing-copy'
+import { FeedbackLink } from '@/components/feedback/feedback-link'
 
 // Applies to the signed-out landing page, the only public page. The signed-in
 // dashboard at the same address is private and never shared.
@@ -276,6 +277,7 @@ export default async function HomePage({
           Sign out
         </Button>
       </form>
+      <FeedbackLink />
     </main>
   )
 }

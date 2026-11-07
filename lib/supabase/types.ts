@@ -405,6 +405,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          id: string
+          profile_id: string
+          kind: 'idea' | 'bug'
+          message: string
+          page_path: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          kind: 'idea' | 'bug'
+          message: string
+          page_path?: string | null
+          user_agent?: string | null
+        }
+        Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: 'feedback_profile_id_fkey'
+            columns: ['profile_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       food_orders: {
         Row: {
           id: string
