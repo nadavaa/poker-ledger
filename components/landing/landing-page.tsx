@@ -112,6 +112,64 @@ export function LandingPage() {
           <HeroArt />
         </section>
 
+        {/* How it works: the workflow in order, numbered straight through
+            both phases. Static text, so crawlers and no-JS readers get it. */}
+        <section
+          id="how-it-works"
+          className="mx-auto w-full max-w-6xl scroll-mt-16 px-4 pb-24"
+        >
+          <div className="lp-rule mb-16" />
+          <div className="flex flex-col gap-3">
+            <h2 className="lp-h2 text-3xl sm:text-4xl">{c.howItWorks.heading}</h2>
+            <p className="max-w-xl text-lg text-muted-foreground">
+              {c.howItWorks.intro}
+            </p>
+          </div>
+          <div className="mt-12 grid gap-12 md:grid-cols-2 md:gap-16">
+            {c.howItWorks.phases.map((phase, p) => {
+              const start = c.howItWorks.phases
+                .slice(0, p)
+                .reduce((sum, ph) => sum + ph.steps.length, 0)
+              return (
+                <div key={phase.title} className="flex flex-col gap-6">
+                  <h3 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                    {phase.title}
+                  </h3>
+                  <ol className="flex flex-col gap-6">
+                    {phase.steps.map((step, i) => (
+                      <li key={step.title} className="grid grid-cols-[2.25rem_1fr] gap-x-3">
+                        <span
+                          aria-hidden
+                          className="money-display pt-0.5 text-2xl font-semibold"
+                          style={{ color: 'var(--lp-accent)' }}
+                        >
+                          {start + i + 1}
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          <p className="text-lg font-semibold tracking-tight">
+                            {step.title}
+                          </p>
+                          <p className="text-muted-foreground">{step.body}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-14 flex max-w-2xl gap-4 rounded-2xl border bg-card p-5">
+            <span
+              aria-hidden
+              className="mt-[0.7em] h-px w-4 shrink-0 bg-[color:var(--lp-accent)]"
+            />
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold">{c.howItWorks.adminNote.title}</p>
+              <p className="text-muted-foreground">{c.howItWorks.adminNote.body}</p>
+            </div>
+          </div>
+        </section>
+
         {/* The story: dark ground, pinned phone, narrator captions. */}
         <section id="story" className="lp-dark scroll-mt-12">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-10 pt-24 lg:pt-32">

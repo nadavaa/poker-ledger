@@ -13,6 +13,7 @@ export const SITE_DESCRIPTION =
   'A web app that tracks buy-ins, cash-outs and who owes whom in home poker cash games, and works out the fewest payments to settle up.'
 
 export const nav = [
+  { href: '/#how-it-works', label: 'How it works' },
   { href: '/#story', label: 'Watch a game' },
   { href: '/ai-connector', label: 'AI connector' },
   { href: '/guides', label: 'Guides' },
@@ -26,6 +27,53 @@ export const landing = {
     cta: 'Get started',
     signIn: 'Sign in',
     watch: 'Watch a game play out',
+  },
+
+  // The whole workflow in order, as the organizer does it. Button names match
+  // the app's own labels (Copy invite, Create game, Start game, Settle up).
+  howItWorks: {
+    heading: 'How it works',
+    intro: 'Set up your group once, then every game night runs the same way.',
+    phases: [
+      {
+        title: 'Set up your group',
+        steps: [
+          {
+            title: 'Create a group',
+            body: 'One group for each group of friends.',
+          },
+          {
+            title: 'Add your friends',
+            body: 'Share the invite link, or add them by name before they sign up.',
+          },
+        ],
+      },
+      {
+        title: 'Run a game',
+        steps: [
+          {
+            title: 'Create a game',
+            body: 'Pick the night and add who’s playing.',
+          },
+          {
+            title: 'Start it at the table',
+            body: 'Tap Start game when everyone sits down.',
+          },
+          {
+            title: 'Cash out anyone who leaves early',
+            body: 'Record their chips and the game keeps going.',
+          },
+          {
+            title: 'Settle up',
+            body: 'Tap Settle up at the end to get the fewest payments.',
+          },
+        ],
+      },
+    ],
+    adminNote: {
+      title: 'One person keeps the book',
+      body: 'Only the game’s admin can add or edit buy-ins, and everyone sees each one live.',
+    },
   },
 
   story: {
