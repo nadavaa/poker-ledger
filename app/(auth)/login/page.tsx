@@ -55,7 +55,7 @@ export default async function LoginPage({
   const context = loginContext(next)
 
   return (
-    <SiteShell>
+    <SiteShell hideSignIn>
       <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 pb-20 pt-10 lg:grid-cols-[1fr_0.9fr] lg:gap-16 lg:pt-16">
         <div className="flex w-full max-w-md flex-col gap-6">
           {context && (
