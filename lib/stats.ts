@@ -142,3 +142,9 @@ export function computeStats(results: GameResult[]): Stats | null {
     longestLossStreak,
   }
 }
+
+/** "2 wins", "1 loss", "None": the app's one wording for a streak. */
+export function streakWords(kind: StreakKind, length: number): string {
+  if (kind === 'none' || length <= 0) return 'None'
+  return `${length} ${kind === 'win' ? 'win' : 'loss'}${length === 1 ? '' : kind === 'win' ? 's' : 'es'}`
+}

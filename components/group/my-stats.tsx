@@ -1,6 +1,6 @@
 import { formatCents } from '@/lib/money'
 import { formatTime } from '@/lib/time'
-import type { Stats } from '@/lib/stats'
+import { streakWords, type Stats } from '@/lib/stats'
 import { Card, CardContent } from '@/components/ui/card'
 
 
@@ -27,13 +27,6 @@ function Stat({
       )}
     </div>
   )
-}
-
-function streakLabel(streak: Stats['currentStreak']) {
-  if (streak.kind === 'none') return 'None'
-  return `${streak.length} ${streak.kind === 'win' ? 'win' : 'loss'}${
-    streak.length === 1 ? '' : 'es'
-  }`
 }
 
 /** One player's record in one group. Settled games only. */
@@ -103,7 +96,7 @@ export function MyStats({
           value={formatCents(stats.worst.netCents)}
           sub={formatTime(stats.worst.playedAt, timeZone, 'day')}
         />
-        <Stat label="Current streak" value={streakLabel(stats.currentStreak)} />
+        <Stat label="Current streak" value={streakWords(stats.currentStreak.kind, stats.currentStreak.length)} />
         <Stat
           label="Total bought in"
           value={formatCents(stats.totalBoughtInCents)}

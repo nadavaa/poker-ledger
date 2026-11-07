@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeStats, runningBalance, type GameResult } from './stats'
+import { computeStats, runningBalance, streakWords, type GameResult } from './stats'
 
 /** Games one day apart, in the order given. */
 function games(...nets: number[]): GameResult[] {
@@ -133,5 +133,15 @@ describe('runningBalance', () => {
 
   it('is empty for no games', () => {
     expect(runningBalance([])).toEqual([])
+  })
+})
+
+describe('streakWords', () => {
+  it('pluralizes wins and losses correctly', () => {
+    expect(streakWords('win', 1)).toBe('1 win')
+    expect(streakWords('win', 3)).toBe('3 wins')
+    expect(streakWords('loss', 1)).toBe('1 loss')
+    expect(streakWords('loss', 2)).toBe('2 losses')
+    expect(streakWords('none', 0)).toBe('None')
   })
 })
