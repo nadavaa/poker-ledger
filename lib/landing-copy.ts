@@ -40,7 +40,7 @@ export const landing = {
         steps: [
           {
             title: 'Create a group',
-            body: 'One group for your regular game.',
+            body: 'One group for each group of friends.',
           },
           {
             title: 'Add your friends',
