@@ -318,9 +318,26 @@ checked in middleware and again in the page; anyone else gets the ordinary
 health — reconciliation rate, settlement confirmation rate, stale debts,
 voided buy-ins per game, abandoned games.
 
-Aggregates and counts only. No emails, no phone numbers, no handles, and no
-amounts between named people. The functions that produce it are callable by
-the service role alone.
+At the top, what changed in the last 7 and 30 days against the window
+before: outside users, sign-ups, new groups, active groups, groups gone
+quiet. Then sign-ups by source, a users table and a groups table.
+
+**Outside user** = a signed-in account that is an active member of a group
+the owner is not in. A group the owner is not in is an **outside group**.
+
+**Names are shown; nothing else personal is.** Display names, sign-up date,
+source, group and game counts. No emails, no phone numbers, no payment
+handles, and no amounts between named people. (Aggregates only until
+2026-11-06; names were added so new users can be followed one by one.) The
+functions that produce it are callable by the service role alone.
+
+**Sign-up source** is first touch. The first page a signed-out browser loads
+sets a 30-day cookie: a `?ref=` tag if the link had one, else the outside
+site it came from (google.com, chatgpt.com), else `invite` for a group, game
+or claim link, else `direct`. The first sign-in of a new account (under a
+day old) saves it once; later sign-ins change nothing. A magic link opened
+in a different browser has no cookie and is saved as `unknown`. Accounts
+from before tracking have none.
 
 ---
 

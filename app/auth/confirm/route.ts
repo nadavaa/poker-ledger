@@ -2,6 +2,7 @@ import { type EmailOtpType } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { adoptGoogleAvatar } from '@/lib/supabase/adopt-google-avatar'
+import { recordSignupSource } from '@/lib/supabase/record-signup-source'
 
 // Completes magic-link sign-in. Handles both link styles:
 // - token_hash (custom email template): works from any browser
@@ -22,12 +23,14 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (!error) {
       if (data.user) await adoptGoogleAvatar(supabase, data.user)
+      await recordSignupSource(supabase)
       return NextResponse.redirect(`${origin}${next}`)
     }
   } else if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       if (data.user) await adoptGoogleAvatar(supabase, data.user)
+      await recordSignupSource(supabase)
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

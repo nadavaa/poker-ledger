@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isPublicPath } from './public-paths'
+import {
+  SOURCE_COOKIE,
+  SOURCE_COOKIE_MAX_AGE,
+  firstTouchSource,
+  isPageLoad,
+} from '../signup-source'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -35,6 +41,39 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublic = isPublicPath(pathname)
 
+  // Sign-up source (docs/GROWTH.md, 1D). The first page a signed-out browser
+  // loads decides where it came from; the auth callbacks save it on a new
+  // profile. Adds a cookie and nothing else: never changes where a request
+  // goes, and applies to every response below, redirects included, so a
+  // first visit to /join/... that bounces to /login is still stamped.
+  const source =
+    !user &&
+    !request.cookies.has(SOURCE_COOKIE) &&
+    isPageLoad({
+      method: request.method,
+      pathname,
+      accept: request.headers.get('accept'),
+    })
+      ? firstTouchSource({
+          ref: request.nextUrl.searchParams.get('ref'),
+          referer: request.headers.get('referer'),
+          pathname,
+          host: request.nextUrl.host,
+        })
+      : null
+  const stamp = <T extends NextResponse>(res: T): T => {
+    if (source) {
+      res.cookies.set(SOURCE_COOKIE, source, {
+        maxAge: SOURCE_COOKIE_MAX_AGE,
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+      })
+    }
+    return res
+  }
+
   // The owner gate, checked here and again in the page. A non-owner gets a
   // 404, not a 403: the route does not exist as far as anyone else is
   // concerned. Rewriting rather than returning a bare 404 keeps the styled
@@ -63,7 +102,7 @@ export async function updateSession(request: NextRequest) {
         keepQuery ? pathname + request.nextUrl.search : pathname
       )
     }
-    return NextResponse.redirect(url)
+    return stamp(NextResponse.redirect(url))
   }
 
   if (user && pathname === '/login') {
@@ -74,5 +113,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+  return stamp(supabaseResponse)
 }
