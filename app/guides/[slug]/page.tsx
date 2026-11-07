@@ -60,11 +60,25 @@ export default async function GuidePage({
           headline: guide.title,
           description: guide.description,
           datePublished: guide.published,
+          ...(guide.updated ? { dateModified: guide.updated } : {}),
           mainEntityOfPage: `${SITE_URL}/guides/${guide.slug}`,
           author: { '@type': 'Organization', name: SITE_NAME },
           publisher: { '@type': 'Organization', name: SITE_NAME },
         }}
       />
+      {guide.faq && guide.faq.length > 0 && (
+        <JsonLd
+          data={{
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: guide.faq.map((f) => ({
+              '@type': 'Question',
+              name: f.q,
+              acceptedAnswer: { '@type': 'Answer', text: f.a },
+            })),
+          }}
+        />
+      )}
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-10">
         <Link
           href="/guides"
@@ -101,11 +115,27 @@ export default async function GuidePage({
             </p>
           )
         })}
-        <div className="mt-6 flex flex-col items-start gap-2 rounded-xl border bg-muted/40 p-4">
+        {guide.faq && guide.faq.length > 0 && (
+          <section className="mt-4 flex flex-col gap-3">
+            <h2 className="text-2xl font-semibold">Questions</h2>
+            <dl className="flex flex-col gap-4">
+              {guide.faq.map((f) => (
+                <div key={f.q}>
+                  <dt className="font-medium">{f.q}</dt>
+                  <dd className="mt-1 text-muted-foreground">{f.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+        <p className="mt-2 text-sm text-muted-foreground">
+          KevesPoker is a ledger for private games between friends. It is not a
+          gambling site, and it never holds or moves money.
+        </p>
+        <div className="mt-4 flex flex-col items-start gap-2 rounded-xl border bg-muted/40 p-4">
           <p className="font-medium">See it work</p>
           <p className="text-sm text-muted-foreground">
-            The story on the home page runs this arithmetic with invented
-            players.
+            The home page walks through a whole game with invented players.
           </p>
           <Button
             variant="outline"
