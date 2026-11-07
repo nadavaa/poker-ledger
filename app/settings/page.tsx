@@ -10,6 +10,7 @@ import { CollapsibleSection } from '@/components/collapsible-section'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { DEFAULT_TIME_ZONE, formatTime } from '@/lib/time'
+import { FeedbackLink } from '@/components/feedback/feedback-link'
 
 /** This page spans groups, so there is no one group zone to use. The app's
  *  default is still better than the server's, which is UTC on Vercel. */
@@ -198,6 +199,7 @@ export default async function SettingsPage() {
           )
         })}
       </CollapsibleSection>
+      <FeedbackLink />
     </main>
   )
 }
