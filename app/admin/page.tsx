@@ -13,24 +13,39 @@ import {
   pct,
 } from '@/lib/admin'
 import { BarChart, FunnelRow, Metric } from '@/components/admin/bar-chart'
+import {
+  changesFor,
+  formatDelta,
+  gamesInLast,
+  goneQuiet,
+  groupStatus,
+  sourceCounts,
+  type Change,
+  type GroupStatus,
+} from '@/lib/admin-tracking'
+import { describeSource } from '@/lib/signup-source'
 
-// Nothing here needs to be live, and every number is an aggregate over the
-// whole database.
+// Nothing here needs to be live. Names are shown (decided 2026-11-06); emails,
+// phone numbers and payment handles never are.
 const REVALIDATE = 300
 
 const load = unstable_cache(
   async () => {
     const admin = createAdminClient()
     if (!admin) return null
-    const [overview, weekly, monthly, cohorts, groups, steps, setup] =
+    // "Outside" is relative to the owner. isOwner() already passed, so this
+    // is set; an empty string would match nobody and mark every group outside.
+    const owner = process.env.OWNER_USER_ID ?? ''
+    const [overview, weekly, monthly, cohorts, groups, steps, setup, users] =
       await Promise.all([
         admin.rpc('admin_overview'),
         admin.rpc('admin_weekly'),
         admin.rpc('admin_monthly_signups'),
         admin.rpc('admin_cohorts'),
-        admin.rpc('admin_groups'),
+        admin.rpc('admin_groups_detail', { p_owner: owner }),
         admin.rpc('admin_onboarding'),
         admin.rpc('admin_onboarding_totals'),
+        admin.rpc('admin_users_detail', { p_owner: owner }),
       ])
     return {
       m: (overview.data ?? {}) as Record<string, number | null>,
@@ -38,12 +53,14 @@ const load = unstable_cache(
       monthly: monthly.data ?? [],
       cohorts: cohorts.data ?? [],
       groups: groups.data ?? [],
+      users: users.data ?? [],
       steps: steps.data ?? [],
       setup: (setup.data ?? {}) as Record<string, number | null>,
       error:
         overview.error?.message ??
         weekly.error?.message ??
         groups.error?.message ??
+        users.error?.message ??
         null,
     }
   },
@@ -52,6 +69,34 @@ const load = unstable_cache(
 )
 
 const TZ = DEFAULT_TIME_ZONE
+
+const STATUS_STYLE: Record<GroupStatus, string> = {
+  new: 'bg-live-soft text-live',
+  active: 'bg-up-soft text-up',
+  quiet: 'bg-muted text-muted-foreground',
+}
+
+const SECTION =
+  'text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground'
+
+function ChangeCell({ c }: { c: Change }) {
+  return (
+    <td className="money py-2 pl-2 text-right">
+      {c.now}{' '}
+      <span
+        className={
+          c.delta > 0
+            ? 'text-up'
+            : c.delta < 0
+              ? 'text-down'
+              : 'text-muted-foreground'
+        }
+      >
+        ({formatDelta(c.delta)})
+      </span>
+    </td>
+  )
+}
 
 function shortDay(iso: string) {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
@@ -91,7 +136,21 @@ export default async function AdminPage() {
     )
   }
 
-  const { m, weekly, monthly, cohorts, groups, steps, setup } = data
+  const { m, weekly, monthly, cohorts, groups, users, steps, setup } = data
+  // Rendered at most every few minutes for one person; the windows only need
+  // to be right to the hour.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now()
+  const week = changesFor(users, groups, 7, now)
+  const month = changesFor(users, groups, 30, now)
+  const quiet = goneQuiet(groups, now)
+  const sources = sourceCounts(users, 30, now)
+  const CHANGE_ROWS: { label: string; key: 'outsideUsers' | 'signups' | 'groupsCreated' | 'activeGroups' }[] = [
+    { label: 'Outside users', key: 'outsideUsers' },
+    { label: 'Sign-ups', key: 'signups' },
+    { label: 'New groups', key: 'groupsCreated' },
+    { label: 'Active groups', key: 'activeGroups' },
+  ]
   const o = (k: string) => setup[k] ?? 0
   const STEP_LABEL: Record<string, string> = {
     name: 'Your name',
@@ -105,7 +164,8 @@ export default async function AdminPage() {
       <header className="page-header">
         <h1 className="text-lg font-semibold tracking-tight">Analytics</h1>
         <p className="text-sm text-muted-foreground">
-          Aggregates only, refreshed every {REVALIDATE / 60} minutes.
+          Refreshed every {REVALIDATE / 60} minutes. Names only, no contact or
+          payment details.
         </p>
       </header>
 
@@ -114,6 +174,164 @@ export default async function AdminPage() {
           {data.error}
         </p>
       )}
+
+      <section className="flex flex-col gap-2">
+        <h2 className={SECTION}>What changed</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-muted-foreground">
+              <th className="py-1 pr-2 font-medium" />
+              <th className="py-1 pl-2 text-right font-medium">Last 7 days</th>
+              <th className="py-1 pl-2 text-right font-medium">Last 30 days</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CHANGE_ROWS.map((r) => (
+              <tr key={r.key} className="border-t border-border">
+                <td className="py-2 pr-2">{r.label}</td>
+                <ChangeCell c={week[r.key]} />
+                <ChangeCell c={month[r.key]} />
+              </tr>
+            ))}
+            <tr className="border-t border-border">
+              <td className="py-2 pr-2">Gone quiet</td>
+              <td className="py-2 pl-2 text-right text-muted-foreground">—</td>
+              <td className={`money py-2 pl-2 text-right ${quiet > 0 ? 'text-down' : ''}`}>
+                {quiet}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="text-[0.7rem] text-muted-foreground">
+          Outside user = a signed-in account in a group you&apos;re not in;
+          the change is against the total when the window opened. The others
+          compare with the window before. Active = a game started. Gone quiet
+          = played 30–60 days ago, not since.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className={SECTION}>Sign-ups by source, last 30 days</h2>
+        {sources.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No sign-ups in the last 30 days.
+          </p>
+        ) : (
+          <div className="rounded-2xl border border-border bg-card px-3.5 py-1">
+            {sources.map((x) => (
+              <FunnelRow key={x.source} label={x.source} value={x.count} />
+            ))}
+          </div>
+        )}
+        <p className="text-[0.7rem] text-muted-foreground">
+          From a ?ref= tag on the link, else the site they came from, else an
+          invite link, else direct. Unknown = the sign-in link was opened in a
+          different browser.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className={SECTION}>Users ({users.length})</h2>
+        {users.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No users yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-1 pr-2 font-medium">User</th>
+                  <th className="py-1 pr-2 text-right font-medium">Groups</th>
+                  <th className="py-1 pr-2 text-right font-medium">Games</th>
+                  <th className="py-1 text-right font-medium">Last</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u, i) => (
+                  <tr key={`${u.created_at}-${i}`} className="border-t border-border">
+                    <td className="py-2 pr-2">
+                      <div className="flex items-center gap-1.5">
+                        <span>{u.display_name}</span>
+                        {u.outside_groups > 0 && (
+                          <span className="rounded-full bg-live-soft px-1.5 text-[0.65rem] text-live">
+                            outside
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[0.7rem] text-muted-foreground">
+                        {formatTime(u.created_at, TZ, 'shortDay')} ·{' '}
+                        {describeSource(u.signup_source)}
+                      </div>
+                    </td>
+                    <td className="money py-2 pr-2 text-right">{u.groups}</td>
+                    <td className="money py-2 pr-2 text-right">{u.games}</td>
+                    <td className="py-2 text-right text-muted-foreground">
+                      {u.last_game ? formatTime(u.last_game, TZ, 'shortDay') : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[0.7rem] text-muted-foreground">
+          Newest first. Games = games with a buy-in that wasn&apos;t voided.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className={SECTION}>Groups ({groups.length})</h2>
+        {groups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No groups yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-1 pr-2 font-medium">Group</th>
+                  <th className="py-1 pr-2 text-right font-medium">Members</th>
+                  <th className="py-1 pr-2 text-right font-medium">Settled</th>
+                  <th className="py-1 pr-2 text-right font-medium">30d</th>
+                  <th className="py-1 text-right font-medium">Last</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((g, i) => {
+                  const status = groupStatus(g, now)
+                  return (
+                    <tr key={`${g.created_at}-${i}`} className="border-t border-border">
+                      <td className="py-2 pr-2">
+                        <div>{g.name}</div>
+                        <div className="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
+                          <span>{formatTime(g.created_at, TZ, 'shortDay')}</span>
+                          <span className={`rounded-full px-1.5 ${STATUS_STYLE[status]}`}>
+                            {status}
+                          </span>
+                          {g.outside && <span>outside</span>}
+                        </div>
+                      </td>
+                      <td className="money py-2 pr-2 text-right">
+                        {g.claimed}
+                        <span className="text-muted-foreground">/{g.members}</span>
+                      </td>
+                      <td className="money py-2 pr-2 text-right">{g.settled}</td>
+                      <td className="money py-2 pr-2 text-right">
+                        {gamesInLast(g, 30, now)}
+                      </td>
+                      <td className="py-2 text-right text-muted-foreground">
+                        {g.last_game ? formatTime(g.last_game, TZ, 'shortDay') : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[0.7rem] text-muted-foreground">
+          Newest first. Members = signed in / total. New = created in the last
+          14 days; active = a game in the last 30; quiet = neither.
+        </p>
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
@@ -408,41 +626,6 @@ export default async function AdminPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          Groups
-        </h2>
-        {groups.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No groups yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="py-1 pr-2 font-medium">Group</th>
-                  <th className="py-1 pr-2 text-right font-medium">Members</th>
-                  <th className="py-1 pr-2 text-right font-medium">Games</th>
-                  <th className="py-1 text-right font-medium">Last</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((g) => (
-                  <tr key={g.name} className="border-t border-border">
-                    <td className="py-2 pr-2">{g.name}</td>
-                    <td className="money py-2 pr-2 text-right">{g.members}</td>
-                    <td className="money py-2 pr-2 text-right">{g.games}</td>
-                    <td className="py-2 text-right text-muted-foreground">
-                      {g.last_game
-                        ? formatTime(g.last_game, TZ, 'shortDay')
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
     </main>
   )
 }

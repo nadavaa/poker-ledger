@@ -21,6 +21,7 @@ export type Database = {
           venmo_handle: string | null
           created_at: string
           onboarding_completed_at: string | null
+          signup_source: string | null
         }
         Insert: {
           id: string
@@ -728,6 +729,36 @@ export type Database = {
           games: number
           last_game: string | null
         }[]
+      }
+      admin_users_detail: {
+        Args: { p_owner: string }
+        Returns: {
+          display_name: string
+          created_at: string
+          signup_source: string | null
+          groups: number
+          outside_groups: number
+          first_outside_at: string | null
+          games: number
+          last_game: string | null
+        }[]
+      }
+      admin_groups_detail: {
+        Args: { p_owner: string }
+        Returns: {
+          name: string
+          created_at: string
+          outside: boolean
+          members: number
+          claimed: number
+          settled: number
+          started: string[]
+          last_game: string | null
+        }[]
+      }
+      record_signup_source: {
+        Args: { p_source: string }
+        Returns: undefined
       }
       log_invite_visit: {
         Args: { p_kind: string; p_target_id: string; p_outcome: string }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { adoptGoogleAvatar } from '@/lib/supabase/adopt-google-avatar'
+import { recordSignupSource } from '@/lib/supabase/record-signup-source'
 
 // Handles the PKCE code exchange for both OAuth (Google) and magic links.
 export async function GET(request: Request) {
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
     if (!error) {
       // Best effort, never blocking: a missing photo is not a failed sign-in.
       if (data.user) await adoptGoogleAvatar(supabase, data.user)
+      await recordSignupSource(supabase)
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
