@@ -177,7 +177,6 @@ export function LoginForm({ next }: { next: string }) {
         {copy.google}
       </Button>
       {errorLine}
-      <p className="text-xs text-muted-foreground">{copy.noPasswords}</p>
     </div>
   )
 }

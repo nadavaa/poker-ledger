@@ -70,32 +70,22 @@ export default async function LoginPage({
               {copy.invite[context]}
             </p>
           )}
-          <div className="flex flex-col gap-3">
-            <h1
-              className="lp-display lp-rise text-[clamp(2.2rem,5vw,3.4rem)]"
-              style={{ ['--d' as string]: '60ms' }}
-            >
-              {copy.heading}
-            </h1>
-            <p
-              className="lp-rise text-lg text-muted-foreground"
-              style={{ ['--d' as string]: '140ms' }}
-            >
-              {copy.sub}
-            </p>
-          </div>
-          <div className="lp-rise" style={{ ['--d' as string]: '220ms' }}>
+          <h1
+            className="lp-display lp-rise text-[clamp(2.2rem,5vw,3.4rem)]"
+            style={{ ['--d' as string]: '60ms' }}
+          >
+            {copy.heading}
+          </h1>
+          <div className="lp-rise" style={{ ['--d' as string]: '140ms' }}>
             <LoginForm next={next} />
           </div>
-          <p
-            className="lp-rise text-sm text-muted-foreground"
-            style={{ ['--d' as string]: '300ms' }}
+          <Link
+            href="/"
+            className="lp-rise self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            style={{ ['--d' as string]: '220ms' }}
           >
-            {copy.pitch}{' '}
-            <Link href="/" className="font-medium text-foreground underline underline-offset-4">
-              {copy.back}
-            </Link>
-          </p>
+            {copy.back}
+          </Link>
         </div>
         <ChipStack />
       </main>
