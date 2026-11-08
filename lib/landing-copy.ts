@@ -180,15 +180,12 @@ export const landing = {
 // magic link or Google sign-in creates the account.
 export const login = {
   heading: 'Sign in or create your account',
-  sub: 'One step for both. New here? Your account is made the first time you sign in.',
-  pitch: 'Track buy-ins and cash-outs, check the chips, and get a short list of who pays whom.',
-  noPasswords: 'No passwords. We email you a link, or you use Google.',
   emailLabel: 'Email',
   send: 'Email me a sign-in link',
   sending: 'Sending…',
   or: 'or',
   google: 'Continue with Google',
-  back: 'What is KevesPoker?',
+  back: '← Back to home',
   invite: {
     'group-invite': 'You’ve been invited to a poker group. Sign in or create an account to see it and join.',
     claim: 'Someone saved your games under your name. Sign in or create an account to claim them.',
