@@ -85,24 +85,18 @@ R13 (traffic measurement) and R14 (being mentioned elsewhere). Public posting
 below is how R14 gets done. Nothing from that file is built here without
 Nadav's approval.
 
-### Off-site: public posting (ON HOLD, per Nadav 2026-11-06; to be discussed)
-Nothing below is scheduled. Every post links with a `ref=` tag (request D) so `/admin` shows what worked.
-Each one also earns a backlink and a mention that search and AI engines can
-pick up.
+### Off-site: Reddit (run by Claude, from 2026-11-06)
 
-| Where | Angle | When |
-|---|---|---|
-| Home-game and poker subreddits (r/poker and smaller home-game ones; check each one's self-promotion rules first) | "I host a weekly game and built this to replace the Venmo-hub mess. Feedback welcome." Screenshots of settlement | Week of Nov 9 |
-| LinkedIn | Build story: problem, how it works, an AI connector that lets players ask Claude/ChatGPT about their balance. Also shows deployment work in action | Week of Nov 16 |
-| Show HN / Indie Hackers | The settlement algorithm (fewest transfers) plus integer-cents and append-only ledger design. Technical audiences link to that kind of write-up | Late Nov, after the user-facing posts |
-| MCP / AI-connector directories | List the connector (`/ai-connector`). Direct GEO value: AI tools and their users discover it there | Late Nov |
-| Product Hunt | Single launch day, once A-D are live so the spike is measurable | Jan, after the holidays |
+Reddit is run by the `reddit-master` skill and its sub-skills
+(`reddit-post`, `reddit-monitor`, `reddit-engage`) in the Poker App project
+(`Projects/Poker App/.claude/skills/`, outside this repo), with
+standing autonomy from Nadav. Rules and guardrails:
+`Projects/Poker App/.claude/skills/reddit-master/references/rules.md`. Activity and state:
+`Projects/Poker App/reddit/`. Every link carries `?ref=reddit-<subreddit>`,
+so results show on `/admin` under sign-ups by source.
 
-Cadence: about one post a week, each answered for 48 hours (reply to every
-comment; that is where hosts ask "can it do X?").
-
-Each post's draft goes in `docs/posts/` (to be created) and needs Nadav's
-approval of the exact text before it goes out.
+**LinkedIn: off** (Nadav, 2026-11-06). Show HN, MCP directories and Product
+Hunt are not scheduled; revisit once Reddit has a few weeks of results.
 
 ## 3. How we know it's working
 
@@ -119,10 +113,8 @@ GEO engagement's R11 and R13.
 Made 2026-11-06:
 - Users table with display names on `/admin`: **yes** (no emails or handles).
 - Outside user: **any claimed account in a group Nadav is not in.**
-- Public posting: **on hold**, to be discussed.
-
-Open:
-- Public posting plan (venues, order, timing).
+- Reddit: run by Claude with standing autonomy (guardrails in the skill rules).
+- LinkedIn: off for now.
 
 ## Rules
 
