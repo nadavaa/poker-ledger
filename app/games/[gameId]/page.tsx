@@ -59,7 +59,7 @@ export default async function GamePage({
   const { data: game } = await supabase
     .from('games')
     .select(
-      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, started_at, settled_at, groups(name, timezone)'
+      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, started_at, settled_at, groups(name, timezone, venmo_note_quotes)'
     )
     .eq('id', gameId)
     .maybeSingle()
@@ -647,6 +647,7 @@ export default async function GamePage({
           myMemberId={myMember?.id ?? null}
           isAdmin={isAdmin}
           timeZone={tz}
+          venmoQuotes={game.groups?.venmo_note_quotes ?? false}
           gameLabel={gameLabel}
           startedAt={game.started_at}
           settledAt={game.settled_at}

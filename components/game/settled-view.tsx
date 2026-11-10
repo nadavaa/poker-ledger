@@ -45,6 +45,7 @@ export function SettledView({
   myMemberId,
   isAdmin,
   timeZone,
+  venmoQuotes = false,
   gameLabel,
   startedAt,
   settledAt,
@@ -61,6 +62,8 @@ export function SettledView({
   isAdmin: boolean
   /** The group's zone; confirmation dates are rendered in it. */
   timeZone: string
+  /** The group's venmo_note_quotes: Hebrew quotes in the Venmo note, else the spade. */
+  venmoQuotes?: boolean
   gameLabel: string
   startedAt: string | null
   settledAt: string | null
@@ -195,6 +198,7 @@ export function SettledView({
           myMemberId={myMemberId}
           isAdmin={isAdmin}
           timeZone={timeZone}
+          venmoQuotes={venmoQuotes}
         />
 
         {isAdmin && transfers.length > 0 && (
