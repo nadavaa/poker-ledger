@@ -320,7 +320,7 @@ so the time doesn't change shape when the page hydrates.
   The email carries the sender's display name only. If the email fails or
   isn't configured, the note is still saved.
 - **Welcome email.** When onboarding finishes (done or skipped), Nadav's
-  welcome email (`lib/welcome-email.ts`, text approved 2026-11-09) goes to the
+  welcome email (`lib/welcome-email.ts`, text and layout from Nadav's doc, 2026-11-09; HTML with a plain-text fallback) goes to the
   account's email, from `WELCOME_FROM` with replies to `WELCOME_REPLY_TO`.
   Once per account, ever: the server claims `profiles.welcome_email_sent_at`
   before sending and releases it if the send fails. Accounts that existed on
