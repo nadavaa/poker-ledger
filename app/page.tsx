@@ -13,6 +13,8 @@ import { PaymentBanner } from '@/components/payment-banner'
 import { LandingPage } from '@/components/landing/landing-page'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from '@/lib/landing-copy'
 import { FeedbackLink } from '@/components/feedback/feedback-link'
+import { BrowserTimeZoneInput } from '@/components/group/browser-time-zone-input'
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/time'
 
 // Applies to the signed-out landing page, the only public page. The signed-in
 // dashboard at the same address is private and never shared.
@@ -106,6 +108,12 @@ export default async function HomePage({
     })
     if (error) {
       redirect(`/?error=${encodeURIComponent(error.message)}`)
+    }
+    // Start the group in its creator's zone. Best effort: if it fails, the
+    // group keeps the default and the owner can change it in settings.
+    const tz = formData.get('timezone')
+    if (isValidTimeZone(tz) && tz !== DEFAULT_TIME_ZONE) {
+      await supabase.from('groups').update({ timezone: tz }).eq('id', groupId)
     }
     redirect(`/groups/${groupId}`)
   }
@@ -230,6 +238,7 @@ export default async function HomePage({
               </CardHeader>
               <CardContent>
                 <form action={createGroup} className="flex gap-2">
+                  <BrowserTimeZoneInput />
                   <Input
                     name="name"
                     required
@@ -258,6 +267,7 @@ export default async function HomePage({
                 you their group&apos;s invite link.
               </p>
               <form action={createGroup} className="flex gap-2">
+                <BrowserTimeZoneInput />
                 <Input
                   name="name"
                   required

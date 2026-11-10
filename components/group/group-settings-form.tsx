@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { centsToDollars, dollarsToCents } from '@/lib/money'
+import { isValidTimeZone, timeZoneOptions } from '@/lib/time'
 import { useDirtyForm } from '@/components/use-dirty-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,7 @@ type Fields = {
   seats: string
   buyin: string
   ratio: string
+  timezone: string
 }
 
 function parseCents(v: string): number | null {
@@ -32,6 +34,7 @@ function normalize(f: Fields): Fields {
     seats: String(Number(f.seats) || ''),
     buyin: String(parseCents(f.buyin) ?? ''),
     ratio: String(Number(f.ratio) || ''),
+    timezone: f.timezone,
   }
 }
 
@@ -45,6 +48,7 @@ export function GroupSettingsForm({
     seatLimit: number
     buyinCents: number
     chipsPerDollar: number
+    timezone: string
   }
 }) {
   const supabase = useMemo(() => createClient(), [])
@@ -59,13 +63,15 @@ export function GroupSettingsForm({
         seats: String(initial.seatLimit),
         buyin: centsToDollars(initial.buyinCents),
         ratio: String(initial.chipsPerDollar),
+        timezone: initial.timezone,
       },
       normalize,
       isValid: (f) =>
         f.name.trim() !== '' &&
         parseCents(f.buyin) !== null &&
         Number(f.seats) >= 2 &&
-        Number(f.ratio) > 0,
+        Number(f.ratio) > 0 &&
+        isValidTimeZone(f.timezone),
     })
 
   function change(key: keyof Fields, value: string) {
@@ -85,6 +91,7 @@ export function GroupSettingsForm({
         default_seat_limit: Number(current.seats),
         default_buyin_cents: Number(current.buyin),
         chips_per_dollar: Number(current.ratio),
+        timezone: current.timezone,
       })
       .eq('id', groupId)
 
@@ -150,6 +157,25 @@ export function GroupSettingsForm({
             onChange={(e) => change('ratio', e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="timezone">Time zone</Label>
+        <select
+          id="timezone"
+          value={fields.timezone}
+          onChange={(e) => change('timezone', e.target.value)}
+          className="h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+        >
+          {timeZoneOptions(initial.timezone).map((z) => (
+            <option key={z.id} value={z.id}>
+              {z.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Every game time in this group is shown in this zone.
+        </p>
       </div>
 
       <p className="text-xs text-muted-foreground">
