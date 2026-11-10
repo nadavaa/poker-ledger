@@ -22,6 +22,7 @@ export type Database = {
           created_at: string
           onboarding_completed_at: string | null
           signup_source: string | null
+          welcome_email_sent_at: string | null
         }
         Insert: {
           id: string
@@ -29,6 +30,7 @@ export type Database = {
           avatar_url?: string | null
           venmo_handle?: string | null
           created_at?: string
+          welcome_email_sent_at?: string | null
         }
         Update: {
           id?: string
@@ -36,6 +38,7 @@ export type Database = {
           avatar_url?: string | null
           venmo_handle?: string | null
           created_at?: string
+          welcome_email_sent_at?: string | null
         }
         Relationships: []
       }
