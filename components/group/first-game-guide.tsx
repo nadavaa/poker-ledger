@@ -7,13 +7,7 @@ import { CopyLinkButton } from '@/components/copy-link-button'
  * host who found the app on their own has nobody to show them around; this
  * is the three things to do, in order. Disappears by itself once a game exists.
  */
-export function FirstGameGuide({
-  groupId,
-  invitePath,
-}: {
-  groupId: string
-  invitePath: string
-}) {
+export function FirstGameGuide({ invitePath }: { invitePath: string }) {
   return (
     <Card>
       <CardHeader>
@@ -25,15 +19,7 @@ export function FirstGameGuide({
             <p>
               <span className="font-semibold">1. Get your players in.</span>{' '}
               <span className="text-muted-foreground">
-                Send the invite link to your group chat. Someone without the
-                app? Add them by name in{' '}
-                <Link
-                  href={`/groups/${groupId}/edit`}
-                  className="underline underline-offset-2"
-                >
-                  Edit group
-                </Link>
-                ; they can claim their history later.
+                Send the invite link to your group chat.
               </span>
             </p>
             <div>
@@ -43,18 +29,13 @@ export function FirstGameGuide({
           <li>
             <span className="font-semibold">2. Schedule a game.</span>{' '}
             <span className="text-muted-foreground">
-              Tap New game, set the seats and buy-in, and share the game link.
-              Players sign themselves up; once the seats are full, the rest go
-              on a waitlist.
+              Tap New game and share the game link so players can sign up.
             </span>
           </li>
           <li>
             <span className="font-semibold">3. Play.</span>{' '}
             <span className="text-muted-foreground">
-              At the table, tap Start game and add each buy-in as it happens.
-              At the end, type everyone&apos;s chips; once the count matches,
-              settle up and everyone gets who to pay, with a Venmo or Zelle
-              button.
+              Add buy-ins as they happen, count chips at the end, and settle up.
             </span>
           </li>
         </ol>

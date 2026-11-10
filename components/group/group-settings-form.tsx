@@ -173,14 +173,10 @@ export function GroupSettingsForm({
             </option>
           ))}
         </select>
-        <p className="text-xs text-muted-foreground">
-          Every game time in this group is shown in this zone.
-        </p>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        These are the starting values for the next game you create. Games
-        already scheduled or played keep the numbers they were created with.
+        These are the default values for new games. This can be updated later
       </p>
 
       {error && <p className="text-sm text-down">{error}</p>}
