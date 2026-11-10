@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { sendFeedback } from '@/app/actions/feedback'
 import { ActionSheet } from '@/components/action-sheet'
 import { Button } from '@/components/ui/button'
 import { FEEDBACK_MAX, feedbackError, prepareFeedback, type FeedbackKind } from '@/lib/feedback'
@@ -50,9 +50,19 @@ export function FeedbackLink() {
     }
     setStatus('sending')
     setError(null)
-    const { error } = await createClient().from('feedback').insert(prepared.row)
+    let error: string | null
+    try {
+      ;({ error } = await sendFeedback({
+        kind,
+        message,
+        path,
+        userAgent: navigator.userAgent,
+      }))
+    } catch {
+      error = 'network'
+    }
     if (error) {
-      setError(feedbackError(error.message))
+      setError(feedbackError(error))
       setStatus('idle')
     } else {
       setStatus('sent')
