@@ -14,6 +14,7 @@ import { MemberRoleMenu } from '@/components/group/member-role-menu'
 import { GroupSettingsForm } from '@/components/group/group-settings-form'
 import { resolveDisplayName } from '@/lib/names'
 import { DeleteGroup } from '@/components/group/delete-group'
+import { ResetInviteLink } from '@/components/group/reset-invite-link'
 import { AvatarUpload } from '@/components/avatar-upload'
 
 export default async function EditGroupPage({
@@ -247,6 +248,16 @@ export default async function EditGroupPage({
             ))}
           </div>
         </details>
+      )}
+      {isOwner && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Invite link</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResetInviteLink groupId={groupId} />
+          </CardContent>
+        </Card>
       )}
       {isOwner && <DeleteGroup groupId={groupId} groupName={group.name} />}
     </main>
