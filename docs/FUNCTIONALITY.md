@@ -312,6 +312,13 @@ so the time doesn't change shape when the page hydrates.
   phone story (real app screens) plus the worked example (invented players only, `lib/landing-demo.ts`).
   Signed-in screens never link to landing-style pages; only Sign out leads
   back to the landing.
+- **Feedback.** "Send feedback or report a bug" at the foot of home and
+  Settings (never on game screens): Idea or Bug, a message, Send. Saved by a
+  server action as the signed-in player (insert-as-yourself policy, 20 a
+  day), shown newest-first on `/admin`, and emailed to Nadav through Resend
+  (`RESEND_API_KEY`, `FEEDBACK_ALERT_TO`, optional `FEEDBACK_ALERT_FROM`).
+  The email carries the sender's display name only. If the email fails or
+  isn't configured, the note is still saved.
 - **Onboarding** is three short steps — name, how you get paid, photo —
   every one skippable, and the flag is set whether you finish or skip,
   because asking again every login is nagging.

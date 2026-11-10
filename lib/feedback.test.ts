@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FEEDBACK_MAX, feedbackError, prepareFeedback } from './feedback'
+import { FEEDBACK_MAX, feedbackAlertEmail, feedbackError, prepareFeedback } from './feedback'
 
 describe('prepareFeedback', () => {
   it('trims the message and keeps context', () => {
@@ -32,5 +32,29 @@ describe('feedbackError', () => {
   })
   it('never echoes raw text', () => {
     expect(feedbackError('permission denied for table feedback')).toBe('Couldn’t send. Try again in a moment.')
+  })
+})
+
+describe('feedbackAlertEmail', () => {
+  it('names the kind and the sender, and carries the message', () => {
+    const e = feedbackAlertEmail({
+      kind: 'bug',
+      message: 'Venmo button does nothing\nOn iPhone',
+      pagePath: '/games/x',
+      senderName: 'Dana',
+    })
+    expect(e.subject).toBe('KevesPoker bug report from Dana: Venmo button does nothing')
+    expect(e.text).toContain('Page: /games/x')
+    expect(e.text).toContain('Venmo button does nothing\nOn iPhone')
+  })
+  it('falls back to Someone and skips a missing page', () => {
+    const e = feedbackAlertEmail({ kind: 'idea', message: 'Dark mode', pagePath: null, senderName: '  ' })
+    expect(e.subject).toBe('KevesPoker idea from Someone: Dark mode')
+    expect(e.text).not.toContain('Page:')
+  })
+  it('shortens a long first line in the subject', () => {
+    const e = feedbackAlertEmail({ kind: 'idea', message: 'x'.repeat(100), pagePath: null, senderName: 'A' })
+    expect(e.subject.endsWith('...')).toBe(true)
+    expect(e.subject.length).toBeLessThan(110)
   })
 })

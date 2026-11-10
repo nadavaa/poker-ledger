@@ -37,3 +37,32 @@ export function feedbackError(message: string): string {
   }
   return 'Couldn’t send. Try again in a moment.'
 }
+
+/**
+ * The email Nadav gets when feedback arrives. Plain text: it's an alert, not
+ * a newsletter. The sender's display name only; no email address or handle.
+ */
+export function feedbackAlertEmail(input: {
+  kind: FeedbackKind
+  message: string
+  pagePath: string | null
+  senderName: string | null
+}): { subject: string; text: string } {
+  const who = input.senderName?.trim() || 'Someone'
+  const label = input.kind === 'bug' ? 'Bug report' : 'Idea'
+  const firstLine = input.message.split('\n')[0]
+  const preview = firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine
+  return {
+    subject: `KevesPoker ${label.toLowerCase()} from ${who}: ${preview}`,
+    text: [
+      `${label} from ${who}`,
+      input.pagePath ? `Page: ${input.pagePath}` : null,
+      '',
+      input.message,
+      '',
+      'All feedback: https://www.kevespoker.com/admin',
+    ]
+      .filter((l) => l !== null)
+      .join('\n'),
+  }
+}
