@@ -33,8 +33,6 @@ const PUBLIC_EXACT = [
   '/llms.txt',
   '/og',
   '/ai-connector',
-  // A sample night with invented players (lib/landing-demo.ts).
-  '/demo',
 ]
 
 export function isPublicPath(pathname: string): boolean {

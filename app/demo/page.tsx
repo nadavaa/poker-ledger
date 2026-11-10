@@ -1,64 +1,53 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { PhoneStory } from '@/components/landing/phone-story'
+import { redirect } from 'next/navigation'
 import { SettlementExample } from '@/components/landing/settlement-example'
-import { SiteShell } from '@/components/landing/site-chrome'
-import { Button } from '@/components/ui/button'
-import { landing, SITE_NAME, SITE_URL } from '@/lib/landing-copy'
+import { Steps } from '@/components/steps'
+import { landing } from '@/lib/landing-copy'
+import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/supabase/auth'
 
-// A whole night with invented players, for a host deciding whether to bring
-// their group. Public: it is the landing's own story (lib/landing-demo.ts),
-// which nothing about a real group or player can reach. Signed-in hosts get
-// here from the first-game card, since '/' shows them the dashboard instead.
-
-const title = 'See a finished poker night'
-const description =
-  'Six invented players, one cash game: buy-ins as they happen, the chip count, and who pays whom at the end.'
+// A sample night with invented players (lib/landing-demo.ts), for a host
+// who just made a group. Signed-in only and in the app's own chrome: the
+// signed-out landing and the signed-in app never mix, so this never shows
+// the landing header or a Sign up button. Signed-out visitors have the
+// landing's own story at /#story.
 
 export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: `${SITE_URL}/demo` },
-  openGraph: {
-    url: `${SITE_URL}/demo`,
-    siteName: SITE_NAME,
-    title,
-    description,
-    images: ['/og'],
-  },
+  title: 'Demo',
+  robots: { index: false },
 }
 
-export default function DemoPage() {
-  return (
-    <SiteShell>
-      <main>
-        <section className="lp-dark">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-10 pt-16 lg:pt-24">
-            <h1 className="lp-h2 max-w-3xl text-4xl sm:text-5xl lg:text-6xl">
-              {landing.story.heading}
-            </h1>
-            <p className="max-w-xl text-lg text-muted-foreground">
-              {landing.story.intro} Nothing here is a real game.
-            </p>
-          </div>
-          <PhoneStory />
-        </section>
+export default async function DemoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ group?: string }>
+}) {
+  const supabase = await createClient()
+  const user = await getSessionUser(supabase)
+  if (!user) redirect('/login?next=/demo')
 
-        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-12">
-          <h2 className="text-2xl font-semibold">The whole night on one page</h2>
-          <SettlementExample />
-          <div className="mt-4 flex flex-col items-start gap-2 rounded-xl border bg-muted/40 p-4">
-            <p className="font-medium">Run your own game like this</p>
-            <p className="text-sm text-muted-foreground">
-              Make a group, send your players the invite link, schedule a game.
-              Everything else happens at the table.
-            </p>
-            <Button render={<Link href="/" />} nativeButton={false}>
-              Start your group
-            </Button>
-          </div>
-        </section>
-      </main>
-    </SiteShell>
+  const { group } = await searchParams
+  // Only ever a link back; RLS decides what that page shows.
+  const back = group && /^[0-9a-f-]{36}$/i.test(group) ? `/groups/${group}` : '/'
+
+  return (
+    <main className="mx-auto flex w-full max-w-md flex-col gap-6 p-4">
+      <header>
+        <Link href={back} className="text-xs text-muted-foreground">
+          &larr; Back
+        </Link>
+        <h1 className="text-lg font-semibold tracking-tight">Demo</h1>
+        <p className="text-sm text-muted-foreground">
+          {landing.story.intro} Nothing here is a real game.
+        </p>
+      </header>
+
+      <Steps
+        steps={landing.story.scenes.map((s) => ({ title: s.title, body: s.body }))}
+      />
+
+      <SettlementExample />
+    </main>
   )
 }

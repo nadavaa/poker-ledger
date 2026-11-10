@@ -8,7 +8,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL },
     { url: `${SITE_URL}/ai-connector` },
-    { url: `${SITE_URL}/demo` },
     { url: `${SITE_URL}/guides` },
     ...GUIDES.map((g) => ({ url: `${SITE_URL}/guides/${g.slug}` })),
   ]
