@@ -934,6 +934,10 @@ export type Database = {
         Args: { p_group_id: string }
         Returns: undefined
       }
+      reset_invite_code: {
+        Args: { p_group_id: string }
+        Returns: string
+      }
       group_delete_preview: {
         Args: { p_group_id: string }
         Returns: {

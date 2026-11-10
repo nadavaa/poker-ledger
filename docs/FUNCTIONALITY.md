@@ -615,9 +615,9 @@ Worth stating, because each one looks like a bug until you know why:
   than demoting someone automatically. Who loses a seat is a decision about
   people, not a number.
 - **An over-limit game reads 9/8**, never clamped to 8/8.
-- **The group invite link has no expiry and no revocation.** Anyone with it
-  can join. Same as it has always been — worth knowing, not currently a
-  feature.
+- **The group invite link has no expiry.** Anyone with it can join. The
+  owner can reset it in Edit group (`reset_invite_code`): every old link dies,
+  members stay, and game links keep working because they don't use the code.
 
 ---
 
