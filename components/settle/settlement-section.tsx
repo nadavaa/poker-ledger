@@ -23,6 +23,7 @@ export function SettlementSection({
   myMemberId,
   isAdmin,
   timeZone,
+  venmoQuotes = false,
 }: {
   /** RLS already limits this to rows the viewer is party to, unless admin. */
   transfers: TransferRow[]
@@ -31,6 +32,7 @@ export function SettlementSection({
   myMemberId: string | null
   isAdmin: boolean
   timeZone: string
+  venmoQuotes?: boolean
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
@@ -136,6 +138,7 @@ export function SettlementSection({
                   paymentSources={paymentSources}
                   isGameAdmin={isAdmin}
                   timeZone={timeZone}
+                  venmoQuotes={venmoQuotes}
                   pending={!!busy[t.id]}
                   error={errors[t.id] || null}
                   onMove={(next) => move(t.id, next)}

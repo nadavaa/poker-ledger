@@ -192,6 +192,12 @@ lives in one module. No floats anywhere in the money path.
 confirmation only — that is a deliberate product decision, not a gap, and it
 keeps the whole thing clear of money-transmitter territory.
 
+**Venmo note.** Per group (`groups.venmo_note_quotes`). On: a random Hebrew
+poker quote from `lib/quotes.ts`, an inside joke of Poker @ NYC, the only
+group it is on for. Off, the default for every other group: just ♠️. Changed
+only from the database; there is no setting in the app. The AI connector's
+Venmo links always use ♠️.
+
 **Payment handles.** Venmo handle or a phone for Zelle, set in Settings. A
 handle is accepted with or without the `@` and stored without it. A phone
 number is readable **only** by someone who actually owes that person money

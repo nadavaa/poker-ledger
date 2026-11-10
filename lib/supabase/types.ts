@@ -49,6 +49,7 @@ export type Database = {
           default_buyin_cents: number
           default_seat_limit: number
           timezone: string
+          venmo_note_quotes: boolean
           created_by: string
           created_at: string
         }
@@ -61,6 +62,7 @@ export type Database = {
           default_buyin_cents?: number
           default_seat_limit?: number
           timezone?: string
+          venmo_note_quotes?: boolean
           created_by: string
           created_at?: string
         }
@@ -73,6 +75,7 @@ export type Database = {
           default_buyin_cents?: number
           default_seat_limit?: number
           timezone?: string
+          venmo_note_quotes?: boolean
           created_by?: string
           created_at?: string
         }

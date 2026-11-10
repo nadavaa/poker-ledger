@@ -20,17 +20,21 @@ export function VenmoButton({
   handle,
   amountCents,
   payeeName,
+  quotes = false,
 }: {
   handle: string | null
   amountCents: number
   payeeName: string
+  /** The group's venmo_note_quotes. Off: the note is just the spade. */
+  quotes?: boolean
 }) {
   // Picked once, after mount: picking during render would differ between the
   // server and the client and mismatch the href. Until then the helper falls
   // back to the spade, and once set the note never changes for this button.
+  // Only groups with venmo_note_quotes on get a quote; the rest keep the spade.
   const [quote, setQuote] = useState<string | null>(null)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only pick
-  useEffect(() => setQuote(pickQuote()), [])
+  useEffect(() => setQuote(quotes ? pickQuote() : null), [quotes])
 
   if (!handle) return null
 

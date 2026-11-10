@@ -94,6 +94,7 @@ export function TransferCard({
   paymentSources,
   isGameAdmin,
   timeZone,
+  venmoQuotes = false,
   pending,
   error,
   onMove,
@@ -106,6 +107,8 @@ export function TransferCard({
   isGameAdmin: boolean
   /** The group's zone; a confirmation dated Sep 6 means Sep 6 at the table. */
   timeZone: string
+  /** Hebrew quotes in the Venmo note (Poker @ NYC); otherwise just the spade. */
+  venmoQuotes?: boolean
   /** A write for this row is in flight. */
   pending: boolean
   error: string | null
@@ -225,6 +228,7 @@ export function TransferCard({
                   handle={primary.value}
                   amountCents={transfer.amountCents}
                   payeeName={payeeName}
+                  quotes={venmoQuotes}
                 />
               ) : (
                 <ZelleDetails phone={primary.value} payeeName={payeeName} />
