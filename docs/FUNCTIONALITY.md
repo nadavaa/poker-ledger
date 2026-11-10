@@ -305,6 +305,11 @@ so the time doesn't change shape when the page hydrates.
 ## Accounts
 
 - **Magic link or Google.** No passwords.
+- **First game guide.** A group's owner or admin sees a "Your first game in
+  3 steps" card on the Games tab until the group has any game: invite
+  players (with Copy invite), schedule a game, play. It links to `/demo`, a
+  public page with the landing's story and worked example (invented players
+  only, `lib/landing-demo.ts`).
 - **Onboarding** is three short steps — name, how you get paid, photo —
   every one skippable, and the flag is set whether you finish or skip,
   because asking again every login is nagging.

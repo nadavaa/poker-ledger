@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CopyLinkButton } from '@/components/copy-link-button'
+import { FirstGameGuide } from '@/components/group/first-game-guide'
 import { MyStats } from '@/components/group/my-stats'
 import { computeStats, runningBalance } from '@/lib/stats'
 import { BalanceChart } from '@/components/group/balance-chart'
@@ -230,6 +231,13 @@ export default async function GroupPage({
           >
             New game
           </Button>
+
+          {canManage && (games ?? []).length === 0 && (
+            <FirstGameGuide
+              groupId={groupId}
+              invitePath={`/join/${group.invite_code}`}
+            />
+          )}
 
           {live.length > 0 && (
             <section className="flex flex-col gap-2">
