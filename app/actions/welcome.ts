@@ -2,7 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { WELCOME_SUBJECT, welcomeEmailText } from '@/lib/welcome-email'
+import {
+  WELCOME_SUBJECT,
+  welcomeEmailHtml,
+  welcomeEmailText,
+} from '@/lib/welcome-email'
 
 /**
  * Sends Nadav's welcome email to the signed-in user, once ever. Called when
@@ -53,6 +57,7 @@ export async function sendWelcomeEmail(): Promise<void> {
           ? { reply_to: process.env.WELCOME_REPLY_TO }
           : {}),
         subject: WELCOME_SUBJECT,
+        html: welcomeEmailHtml(claimed.display_name),
         text: welcomeEmailText(claimed.display_name),
       }),
       signal: AbortSignal.timeout(8000),

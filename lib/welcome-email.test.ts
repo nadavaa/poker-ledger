@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { firstName, welcomeEmailText } from './welcome-email'
+import { firstName, welcomeEmailHtml, welcomeEmailText } from './welcome-email'
 
 describe('firstName', () => {
   it('takes the first word', () => {
@@ -25,5 +25,25 @@ describe('welcomeEmailText', () => {
     expect(t).toContain('passing KevesPoker along')
     expect(t).toContain('reply to this email')
     expect(t).not.toMatch(/fewest/i)
+  })
+})
+
+describe('welcomeEmailHtml', () => {
+  it('has the formatting', () => {
+    const h = welcomeEmailHtml('Dana')
+    expect(h).toContain('Hi Dana,')
+    expect(h).toContain('<em>KevesPoker</em>')
+    expect(h).toContain('<strong>Tracks every buy-in</strong>')
+    expect(h).toContain('<strong>One ask:</strong>')
+  })
+  it('escapes the name', () => {
+    expect(welcomeEmailHtml('<b>x</b>')).toContain('Hi &lt;b&gt;x&lt;/b&gt;,')
+  })
+  it('says the same words as the text version', () => {
+    const strip = (s: string) =>
+      s.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim()
+    expect(strip(welcomeEmailHtml('Dana'))).toBe(
+      welcomeEmailText('Dana').replace(/\s+/g, ' ').trim()
+    )
   })
 })
