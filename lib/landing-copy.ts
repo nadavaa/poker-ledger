@@ -163,7 +163,7 @@ export const landing = {
       },
       {
         q: 'Are my group’s games public?',
-        a: 'No. Invite links, games and groups all require signing in. The landing page, the guides, the AI connector page and the demo are the only public parts of the site, and the game story and the demo use invented players.',
+        a: 'No. Invite links, games and groups all require signing in. The landing page, the guides and the AI connector page are the only public parts of the site, and the game story on the home page uses invented players.',
       },
     ],
   },

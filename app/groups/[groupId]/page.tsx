@@ -233,7 +233,10 @@ export default async function GroupPage({
           </Button>
 
           {canManage && (games ?? []).length === 0 && (
-            <FirstGameGuide invitePath={`/join/${group.invite_code}`} />
+            <FirstGameGuide
+              groupId={groupId}
+              invitePath={`/join/${group.invite_code}`}
+            />
           )}
 
           {live.length > 0 && (
