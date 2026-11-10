@@ -1,5 +1,6 @@
 'use client'
 
+import { sendWelcomeEmail } from '@/app/actions/welcome'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -80,6 +81,8 @@ export function OnboardingFlow({
   async function finish() {
     setPending(true)
     await supabase.rpc('complete_onboarding')
+    // Once ever, server side; never holds up the redirect.
+    void sendWelcomeEmail().catch(() => {})
     setPending(false)
     router.replace('/')
     router.refresh()

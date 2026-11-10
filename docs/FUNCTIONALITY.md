@@ -319,6 +319,13 @@ so the time doesn't change shape when the page hydrates.
   (`RESEND_API_KEY`, `FEEDBACK_ALERT_TO`, optional `FEEDBACK_ALERT_FROM`).
   The email carries the sender's display name only. If the email fails or
   isn't configured, the note is still saved.
+- **Welcome email.** When onboarding finishes (done or skipped), Nadav's
+  welcome email (`lib/welcome-email.ts`, text approved 2026-11-09) goes to the
+  account's email, from `WELCOME_FROM` with replies to `WELCOME_REPLY_TO`.
+  Once per account, ever: the server claims `profiles.welcome_email_sent_at`
+  before sending and releases it if the send fails. Accounts that existed on
+  2026-11-09 are marked sent and never get it. Off while `WELCOME_FROM` is
+  unset.
 - **Onboarding** is three short steps — name, how you get paid, photo —
   every one skippable, and the flag is set whether you finish or skip,
   because asking again every login is nagging.
