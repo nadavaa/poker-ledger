@@ -21,7 +21,7 @@ describe('welcomeEmailText', () => {
   })
   it('signs as Nadav and keeps the asks', () => {
     const t = welcomeEmailText('A')
-    expect(t.trimEnd().endsWith('Nadav')).toBe(true)
+    expect(t.trimEnd().endsWith('May the flop be with you,\nNadav')).toBe(true)
     expect(t).toContain('passing KevesPoker along')
     expect(t).toContain('reply to this email')
     expect(t).not.toMatch(/fewest/i)
@@ -34,14 +34,16 @@ describe('welcomeEmailHtml', () => {
     expect(h).toContain('Hi Dana,')
     expect(h).toContain('<em>KevesPoker</em>')
     expect(h).toContain('<strong>Tracks every buy-in</strong>')
-    expect(h).toContain('<strong>One ask:</strong>')
+    expect(h).toContain('<strong><u>One ask:</u></strong>')
+    expect(h).toContain('<u>Here&#39;s what it does for your game:</u>'.replace('&#39;', "'"))
+    expect(h.match(/<li>/g)).toHaveLength(3)
   })
   it('escapes the name', () => {
     expect(welcomeEmailHtml('<b>x</b>')).toContain('Hi &lt;b&gt;x&lt;/b&gt;,')
   })
   it('says the same words as the text version', () => {
     const strip = (s: string) =>
-      s.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim()
+      s.replace(/<br>/g, ' ').replace(/<li>/g, '- ').replace(/<[^>]+>/g, '').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim()
     expect(strip(welcomeEmailHtml('Dana'))).toBe(
       welcomeEmailText('Dana').replace(/\s+/g, ' ').trim()
     )
