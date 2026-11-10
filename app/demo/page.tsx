@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { PhoneStory } from '@/components/landing/phone-story'
 import { SettlementExample } from '@/components/landing/settlement-example'
-import { Steps } from '@/components/steps'
+// Scoped under .lp, so it styles only the phone story wrapper below.
+import '@/components/landing/landing.css'
 import { landing } from '@/lib/landing-copy'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
@@ -32,22 +34,34 @@ export default async function DemoPage({
   const back = group && /^[0-9a-f-]{36}$/i.test(group) ? `/groups/${group}` : '/'
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 p-4">
-      <header>
+    <main className="flex w-full flex-col">
+      <header className="mx-auto flex w-full max-w-md flex-col gap-1 p-4">
         <Link href={back} className="text-xs text-muted-foreground">
           &larr; Back
         </Link>
         <h1 className="text-lg font-semibold tracking-tight">Demo</h1>
         <p className="text-sm text-muted-foreground">
-          {landing.story.intro} Nothing here is a real game.
+          {landing.story.intro} Nothing here is a real game. Scroll to play
+          the night.
         </p>
       </header>
 
-      <Steps
-        steps={landing.story.scenes.map((s) => ({ title: s.title, body: s.body }))}
-      />
+      {/* The real app screens, driven by scroll: the same story the landing
+          tells, without the landing's header, nav or Sign up. */}
+      <div className="lp">
+        <PhoneStory />
+      </div>
 
-      <SettlementExample />
+      <section className="mx-auto flex w-full max-w-md flex-col gap-3 p-4 pb-10">
+        <h2 className="text-base font-semibold">The whole night on one page</h2>
+        <SettlementExample />
+        <Link
+          href={back}
+          className="w-fit text-sm font-medium underline underline-offset-2"
+        >
+          &larr; Back to your group
+        </Link>
+      </section>
     </main>
   )
 }

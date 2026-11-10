@@ -308,8 +308,8 @@ so the time doesn't change shape when the page hydrates.
 - **First game guide.** A group's owner or admin sees a "Your first game in
   3 steps" card on the Games tab until the group has any game: invite
   players (with Copy invite), schedule a game, play. "See a demo first" opens
-  `/demo`: signed-in only, in the app's chrome, the landing story's four steps
-  plus the worked example (invented players only, `lib/landing-demo.ts`).
+  `/demo`: signed-in only, in the app's chrome, the landing's scroll-driven
+  phone story (real app screens) plus the worked example (invented players only, `lib/landing-demo.ts`).
   Signed-in screens never link to landing-style pages; only Sign out leads
   back to the landing.
 - **Onboarding** is three short steps — name, how you get paid, photo —
