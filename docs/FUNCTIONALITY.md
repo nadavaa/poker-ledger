@@ -293,7 +293,10 @@ afternoon is a Saturday game.
 
 Every time is rendered in the **group's own timezone** — an IANA identifier,
 never a fixed offset, because a hardcoded −5 is wrong from March to
-November. What the admin types when creating a game is what the group sees,
+November. A new group starts in its creator's browser zone (New York
+if the browser gives none); the owner or an admin changes it in group
+settings, which offer the US zones plus the group's current one. Only real
+IANA names are accepted (a database trigger checks). What the admin types when creating a game is what the group sees,
 wherever either of them is standing. Server and browser format identically,
 so the time doesn't change shape when the page hydrates.
 

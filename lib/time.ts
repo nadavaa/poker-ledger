@@ -120,3 +120,37 @@ export function formatTime(
     timeZone,
   }).format(d)
 }
+
+/** True when `tz` is an IANA zone this runtime knows ("America/Chicago"). */
+export function isValidTimeZone(tz: unknown): tz is string {
+  if (typeof tz !== 'string' || tz.trim() === '') return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The zones the group settings picker offers: the US zones (the app is US
+ * only by design), plus the group's current zone if it is somewhere else, so
+ * saving the form never silently moves a group.
+ */
+export const US_TIME_ZONES: readonly { id: string; label: string }[] = [
+  { id: 'America/New_York', label: 'Eastern (New York)' },
+  { id: 'America/Chicago', label: 'Central (Chicago)' },
+  { id: 'America/Denver', label: 'Mountain (Denver)' },
+  { id: 'America/Phoenix', label: 'Arizona (Phoenix)' },
+  { id: 'America/Los_Angeles', label: 'Pacific (Los Angeles)' },
+  { id: 'America/Anchorage', label: 'Alaska (Anchorage)' },
+  { id: 'Pacific/Honolulu', label: 'Hawaii (Honolulu)' },
+]
+
+export function timeZoneOptions(
+  current: string
+): { id: string; label: string }[] {
+  if (US_TIME_ZONES.some((z) => z.id === current) || !isValidTimeZone(current))
+    return [...US_TIME_ZONES]
+  return [...US_TIME_ZONES, { id: current, label: current.replace(/_/g, ' ') }]
+}
