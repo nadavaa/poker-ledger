@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/supabase/auth'
 import { dollarsToCents } from '@/lib/money'
 import { DEFAULT_TIME_ZONE, fromZonedInput } from '@/lib/time'
 import { NewGameForm } from './new-game-form'
+import { parsePaymentMode } from '@/lib/payment-mode'
 
 export default async function NewGamePage({
   params,
@@ -23,7 +24,7 @@ export default async function NewGamePage({
   // The group comes from the route now; RLS hides groups you don't belong to.
   const { data: group } = await supabase
     .from('groups')
-    .select('id, name, default_buyin_cents, chips_per_dollar, default_seat_limit, timezone')
+    .select('id, name, default_buyin_cents, chips_per_dollar, default_seat_limit, timezone, payment_mode')
     .eq('id', groupId)
     .maybeSingle()
 
@@ -39,6 +40,7 @@ export default async function NewGamePage({
     const seatLimit = Number(formData.get('seat_limit'))
     const chipsPerDollar = Number(formData.get('chips_per_dollar'))
     const playing = formData.get('playing') === 'on'
+    const paymentMode = parsePaymentMode(formData.get('payment_mode'))
 
     let buyinCents: number
     try {
@@ -73,6 +75,7 @@ export default async function NewGamePage({
       p_buyin_cents: buyinCents,
       p_chips_per_dollar: chipsPerDollar,
       p_playing: playing,
+      p_payment_mode: paymentMode,
     })
 
     if (error) {

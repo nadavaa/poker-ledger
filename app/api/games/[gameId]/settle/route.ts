@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { settle } from '@/lib/settle'
+import { settleByMethod } from '@/lib/settle'
 
 /**
  * Compute the transfers with the pure solver, then hand them to settle_game,
@@ -34,10 +34,32 @@ export async function POST(
     )
   }
 
+  // Only a hybrid game needs to know who pays cash. In the other two modes
+  // the database stamps the method itself, so the solver runs as before.
+  const { data: game } = await supabase
+    .from('games')
+    .select('payment_mode')
+    .eq('id', gameId)
+    .maybeSingle()
+  let cashIds = new Set<string>()
+  if (game?.payment_mode === 'hybrid') {
+    const { data: methods, error: methodsError } = await supabase.rpc(
+      'game_payment_methods',
+      { p_game_id: gameId }
+    )
+    if (methodsError) {
+      return NextResponse.json({ error: methodsError.message }, { status: 400 })
+    }
+    cashIds = new Set(
+      (methods ?? []).filter((m) => m.pays_cash).map((m) => m.member_id)
+    )
+  }
+
   let transfers
   try {
-    transfers = settle(
-      nets.map((n) => ({ memberId: n.member_id, netCents: n.net_cents }))
+    transfers = settleByMethod(
+      nets.map((n) => ({ memberId: n.member_id, netCents: n.net_cents })),
+      cashIds
     )
   } catch (e) {
     return NextResponse.json(
@@ -52,6 +74,7 @@ export async function POST(
       from: t.fromMemberId,
       to: t.toMemberId,
       amount: t.amountCents,
+      method: t.method,
     })),
   })
   if (error) {

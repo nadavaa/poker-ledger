@@ -18,6 +18,8 @@ export type TransferRow = {
   confirmedAt: string | null
   confirmedByMemberId: string | null
   kind: 'poker' | 'food'
+  /** Cash at the table, or Venmo/Zelle. A cash transfer has no app buttons. */
+  method?: 'app' | 'cash'
   /** The payer's AI agent marked it paid. */
   paidViaAgent?: boolean
   /** The payee's AI agent confirmed it. */
@@ -127,8 +129,10 @@ export function TransferCard({
   // The escape hatch for a payee who isn't on the app, or never taps. Never
   // on your own debt: that would be confirming yourself.
   const canCloseOut = isGameAdmin && !isPayer && !isPayee
-  // The link is only useful while there is still a payment to send.
-  const showVenmo = isPayer && status === 'pending'
+  const isCash = transfer.method === 'cash'
+  // The link is only useful while there is still a payment to send, and
+  // never for cash.
+  const showVenmo = !isCash && isPayer && status === 'pending'
 
   const closedOutBy =
     transfer.confirmedByMemberId &&
@@ -170,6 +174,11 @@ export function TransferCard({
                 <span className="text-muted-foreground">pays</span>{' '}
                 <span className="font-medium">{payeeName}</span>
               </>
+            )}
+            {isCash && (
+              <span className="ml-1.5 inline-block rounded-md border border-border px-1.5 py-0.5 align-middle text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                Cash
+              </span>
             )}
           </p>
 
@@ -263,7 +272,7 @@ export function TransferCard({
               disabled={pending}
               onClick={() => onMove('paid')}
             >
-              Mark as paid
+              {isCash ? 'Paid in cash' : 'Mark as paid'}
             </Button>
           )}
 
@@ -287,7 +296,7 @@ export function TransferCard({
               disabled={pending}
               onClick={() => onMove('confirmed')}
             >
-              Confirm received
+              {isCash ? 'Got the cash' : 'Confirm received'}
             </Button>
           )}
 

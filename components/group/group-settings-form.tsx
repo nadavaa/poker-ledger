@@ -9,6 +9,8 @@ import { useDirtyForm } from '@/components/use-dirty-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PaymentModeField } from '@/components/payment/payment-mode-field'
+import { parsePaymentMode, type PaymentMode } from '@/lib/payment-mode'
 
 type Fields = {
   name: string
@@ -16,6 +18,7 @@ type Fields = {
   buyin: string
   ratio: string
   timezone: string
+  mode: string
 }
 
 function parseCents(v: string): number | null {
@@ -35,6 +38,7 @@ function normalize(f: Fields): Fields {
     buyin: String(parseCents(f.buyin) ?? ''),
     ratio: String(Number(f.ratio) || ''),
     timezone: f.timezone,
+    mode: f.mode,
   }
 }
 
@@ -49,6 +53,7 @@ export function GroupSettingsForm({
     buyinCents: number
     chipsPerDollar: number
     timezone: string
+    paymentMode: PaymentMode
   }
 }) {
   const supabase = useMemo(() => createClient(), [])
@@ -64,6 +69,7 @@ export function GroupSettingsForm({
         buyin: centsToDollars(initial.buyinCents),
         ratio: String(initial.chipsPerDollar),
         timezone: initial.timezone,
+        mode: initial.paymentMode,
       },
       normalize,
       isValid: (f) =>
@@ -92,6 +98,7 @@ export function GroupSettingsForm({
         default_buyin_cents: Number(current.buyin),
         chips_per_dollar: Number(current.ratio),
         timezone: current.timezone,
+        payment_mode: parsePaymentMode(current.mode) ?? 'online',
       })
       .eq('id', groupId)
 
@@ -174,6 +181,12 @@ export function GroupSettingsForm({
           ))}
         </select>
       </div>
+
+      <PaymentModeField
+        name="group_payment_mode"
+        value={parsePaymentMode(fields.mode) ?? 'online'}
+        onChange={(m) => change('mode', m)}
+      />
 
       <p className="text-xs text-muted-foreground">
         These are the default values for new games. This can be updated later

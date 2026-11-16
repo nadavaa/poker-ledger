@@ -51,3 +51,51 @@ export function settle(nets: Net[]): Transfer[] {
 
   return transfers
 }
+
+// ---------------------------------------------------------------------------
+// Settling a game where some players pay in cash and some by app.
+//
+// Cash players settle among themselves and app players settle among
+// themselves. Whatever one side owes the other as a whole crosses over in a
+// single transfer, from the app side's biggest debtor to the cash side's
+// biggest creditor (or the reverse). A transfer is by app only when both
+// people pay by app, so the crossing one is cash.
+//
+// The n-1 bound still holds: (cash movers - 1) + (app movers - 1) + 1.
+
+export type Method = 'app' | 'cash'
+export type MethodTransfer = Transfer & { method: Method }
+
+export function settleByMethod(
+  nets: Net[],
+  cashIds: ReadonlySet<string>
+): MethodTransfer[] {
+  const total = nets.reduce((s, n) => s + n.netCents, 0)
+  if (total !== 0) throw new Error(`Nets must sum to zero, got ${total}`)
+
+  const cash = nets.filter((n) => cashIds.has(n.memberId)).map((n) => ({ ...n }))
+  const app = nets.filter((n) => !cashIds.has(n.memberId)).map((n) => ({ ...n }))
+
+  const out: MethodTransfer[] = []
+  // What the cash side is owed, in total, by the app side.
+  const cross = cash.reduce((s, n) => s + n.netCents, 0)
+
+  if (cross !== 0) {
+    const [payers, payees] = cross > 0 ? [app, cash] : [cash, app]
+    const amount = Math.abs(cross)
+    const payer = payers.reduce((a, b) => (b.netCents < a.netCents ? b : a))
+    const payee = payees.reduce((a, b) => (b.netCents > a.netCents ? b : a))
+    out.push({
+      fromMemberId: payer.memberId,
+      toMemberId: payee.memberId,
+      amountCents: amount,
+      method: 'cash',
+    })
+    payer.netCents += amount
+    payee.netCents -= amount
+  }
+
+  for (const t of settle(cash)) out.push({ ...t, method: 'cash' })
+  for (const t of settle(app)) out.push({ ...t, method: 'app' })
+  return out
+}

@@ -52,4 +52,18 @@ describe('the settled-game summary', () => {
       ].join('\n')
     )
   })
+
+  it('marks cash payments', () => {
+    const text = settledGameSummary({
+      title: 'Friday game',
+      rows,
+      transfers: [
+        { ...transfers[0], method: 'cash' as const },
+        { ...transfers[1], method: 'app' as const },
+      ],
+      names,
+    })
+    expect(text).toContain('✅ Dean K → Gilad Bregman  $80 (cash)')
+    expect(text).toContain('• Someone → Gilad Bregman  $1\n')
+  })
 })

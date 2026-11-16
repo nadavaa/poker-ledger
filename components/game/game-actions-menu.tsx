@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { ActionSheet, DotsButton } from '@/components/action-sheet'
 import { PopoverMenu, PopoverMenuItem } from '@/components/popover-menu'
 import { EditGameForm } from '@/components/game/edit-game-form'
+import type { PaymentMode } from '@/lib/payment-mode'
 import type { GameStatus } from '@/lib/game-edit'
 
 export type EditableGame = {
@@ -13,6 +14,7 @@ export type EditableGame = {
   seatLimit: number
   buyinCents: number
   chipsPerDollar: number
+  paymentMode: PaymentMode
 }
 
 /**

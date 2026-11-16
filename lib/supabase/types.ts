@@ -53,6 +53,7 @@ export type Database = {
           default_seat_limit: number
           timezone: string
           venmo_note_quotes: boolean
+          payment_mode: Database['public']['Enums']['payment_mode']
           created_by: string
           created_at: string
         }
@@ -66,6 +67,7 @@ export type Database = {
           default_seat_limit?: number
           timezone?: string
           venmo_note_quotes?: boolean
+          payment_mode?: Database['public']['Enums']['payment_mode']
           created_by: string
           created_at?: string
         }
@@ -79,6 +81,7 @@ export type Database = {
           default_seat_limit?: number
           timezone?: string
           venmo_note_quotes?: boolean
+          payment_mode?: Database['public']['Enums']['payment_mode']
           created_by?: string
           created_at?: string
         }
@@ -159,6 +162,7 @@ export type Database = {
           created_by_member_id: string
           started_at: string | null
           settled_at: string | null
+          payment_mode: Database['public']['Enums']['payment_mode']
         }
         Insert: {
           id?: string
@@ -175,6 +179,7 @@ export type Database = {
           created_by_member_id: string
           started_at?: string | null
           settled_at?: string | null
+          payment_mode?: Database['public']['Enums']['payment_mode']
         }
         Update: {
           id?: string
@@ -191,6 +196,7 @@ export type Database = {
           created_by_member_id?: string
           started_at?: string | null
           settled_at?: string | null
+          payment_mode?: Database['public']['Enums']['payment_mode']
         }
         Relationships: [
           {
@@ -218,6 +224,7 @@ export type Database = {
           signup_order: number
           created_at: string
           withdrawn_at: string | null
+          pays_cash: boolean | null
         }
         Insert: {
           id?: string
@@ -227,6 +234,7 @@ export type Database = {
           signup_order?: number
           created_at?: string
           withdrawn_at?: string | null
+          pays_cash?: boolean | null
         }
         Update: {
           id?: string
@@ -236,6 +244,7 @@ export type Database = {
           signup_order?: number
           created_at?: string
           withdrawn_at?: string | null
+          pays_cash?: boolean | null
         }
         Relationships: [
           {
@@ -534,6 +543,7 @@ export type Database = {
           created_at: string
           kind: Database['public']['Enums']['settlement_kind']
           food_order_id: string | null
+          method: Database['public']['Enums']['settlement_method']
         }
         Insert: {
           id?: string
@@ -640,6 +650,7 @@ export type Database = {
           p_buyin_cents?: number | null
           p_chips_per_dollar?: number | null
           p_playing?: boolean
+          p_payment_mode?: Database['public']['Enums']['payment_mode'] | null
         }
         Returns: string
       }
@@ -826,6 +837,19 @@ export type Database = {
         Args: { p_game_id: string; p_transfers: Json }
         Returns: number
       }
+      game_payment_methods: {
+        Args: { p_game_id: string }
+        Returns: {
+          member_id: string
+          pays_cash: boolean
+          has_app: boolean
+          chosen: boolean
+        }[]
+      }
+      set_pays_cash: {
+        Args: { p_game_id: string; p_member_id: string; p_pays_cash: boolean }
+        Returns: undefined
+      }
       shares_a_group_with: {
         Args: { pid: string }
         Returns: boolean
@@ -997,6 +1021,8 @@ export type Database = {
     Enums: {
       settlement_status: 'pending' | 'paid' | 'confirmed' | 'deferred'
       settlement_kind: 'poker' | 'food'
+      payment_mode: 'online' | 'cash' | 'hybrid'
+      settlement_method: 'app' | 'cash'
       member_role: 'owner' | 'admin' | 'member'
       game_status:
         | 'scheduled'

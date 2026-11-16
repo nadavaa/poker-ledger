@@ -177,6 +177,8 @@ export type SettlementRow = {
   amount_cents: number
   status: 'pending' | 'paid' | 'confirmed' | 'deferred'
   kind: 'poker' | 'food'
+  /** Cash at the table, or by app. Cash debts get no Venmo link. */
+  method?: 'app' | 'cash'
   paid_at?: string | null
   confirmed_at?: string | null
 }
@@ -470,8 +472,16 @@ export function mapOutstandingDebt(args: {
       amount: money(s.amount_cents),
       status: s.status,
       status_words: STATUS_WORDS[s.status],
-      // Only a payer is sent to pay; the payee is told who owes them.
-      ...(direction === 'i_owe'
+      method: s.method ?? 'app',
+      // Only a payer is sent to pay; the payee is told who owes them. A cash
+      // debt is settled in person, so there is no link to send.
+      ...(direction === 'i_owe' && s.method === 'cash'
+        ? {
+            venmo_handle: null,
+            venmo_link: null,
+            payment_note: 'Pay this one in cash.',
+          }
+        : direction === 'i_owe'
         ? {
             venmo_handle: handle,
             venmo_link: handle

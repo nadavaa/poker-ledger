@@ -28,6 +28,7 @@ import type { Buyin } from '@/components/game/use-game-buyins'
 import { resolveDisplayName } from '@/lib/names'
 import { DEFAULT_TIME_ZONE, formatTime, playedAt } from '@/lib/time'
 import { GameActionsMenu } from '@/components/game/game-actions-menu'
+import { PaymentMethodsPanel } from '@/components/game/payment-methods-panel'
 import type { GameStatus } from '@/lib/game-edit'
 import { joinNotice, type JoinOutcome } from '@/lib/game-join'
 
@@ -59,7 +60,7 @@ export default async function GamePage({
   const { data: game } = await supabase
     .from('games')
     .select(
-      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, started_at, settled_at, groups(name, timezone, venmo_note_quotes)'
+      'id, group_id, name, scheduled_at, location, seat_limit, default_buyin_cents, chips_per_dollar, status, admin_member_id, started_at, settled_at, payment_mode, groups(name, timezone, venmo_note_quotes)'
     )
     .eq('id', gameId)
     .maybeSingle()
@@ -96,6 +97,7 @@ export default async function GamePage({
     { data: foodRows },
     { data: cashoutRows },
     { data: agentRows },
+    { data: methodRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -128,7 +130,7 @@ export default async function GamePage({
     supabase
       .from('settlements')
       .select(
-        'id, from_member_id, to_member_id, amount_cents, status, confirmed_at, confirmed_by_member_id, kind'
+        'id, from_member_id, to_member_id, amount_cents, status, confirmed_at, confirmed_by_member_id, kind, method'
       )
       .eq('game_id', gameId)
       .order('amount_cents', { ascending: false }),
@@ -167,6 +169,10 @@ export default async function GamePage({
       )
       .eq('game_id', gameId)
       .order('created_at', { ascending: false }),
+    // A mixed game asks each player cash or app before it settles.
+    game.payment_mode === 'hybrid' && !settled && !cancelled
+      ? supabase.rpc('game_payment_methods', { p_game_id: gameId })
+      : Promise.resolve({ data: null }),
   ])
   const agent = agentMarks(agentRows ?? [])
 
@@ -418,6 +424,7 @@ export default async function GamePage({
                 seatLimit: game.seat_limit,
                 buyinCents: game.default_buyin_cents,
                 chipsPerDollar: game.chips_per_dollar,
+                paymentMode: game.payment_mode,
               }}
             />
           </div>
@@ -632,6 +639,7 @@ export default async function GamePage({
             confirmedAt: s.confirmed_at,
             confirmedByMemberId: s.confirmed_by_member_id,
             kind: s.kind,
+            method: s.method,
             paidViaAgent: agent.paidViaAgent(s.id),
             confirmedViaAgent: agent.confirmedViaAgent(s.id),
             closedOutViaAgent: agent.closedOutViaAgent(s.id),
@@ -648,11 +656,13 @@ export default async function GamePage({
           isAdmin={isAdmin}
           timeZone={tz}
           venmoQuotes={game.groups?.venmo_note_quotes ?? false}
+          paymentMode={game.payment_mode}
           gameLabel={gameLabel}
           startedAt={game.started_at}
           settledAt={game.settled_at}
           beforeSettlements={foodSection}
           needsPaymentMethod={
+            game.payment_mode !== 'cash' &&
             !!myMember &&
             !myPayment?.venmo_handle &&
             !myPayment?.phone_number &&
@@ -676,6 +686,23 @@ export default async function GamePage({
             </Card>
           ))}
         </section>
+      )}
+
+      {game.payment_mode === 'hybrid' && !settled && !cancelled && (
+        <PaymentMethodsPanel
+          gameId={gameId}
+          rows={players.map((p) => {
+            const m = methodRows?.find((r) => r.member_id === p.memberId)
+            return {
+              memberId: p.memberId,
+              name: p.name,
+              paysCash: m?.pays_cash ?? true,
+              hasApp: m?.has_app ?? false,
+            }
+          })}
+          myMemberId={myMember?.id ?? null}
+          isAdmin={isAdmin}
+        />
       )}
 
       {!settled && !cancelled && (

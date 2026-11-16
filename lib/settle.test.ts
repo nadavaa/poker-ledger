@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { settle, type Net, type Transfer } from './settle'
+import { settle, settleByMethod, type Net, type Transfer } from './settle'
 
 /** Apply the transfers to the starting nets; everyone should land on zero. */
 function applyTransfers(nets: Net[], transfers: Transfer[]) {
@@ -136,6 +136,124 @@ describe('settle', () => {
       const skew = 1 + Math.floor(rand() * 5000)
       nets[0] = { ...nets[0], netCents: nets[0].netCents + skew }
       expect(() => settle(nets)).toThrow(/sum to zero/)
+    }
+  })
+})
+
+describe('settleByMethod', () => {
+  function assertValidByMethod(nets: Net[], cashIds: Set<string>) {
+    const transfers = settleByMethod(nets, cashIds)
+    for (const balance of applyTransfers(nets, transfers).values()) {
+      expect(balance).toBe(0)
+    }
+    const movers = nets.filter((n) => n.netCents !== 0).length
+    expect(transfers.length).toBeLessThanOrEqual(Math.max(movers - 1, 0))
+    for (const t of transfers) {
+      expect(t.fromMemberId).not.toBe(t.toMemberId)
+      expect(t.amountCents).toBeGreaterThan(0)
+      const bothApp = !cashIds.has(t.fromMemberId) && !cashIds.has(t.toMemberId)
+      expect(t.method).toBe(bothApp ? 'app' : 'cash')
+    }
+    const crossings = transfers.filter(
+      (t) => cashIds.has(t.fromMemberId) !== cashIds.has(t.toMemberId)
+    )
+    expect(crossings.length).toBeLessThanOrEqual(1)
+    return transfers
+  }
+
+  it('rejects nets that do not sum to zero', () => {
+    expect(() =>
+      settleByMethod([{ memberId: 'a', netCents: 1 }], new Set())
+    ).toThrow()
+  })
+
+  it('matches settle() when everyone pays by app', () => {
+    const nets: Net[] = [
+      { memberId: 'a', netCents: -5000 },
+      { memberId: 'b', netCents: 3000 },
+      { memberId: 'c', netCents: 2000 },
+    ]
+    const t = assertValidByMethod(nets, new Set())
+    expect(t.every((x) => x.method === 'app')).toBe(true)
+    expect(
+      t.map((x) => ({
+        fromMemberId: x.fromMemberId,
+        toMemberId: x.toMemberId,
+        amountCents: x.amountCents,
+      }))
+    ).toEqual(settle(nets))
+  })
+
+  it('is all cash when everyone pays cash', () => {
+    const nets: Net[] = [
+      { memberId: 'a', netCents: -5000 },
+      { memberId: 'b', netCents: 3000 },
+      { memberId: 'c', netCents: 2000 },
+    ]
+    const t = assertValidByMethod(nets, new Set(['a', 'b', 'c']))
+    expect(t.every((x) => x.method === 'cash')).toBe(true)
+  })
+
+  it('keeps balanced sides apart with no crossing', () => {
+    const nets: Net[] = [
+      { memberId: 'c1', netCents: -2000 },
+      { memberId: 'c2', netCents: 2000 },
+      { memberId: 'a1', netCents: -3000 },
+      { memberId: 'a2', netCents: 3000 },
+    ]
+    const t = assertValidByMethod(nets, new Set(['c1', 'c2']))
+    expect(t).toEqual([
+      { fromMemberId: 'c1', toMemberId: 'c2', amountCents: 2000, method: 'cash' },
+      { fromMemberId: 'a1', toMemberId: 'a2', amountCents: 3000, method: 'app' },
+    ])
+  })
+
+  it('crosses once when the cash side is owed', () => {
+    const nets: Net[] = [
+      { memberId: 'c1', netCents: 4000 },
+      { memberId: 'c2', netCents: -1000 },
+      { memberId: 'a1', netCents: -2500 },
+      { memberId: 'a2', netCents: -500 },
+    ]
+    const t = assertValidByMethod(nets, new Set(['c1', 'c2']))
+    expect(t[0]).toEqual({
+      fromMemberId: 'a1',
+      toMemberId: 'c1',
+      amountCents: 3000,
+      method: 'cash',
+    })
+  })
+
+  it('handles a lone cash player', () => {
+    const nets: Net[] = [
+      { memberId: 'c', netCents: -6000 },
+      { memberId: 'a1', netCents: 4000 },
+      { memberId: 'a2', netCents: 2000 },
+    ]
+    assertValidByMethod(nets, new Set(['c']))
+  })
+
+  it('handles everyone breaking even', () => {
+    expect(
+      settleByMethod(
+        [
+          { memberId: 'a', netCents: 0 },
+          { memberId: 'b', netCents: 0 },
+        ],
+        new Set(['a'])
+      )
+    ).toEqual([])
+  })
+
+  it('holds for 1000 random nets with random cash players', () => {
+    const rand = mulberry32(20261116)
+    for (let i = 0; i < 1000; i++) {
+      const n = 2 + Math.floor(rand() * 9)
+      const nets = randomZeroSumNets(rand, n)
+      const cashIds = new Set(
+        nets.filter(() => rand() < 0.4).map((x) => x.memberId)
+      )
+      assertValidByMethod(nets, cashIds)
     }
   })
 })
