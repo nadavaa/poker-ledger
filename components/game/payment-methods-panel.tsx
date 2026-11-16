@@ -34,28 +34,47 @@ export function PaymentMethodsPanel({
 }) {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
-  const [pending, setPending] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  // The tap shows at once; the write and the page refresh catch up behind it.
+  // Waiting for the refresh first made every tap take about a second.
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({})
+
+  // When the server's answer arrives it wins, so a stale override never
+  // shadows what the database actually holds.
+  const serverSig = rows.map((r) => `${r.memberId}:${r.paysCash}`).join(',')
+  const [seenSig, setSeenSig] = useState(serverSig)
+  if (seenSig !== serverSig) {
+    setSeenSig(serverSig)
+    setOverrides({})
+  }
 
   if (rows.length === 0) return null
 
+  const shown = rows.map((r) =>
+    r.memberId in overrides ? { ...r, paysCash: overrides[r.memberId] } : r
+  )
+
   async function setCash(memberId: string, paysCash: boolean) {
     setErrors((e) => ({ ...e, [memberId]: '' }))
-    setPending(memberId)
+    setOverrides((o) => ({ ...o, [memberId]: paysCash }))
     const { error } = await supabase.rpc('set_pays_cash', {
       p_game_id: gameId,
       p_member_id: memberId,
       p_pays_cash: paysCash,
     })
-    setPending(null)
     if (error) {
+      setOverrides((o) => {
+        const rest = { ...o }
+        delete rest[memberId]
+        return rest
+      })
       setErrors((e) => ({ ...e, [memberId]: error.message }))
       return
     }
     router.refresh()
   }
 
-  const cashCount = rows.filter((r) => r.paysCash).length
+  const cashCount = shown.filter((r) => r.paysCash).length
 
   return (
     <section className="flex flex-col gap-2">
@@ -70,7 +89,7 @@ export function PaymentMethodsPanel({
       </div>
       <Card>
         <CardContent className="flex flex-col divide-y divide-border py-0">
-          {rows.map((r) => {
+          {shown.map((r) => {
             const canChange = isAdmin || r.memberId === myMemberId
             return (
               <div key={r.memberId} className="flex flex-col gap-1 py-2.5">
@@ -94,12 +113,11 @@ export function PaymentMethodsPanel({
                         <button
                           key={o.label}
                           type="button"
-                          disabled={pending === r.memberId}
                           aria-pressed={r.paysCash === o.cash}
                           onClick={() =>
                             r.paysCash !== o.cash && setCash(r.memberId, o.cash)
                           }
-                          className="rounded-md px-3 py-1 aria-pressed:bg-primary aria-pressed:text-primary-foreground disabled:opacity-60"
+                          className="rounded-md px-3 py-1 aria-pressed:bg-primary aria-pressed:text-primary-foreground"
                         >
                           {o.label}
                         </button>
