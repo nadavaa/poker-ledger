@@ -166,8 +166,8 @@ export function CashoutPanel({
   }
 
   return (
-    // Bottom padding leaves room for the pinned tracker.
-    <div className="flex flex-col gap-3 pb-56">
+    // The page adds the room for the pinned tracker below, at its own end.
+    <div className="flex flex-col gap-3">
       <ErrorToast message={error} onDismiss={() => setError(null)} />
 
       <section className="flex flex-col gap-2">

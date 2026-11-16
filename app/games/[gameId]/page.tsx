@@ -388,7 +388,14 @@ export default async function GamePage({
     ) : null
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
+    // While the admin counts chips, the tracker is pinned over the bottom of
+    // the screen. The room for it goes at the end of the page, not under the
+    // chip list, so everything below the list scrolls clear of it.
+    <main
+      className={`mx-auto flex w-full max-w-md flex-col gap-4 p-4 ${
+        counting && isAdmin ? 'pb-56' : ''
+      }`}
+    >
       <header className="page-header">
         <div className="min-w-0">
           <Link
