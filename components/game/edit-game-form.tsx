@@ -15,6 +15,8 @@ import {
   type EditableField,
   type GameStatus,
 } from '@/lib/game-edit'
+import { PaymentModeField } from '@/components/payment/payment-mode-field'
+import { parsePaymentMode, type PaymentMode } from '@/lib/payment-mode'
 
 type Fields = {
   name: string
@@ -23,6 +25,7 @@ type Fields = {
   seats: string
   buyin: string
   ratio: string
+  mode: string
 }
 
 function parseCents(v: string): number | null {
@@ -51,6 +54,7 @@ function normalize(f: Fields, timeZone: string): Fields {
     seats: String(Number(f.seats) || ''),
     buyin: String(parseCents(f.buyin) ?? ''),
     ratio: String(Number(f.ratio) || ''),
+    mode: f.mode,
   }
 }
 
@@ -92,6 +96,7 @@ export function EditGameForm({
     seatLimit: number
     buyinCents: number
     chipsPerDollar: number
+    paymentMode: PaymentMode
   }
 }) {
   const supabase = useMemo(() => createClient(), [])
@@ -108,6 +113,7 @@ export function EditGameForm({
         seats: String(initial.seatLimit),
         buyin: centsToDollars(initial.buyinCents),
         ratio: String(initial.chipsPerDollar),
+        mode: initial.paymentMode,
       },
       normalize: (f) => normalize(f, timeZone),
       isValid: (f) => {
@@ -148,6 +154,7 @@ export function EditGameForm({
     const payload = {
       name: current.name === '' ? null : current.name,
       location: current.location === '' ? null : current.location,
+      payment_mode: parsePaymentMode(current.mode) ?? 'online',
       ...(status === 'scheduled'
         ? {
             scheduled_at: current.scheduledAt,
@@ -267,6 +274,14 @@ export function EditGameForm({
           />
         </div>
       </div>
+
+      <PaymentModeField
+        name="edit_payment_mode"
+        value={parsePaymentMode(fields.mode) ?? 'online'}
+        onChange={(m) => change('mode', m)}
+        disabled={frozen('paymentMode')}
+      />
+      <Locked status={status} field="paymentMode" />
 
       {status === 'active' && (
         <p className="rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">

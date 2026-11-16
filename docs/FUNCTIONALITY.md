@@ -176,6 +176,24 @@ settled. The game admin can **close out** a transfer when a payee won't
 confirm in the app — never on their own debt — and the row then says who
 closed it rather than implying the payee acknowledged it.
 
+**Payment modes.** Each game is **Online**, **Cash** or **Mix**
+(`games.payment_mode`, copied from the group default `groups.payment_mode`;
+the admin can change it in Edit game while the game is scheduled or running).
+- *Online*: as above.
+- *Cash*: same who-pays-whom list. Every transfer, food included, is tagged
+  Cash with no Venmo or Zelle buttons; the buttons read *Paid in cash* and
+  *Got the cash*. No "add a payment method" nudge.
+- *Mix*: a "Paying tonight" panel on the game lists each confirmed player as
+  Cash or App. The default is App if they have a Venmo handle or Zelle number,
+  otherwise Cash. Players flip their own; the admin flips anyone's
+  (`set_pays_cash()`, locked once settled). At settle time cash players settle
+  with each other, app players with each other, and whatever one side owes the
+  other crosses in a single cash transfer (`settleByMethod()` in
+  `lib/settle.ts`, still at most n-1 transfers). A transfer is by app only when
+  both people pay by app. Food debts in a Mix game stay app.
+- The handshake is the same in every mode. The copied summary marks cash
+  lines "(cash)", and the AI connector gives no Venmo link for a cash debt.
+
 ### 5. Cancelled
 
 Keeps everything — roster, buy-ins, audit trail. It just means no settlement

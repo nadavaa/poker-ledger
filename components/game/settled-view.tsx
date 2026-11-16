@@ -4,6 +4,7 @@ import { CopySummary } from '@/components/settle/copy-summary'
 import { type TransferRow } from '@/components/settle/transfer-card'
 import { SettlementSection } from '@/components/settle/settlement-section'
 import { settledGameSummary } from '@/lib/summary'
+import { isCashTransfer, type PaymentMode } from '@/lib/payment-mode'
 
 export type ResultRow = {
   memberId: string
@@ -46,6 +47,7 @@ export function SettledView({
   isAdmin,
   timeZone,
   venmoQuotes = false,
+  paymentMode = 'online',
   gameLabel,
   startedAt,
   settledAt,
@@ -64,6 +66,8 @@ export function SettledView({
   timeZone: string
   /** The group's venmo_note_quotes: Hebrew quotes in the Venmo note, else the spade. */
   venmoQuotes?: boolean
+  /** A cash game draws every transfer as cash, food included. */
+  paymentMode?: PaymentMode
   gameLabel: string
   startedAt: string | null
   settledAt: string | null
@@ -72,6 +76,10 @@ export function SettledView({
   /** Owed money with no way to be paid. */
   needsPaymentMethod?: boolean
 }) {
+  transfers = transfers.map((t) => ({
+    ...t,
+    method: isCashTransfer(paymentMode, t.method) ? 'cash' : 'app',
+  }))
   const potCents = rows.reduce((s, r) => s + r.buyinCents, 0)
   const potChips = rows.reduce((s, r) => s + r.buyinChips, 0)
   const played = duration(startedAt, settledAt)

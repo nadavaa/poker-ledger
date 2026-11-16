@@ -561,6 +561,8 @@ Undo is available only while the row is `paid`. Once the payee confirms, the row
 
 **Where the handshake is enforced.** An RLS policy lets only the two parties update the row at all; a `before update` trigger polices the transition itself, because RLS can see the old row or the new one but never compare them. The payer alone can move `pending → paid` (or undo it), the payee alone can move `paid → confirmed`, `confirmed` is terminal, and the parties and amount are immutable after settlement. Marking paid is independent of whether the Venmo link opened.
 
+**Payment modes (online, cash, hybrid).** `games.payment_mode` is snapshotted from `groups.payment_mode` at creation. Each `settlements` row carries `method` (`app` or `cash`), written by `settle_game()`: the database stamps `cash` or `app` itself for the two fixed modes and only takes the solver's method for a hybrid game. In a hybrid game each `game_signups` row has `pays_cash` (null = default: app if the player has a Venmo handle or Zelle number), read through `game_payment_methods()` (booleans only, no contact details) and set through `set_pays_cash()` (the player for themselves, the game admin for anyone, never after settling). `settleByMethod()` settles each side separately and moves the net between sides in one cash transfer, keeping the n-1 bound. A cash transfer shows no Venmo or Zelle details and uses the same handshake.
+
 ---
 
 ## 8. Screens

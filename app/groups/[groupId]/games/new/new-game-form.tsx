@@ -6,11 +6,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { centsToDollars } from '@/lib/money'
+import { PaymentModeField } from '@/components/payment/payment-mode-field'
+import type { PaymentMode } from '@/lib/payment-mode'
 
 type GroupDefaults = {
   default_buyin_cents: number
   chips_per_dollar: number
   default_seat_limit: number
+  payment_mode: PaymentMode
 }
 
 /** Tomorrow at 8pm, in the group's zone rather than whoever's phone this is. */
@@ -102,6 +105,8 @@ export function NewGameForm({
               />
             </div>
           </div>
+
+          <PaymentModeField defaultValue={defaults.payment_mode} />
 
           <label className="flex items-center gap-2 text-sm">
             <input

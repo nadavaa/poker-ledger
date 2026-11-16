@@ -162,7 +162,7 @@ export function registerMoneyTools(server: McpServer) {
           await db
             .from('settlements')
             .select(
-              'id, game_id, from_member_id, to_member_id, amount_cents, status, kind'
+              'id, game_id, from_member_id, to_member_id, amount_cents, status, kind, method'
             )
             .neq('status', 'confirmed')
             .or(`from_member_id.in.(${idList}),to_member_id.in.(${idList})`)
@@ -180,7 +180,7 @@ export function registerMoneyTools(server: McpServer) {
           db
             .from('games')
             .select(
-              'id, name, group_id, scheduled_at, started_at, groups(name, timezone)'
+              'id, name, group_id, scheduled_at, started_at, payment_mode, groups(name, timezone)'
             )
             .in('id', gameIds),
           db
@@ -190,6 +190,13 @@ export function registerMoneyTools(server: McpServer) {
         ])
 
         const gameRows = must(games)
+        // A cash game is cash all the way down, food debts included.
+        const cashGames = new Set(
+          gameRows.filter((g) => g.payment_mode === 'cash').map((g) => g.id)
+        )
+        for (const s of settlements) {
+          if (cashGames.has(s.game_id!)) s.method = 'cash'
+        }
         const gameInfo = new Map<string, DebtGameInfo>(
           gameRows.map((g) => [
             g.id,

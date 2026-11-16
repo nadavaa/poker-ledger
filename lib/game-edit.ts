@@ -18,6 +18,7 @@ export type EditableField =
   | 'seatLimit'
   | 'buyinCents'
   | 'chipsPerDollar'
+  | 'paymentMode'
 
 /** Snapshotted onto the game at creation and priced into every buy-in. */
 const SNAPSHOT_FIELDS: EditableField[] = [
@@ -174,6 +175,10 @@ export function describeEdit(
       return `${who} changed the buy-in to ${format.money(Number(to))}`
     case 'chips_per_dollar':
       return `${who} changed the chip ratio to ${to} per dollar`
+    case 'payment_mode':
+      return `${who} changed payments to ${
+        to === 'cash' ? 'cash' : to === 'hybrid' ? 'a mix of cash and app' : 'online'
+      }`
     default:
       return `${who} edited the game`
   }

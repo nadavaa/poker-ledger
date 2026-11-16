@@ -35,7 +35,7 @@ export default async function EditGroupPage({
     supabase
       .from('groups')
       .select(
-        'id, name, avatar_url, default_buyin_cents, chips_per_dollar, default_seat_limit, timezone'
+        'id, name, avatar_url, default_buyin_cents, chips_per_dollar, default_seat_limit, timezone, payment_mode'
       )
       .eq('id', groupId)
       .maybeSingle(),
@@ -148,6 +148,7 @@ export default async function EditGroupPage({
               seatLimit: group.default_seat_limit,
               buyinCents: group.default_buyin_cents,
               chipsPerDollar: Number(group.chips_per_dollar),
+              paymentMode: group.payment_mode,
               timezone: group.timezone,
             }}
           />

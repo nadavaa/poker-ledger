@@ -12,6 +12,8 @@ export type SummaryTransfer = {
   toName: string
   amountCents: number
   confirmed: boolean
+  /** Handed over in cash rather than sent by app. */
+  cash?: boolean
 }
 
 export function gameSummary({
@@ -48,7 +50,7 @@ export function gameSummary({
       lines.push(
         `${t.confirmed ? '✅' : '•'} ${t.fromName} → ${t.toName}  ${formatCents(
           t.amountCents
-        )}`
+        )}${t.cash ? ' (cash)' : ''}`
       )
     }
     const done = transfers.filter((t) => t.confirmed).length
@@ -78,6 +80,7 @@ export function settledGameSummary({
     toMemberId: string
     amountCents: number
     status: string
+    method?: 'app' | 'cash'
   }[]
   names: Map<string, string>
 }): string {
@@ -90,6 +93,7 @@ export function settledGameSummary({
       toName: names.get(t.toMemberId) ?? 'someone',
       amountCents: t.amountCents,
       confirmed: t.status === 'confirmed',
+      cash: t.method === 'cash',
     })),
   })
 }
