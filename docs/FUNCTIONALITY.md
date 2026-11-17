@@ -176,6 +176,13 @@ settled. The game admin can **close out** a transfer when a payee won't
 confirm in the app — never on their own debt — and the row then says who
 closed it rather than implying the payee acknowledged it.
 
+**Tapping Pay marks it paid.** Opening Venmo from a transfer (the Pay button
+or the quieter "Venmo @handle" link) moves it to *Paid — waiting for the payee
+to confirm* in the same tap, so the payer never comes back to tap Mark as paid.
+**Undo** reverts it and brings the link back if they didn't send. Zelle's
+Copy number doesn't count — copying a number isn't paying — so Zelle payers
+still tap Mark as paid.
+
 **Payment modes.** Each game is **Online**, **Cash** or **Mix**
 (`games.payment_mode`, copied from the group default `groups.payment_mode`;
 the admin can change it in Edit game while the game is scheduled or running).
