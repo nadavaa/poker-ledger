@@ -21,12 +21,18 @@ export function VenmoButton({
   amountCents,
   payeeName,
   quotes = false,
+  onOpen,
 }: {
   handle: string | null
   amountCents: number
   payeeName: string
   /** The group's venmo_note_quotes. Off: the note is just the spade. */
   quotes?: boolean
+  /**
+   * Called as the link opens. Tapping Pay counts as paying: the card marks
+   * the transfer paid so the payer never has to come back and say so.
+   */
+  onOpen?: () => void
 }) {
   // Picked once, after mount: picking during render would differ between the
   // server and the client and mismatch the href. Until then the helper falls
@@ -45,7 +51,15 @@ export function VenmoButton({
     <Button
       size="sm"
       className="rounded-xl"
-      render={<a href={links.web} target="_blank" rel="noopener noreferrer" />}
+      render={
+        <a
+          href={links.web}
+          target="_blank"
+          rel="noopener noreferrer"
+          // No preventDefault: Venmo opens and the write starts together.
+          onClick={() => onOpen?.()}
+        />
+      }
       nativeButton={false}
     >
       Pay {payeeName}

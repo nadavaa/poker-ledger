@@ -133,6 +133,11 @@ export function TransferCard({
   // The link is only useful while there is still a payment to send, and
   // never for cash.
   const showVenmo = !isCash && isPayer && status === 'pending'
+  // Opening Venmo counts as paying, which saves the trip back to tap "Mark as
+  // paid". Undo is right there if they backed out without sending.
+  const markPaidOnOpen = () => {
+    if (!pending) onMove('paid')
+  }
 
   const closedOutBy =
     transfer.confirmedByMemberId &&
@@ -220,6 +225,12 @@ export function TransferCard({
             )}
           </p>
 
+          {isPayer && status === 'paid' && !isCash && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Didn&apos;t go through? Tap Undo.
+            </p>
+          )}
+
           {error && <p className="mt-0.5 text-xs text-down">{error}</p>}
         </div>
 
@@ -238,6 +249,7 @@ export function TransferCard({
                   amountCents={transfer.amountCents}
                   payeeName={payeeName}
                   quotes={venmoQuotes}
+                  onOpen={markPaidOnOpen}
                 />
               ) : (
                 <ZelleDetails phone={primary.value} payeeName={payeeName} />
@@ -250,6 +262,7 @@ export function TransferCard({
                     href={`https://venmo.com/${secondary.value}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={markPaidOnOpen}
                     className="text-xs text-muted-foreground underline-offset-2 hover:underline"
                   >
                     Venmo @{secondary.value}
