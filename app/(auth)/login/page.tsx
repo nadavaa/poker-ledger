@@ -3,11 +3,16 @@ import Link from 'next/link'
 import { Chip } from '@/components/landing/chip'
 import { SiteShell } from '@/components/landing/site-chrome'
 import { LoginForm } from '@/components/login/login-form'
-import { login as copy, SITE_NAME } from '@/lib/landing-copy'
+import { login as copy } from '@/lib/landing-copy'
 import { loginContext, safeNext } from '@/lib/login'
 
+// The root layout's title template already appends the site name. A sign-in
+// page has no search value, and Google flagged it as a duplicate of the
+// homepage (same description), so keep it out of the index but let crawlers
+// follow its links.
 export const metadata: Metadata = {
-  title: `Sign in · ${SITE_NAME}`,
+  title: 'Sign in',
+  robots: { index: false, follow: true },
 }
 
 /** A quiet stack of the landing page's chips. Decoration only, desktop only. */
