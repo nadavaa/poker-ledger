@@ -38,6 +38,14 @@ No ORM. Use the Supabase client directly with generated types (`supabase gen typ
 - When a decision isn't covered by the spec, ask instead of guessing.
 - Don't add features that aren't in the current phase, including "while I was in there" improvements.
 
+## Checking screens by eye
+
+Before calling a UI change done, look at it yourself; don't rely on Nadav's description alone.
+- Start the dev server with the `poker-ledger-dev` launch config (`../.claude/launch.json`, port 3005), open the built-in browser, set the mobile preset (375x812).
+- Signed-in screens need a real login against production data, so use `/dev` instead: fake data, no database, no sign-in, local `next dev` only (404/login-redirect in every production build). Index at `/dev`.
+- To preview a new state, export the component and add a page under `app/dev/<name>/` that renders it with fake props, then link it from `app/dev/page.tsx`.
+- For overlap/off-screen bugs, measure with `getBoundingClientRect()` as well as screenshotting.
+
 ## Testing
 
 `lib/settle.ts` gets real tests, including property tests over randomly generated valid net arrays. For any input summing to zero, the output must: sum to zero, leave every player at net zero after application, contain at most n−1 transfers, and include no self-transfers or non-positive amounts. Non-zero-sum input must throw.
