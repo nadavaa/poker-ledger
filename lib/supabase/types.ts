@@ -682,6 +682,10 @@ export type Database = {
         Args: { p_game_id: string }
         Returns: undefined
       }
+      unsettle_game: {
+        Args: { p_game_id: string; p_reason: string }
+        Returns: undefined
+      }
       record_cashout: {
         Args: { p_game_id: string; p_member_id: string; p_chips: number }
         Returns: undefined

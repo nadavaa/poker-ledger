@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { settleByMethod } from '@/lib/settle'
+import { remainingNets, settleByMethod } from '@/lib/settle'
 
 /**
  * Compute the transfers with the pure solver, then hand them to settle_game,
@@ -55,10 +55,30 @@ export async function POST(
     )
   }
 
+  // A game that was unsettled and is being settled again may already have
+  // confirmed payments. That money moved; it is applied first and only what
+  // is still owed gets new transfers. settle_game checks the sum either way.
+  const { data: confirmed, error: confirmedError } = await supabase
+    .from('settlements')
+    .select('from_member_id, to_member_id, amount_cents')
+    .eq('game_id', gameId)
+    .eq('kind', 'poker')
+    .eq('status', 'confirmed')
+  if (confirmedError) {
+    return NextResponse.json({ error: confirmedError.message }, { status: 400 })
+  }
+
   let transfers
   try {
     transfers = settleByMethod(
-      nets.map((n) => ({ memberId: n.member_id, netCents: n.net_cents })),
+      remainingNets(
+        nets.map((n) => ({ memberId: n.member_id, netCents: n.net_cents })),
+        (confirmed ?? []).map((c) => ({
+          fromMemberId: c.from_member_id,
+          toMemberId: c.to_member_id,
+          amountCents: c.amount_cents,
+        }))
+      ),
       cashIds
     )
   } catch (e) {

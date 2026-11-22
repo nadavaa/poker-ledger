@@ -23,6 +23,8 @@ import { WaitlistPanel } from '@/components/game/waitlist-panel'
 import { AgentActivity } from '@/components/game/agent-activity'
 import { agentMarks } from '@/lib/agent-marker'
 import { DangerZone } from '@/components/game/danger-zone'
+import { UnsettlePanel } from '@/components/game/unsettle-panel'
+import { ReopenedNotice } from '@/components/game/reopened-notice'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import type { Buyin } from '@/components/game/use-game-buyins'
 import { resolveDisplayName } from '@/lib/names'
@@ -98,6 +100,7 @@ export default async function GamePage({
     { data: cashoutRows },
     { data: agentRows },
     { data: methodRows },
+    { data: unsettleRows },
   ] = await Promise.all([
     supabase
       .from('game_signups')
@@ -173,6 +176,14 @@ export default async function GamePage({
     game.payment_mode === 'hybrid' && !settled && !cancelled
       ? supabase.rpc('game_payment_methods', { p_game_id: gameId })
       : Promise.resolve({ data: null }),
+    // The last time this game was unsettled, if ever, and why.
+    supabase
+      .from('game_edits')
+      .select('edited_by_member_id, new_value, created_at')
+      .eq('game_id', gameId)
+      .eq('field', 'unsettled')
+      .order('created_at', { ascending: false })
+      .limit(1),
   ])
   const agent = agentMarks(agentRows ?? [])
 
@@ -287,11 +298,17 @@ export default async function GamePage({
     game.status === 'scheduled' &&
     (buyins?.length ?? 0) === 0 &&
     blockingSettlements.length === 0
+  // Poker payments confirmed before an unsettle. That money moved, so it is
+  // kept and counted when the game settles again.
+  const confirmedPoker = (settlements ?? []).filter(
+    (s) => s.kind === 'poker' && s.status === 'confirmed'
+  )
   const canCancel =
     (isAdmin || isGroupOwner) &&
     game.status !== 'settled' &&
     game.status !== 'cancelled' &&
-    blockingSettlements.length === 0
+    blockingSettlements.length === 0 &&
+    confirmedPoker.length === 0
   const gameLabel = game.name ?? formatTime(played, tz, 'day')
 
   async function joinGame() {
@@ -472,6 +489,26 @@ export default async function GamePage({
           </Button>
         </form>
       )}
+
+      {(() => {
+        const last = unsettleRows?.[0]
+        if (!last || cancelled || game.status === 'scheduled') return null
+        return (
+          <ReopenedNotice
+            byName={nameOf.get(last.edited_by_member_id ?? '') ?? 'The admin'}
+            reason={last.new_value ?? ''}
+            at={last.created_at}
+            timeZone={tz}
+            stillOpen={!settled}
+            alreadyPaid={confirmedPoker.map((s) => ({
+              id: s.id,
+              fromName: nameOf.get(s.from_member_id) ?? 'Someone',
+              toName: nameOf.get(s.to_member_id) ?? 'someone',
+              amountCents: s.amount_cents,
+            }))}
+          />
+        )
+      })()}
 
       {errorMessage && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -770,6 +807,31 @@ export default async function GamePage({
                 Transfer admin
               </Button>
             </form>
+            )}
+
+            {isAdmin && settled && (
+              <UnsettlePanel
+                gameId={gameId}
+                pending={
+                  (settlements ?? []).filter(
+                    (s) => s.kind === 'poker' && s.status === 'pending'
+                  ).length
+                }
+                paid={(settlements ?? [])
+                  .filter((s) => s.kind === 'poker' && s.status === 'paid')
+                  .map((s) => ({
+                    id: s.id,
+                    fromName: nameOf.get(s.from_member_id) ?? 'Someone',
+                    toName: nameOf.get(s.to_member_id) ?? 'someone',
+                    amountCents: s.amount_cents,
+                  }))}
+                confirmed={confirmedPoker.map((s) => ({
+                  id: s.id,
+                  fromName: nameOf.get(s.from_member_id) ?? 'Someone',
+                  toName: nameOf.get(s.to_member_id) ?? 'someone',
+                  amountCents: s.amount_cents,
+                }))}
+              />
             )}
 
             <DangerZone
