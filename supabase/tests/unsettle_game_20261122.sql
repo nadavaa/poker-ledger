@@ -29,7 +29,8 @@ insert into group_members (id, group_id, display_name, role, profile_id) values
 insert into games (id, group_id, scheduled_at, default_buyin_cents, chips_per_dollar, admin_member_id, created_by_member_id)
  values ('30000000-0000-0000-0000-000000000000','10000000-0000-0000-0000-000000000000', now(), 5000, 2,
    '20000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-00000000000a');
-insert into game_signups (game_id, member_id) select '30000000-0000-0000-0000-000000000000', id from group_members;
+insert into game_signups (game_id, member_id) select '30000000-0000-0000-0000-000000000000', id from group_members
+  where group_id = '10000000-0000-0000-0000-000000000000';
 
 select pg_temp.as_('00000000-0000-0000-0000-00000000000a', $$select start_game('30000000-0000-0000-0000-000000000000', array['20000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-00000000000b','20000000-0000-0000-0000-00000000000c']::uuid[])$$, 'start game');
 select pg_temp.as_('00000000-0000-0000-0000-00000000000a', $$select begin_reconciliation('30000000-0000-0000-0000-000000000000')$$, 'end game');
