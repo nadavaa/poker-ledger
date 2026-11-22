@@ -526,7 +526,7 @@ function BuyInDots({ count }: { count: number }) {
   )
 }
 
-function PlayerSheet({
+export function PlayerSheet({
   player,
   chipsPerDollar,
   defaultBuyinCents,
@@ -586,8 +586,12 @@ function PlayerSheet({
       className="fixed inset-0 z-30 flex items-end justify-center bg-black/40"
       onClick={onClose}
     >
+      {/* Capped and scrolling inside: with a long buy-in list the sheet used
+          to grow taller than the screen, and since it is pinned to the
+          bottom, the amount box was pushed off the top where nobody could
+          reach it. dvh, not vh, so mobile browser bars are not counted. */}
       <div
-        className="w-full max-w-md rounded-t-2xl bg-background p-4"
+        className="max-h-[85dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl bg-background p-4 pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">

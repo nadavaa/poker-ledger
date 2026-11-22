@@ -39,7 +39,12 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims
 
   const { pathname } = request.nextUrl
-  const isPublic = isPublicPath(pathname)
+  // /dev screen previews (fake data) open without sign-in, but only under
+  // `next dev`; app/dev/layout.tsx 404s them in every production build too.
+  const isDevPreview =
+    process.env.NODE_ENV === 'development' &&
+    (pathname === '/dev' || pathname.startsWith('/dev/'))
+  const isPublic = isPublicPath(pathname) || isDevPreview
 
   // Sign-up source (docs/GROWTH.md, 1D). The first page a signed-out browser
   // loads decides where it came from; the auth callbacks save it on a new
