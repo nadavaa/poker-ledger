@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CopyLinkButton } from '@/components/copy-link-button'
+import { QrLinkButton } from '@/components/qr-link-button'
 import { FirstGameGuide } from '@/components/group/first-game-guide'
 import { MyStats } from '@/components/group/my-stats'
 import { computeStats, runningBalance } from '@/lib/stats'
@@ -383,6 +384,16 @@ export default async function GroupPage({
                           path={`/claim/${claimCodes.get(m.id)}`}
                           label="Claim link"
                           size="xs"
+                        />
+                      )}
+                      {canManage && !m.profile_id && claimCodes.get(m.id) && (
+                        <QrLinkButton
+                          path={`/claim/${claimCodes.get(m.id)}`}
+                          title={`Claim link for ${resolveDisplayName(
+                            m.display_name,
+                            m.profiles?.display_name
+                          )}`}
+                          description="Scan with their phone camera to link this member to their account."
                         />
                       )}
                     </div>
