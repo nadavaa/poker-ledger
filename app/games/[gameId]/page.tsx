@@ -824,6 +824,13 @@ export default async function GamePage({
                     fromName: nameOf.get(s.from_member_id) ?? 'Someone',
                     toName: nameOf.get(s.to_member_id) ?? 'someone',
                     amountCents: s.amount_cents,
+                    viewer:
+                      s.from_member_id === myMember?.id
+                        ? ('payer' as const)
+                        : s.to_member_id === myMember?.id
+                          ? ('payee' as const)
+                          : ('other' as const),
+                    isCash: s.method === 'cash',
                   }))}
                 confirmed={confirmedPoker.map((s) => ({
                   id: s.id,
