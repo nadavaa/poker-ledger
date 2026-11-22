@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { settle, settleByMethod, type Net, type Transfer } from './settle'
+import {
+  remainingNets,
+  settle,
+  settleByMethod,
+  type Net,
+  type Transfer,
+} from './settle'
 
 /** Apply the transfers to the starting nets; everyone should land on zero. */
 function applyTransfers(nets: Net[], transfers: Transfer[]) {
@@ -254,6 +260,64 @@ describe('settleByMethod', () => {
         nets.filter(() => rand() < 0.4).map((x) => x.memberId)
       )
       assertValidByMethod(nets, cashIds)
+    }
+  })
+})
+
+describe('remainingNets', () => {
+  it('nets out a payment that already happened', () => {
+    // A lost 80, B won 80, A already paid B 80. Nothing left.
+    const nets = [
+      { memberId: 'a', netCents: -8000 },
+      { memberId: 'b', netCents: 8000 },
+    ]
+    const paid = [{ fromMemberId: 'a', toMemberId: 'b', amountCents: 8000 }]
+    expect(remainingNets(nets, paid).map((n) => n.netCents)).toEqual([0, 0])
+  })
+
+  it('makes the receiver pay back an overshoot after a correction', () => {
+    // A paid B 80, then a buy-in was voided and B only won 50.
+    const nets = [
+      { memberId: 'a', netCents: -5000 },
+      { memberId: 'b', netCents: 5000 },
+    ]
+    const paid = [{ fromMemberId: 'a', toMemberId: 'b', amountCents: 8000 }]
+    const rest = remainingNets(nets, paid)
+    expect(rest).toEqual([
+      { memberId: 'a', netCents: 3000 },
+      { memberId: 'b', netCents: -3000 },
+    ])
+    expect(settle(rest)).toEqual([
+      { fromMemberId: 'b', toMemberId: 'a', amountCents: 3000 },
+    ])
+  })
+
+  it('refuses a payment by somebody no longer in the game', () => {
+    expect(() =>
+      remainingNets(
+        [{ memberId: 'a', netCents: 0 }],
+        [{ fromMemberId: 'a', toMemberId: 'gone', amountCents: 100 }]
+      )
+    ).toThrow()
+  })
+
+  it('always leaves a zero-sum remainder that settles everyone out', () => {
+    const rand = mulberry32(20261122)
+    for (let i = 0; i < 1000; i++) {
+      const n = 2 + Math.floor(rand() * 9)
+      const original = randomZeroSumNets(rand, n)
+      // The payments that were confirmed before the game was reopened: some
+      // subset of the original settlement.
+      const paid = settle(original).filter(() => rand() < 0.5)
+      // The correction: a fresh zero-sum set over the same players.
+      const corrected = randomZeroSumNets(rand, n)
+      const rest = remainingNets(corrected, paid)
+      expect(rest.reduce((s, x) => s + x.netCents, 0)).toBe(0)
+      const transfers = assertValid(rest)
+      // Old confirmed payments plus the new transfers settle the corrected game.
+      for (const balance of applyTransfers(corrected, [...paid, ...transfers]).values()) {
+        expect(balance).toBe(0)
+      }
     }
   })
 })

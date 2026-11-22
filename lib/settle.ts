@@ -99,3 +99,27 @@ export function settleByMethod(
   for (const t of settle(app)) out.push({ ...t, method: 'app' })
   return out
 }
+
+// ---------------------------------------------------------------------------
+// Re-settling a game after some payments already happened.
+//
+// A game can be unsettled to fix a buy-in or a chip count. Payments the payee
+// already confirmed are real money that moved, so they are never erased:
+// they are applied to the corrected nets first, and the solver only covers
+// what is still owed. A confirmed payment that now overshoots simply leaves
+// the receiver owing some of it back.
+
+export function remainingNets(nets: Net[], alreadyPaid: Transfer[]): Net[] {
+  const remaining = new Map(nets.map((n) => [n.memberId, n.netCents]))
+  for (const t of alreadyPaid) {
+    if (!remaining.has(t.fromMemberId) || !remaining.has(t.toMemberId)) {
+      throw new Error(
+        'A confirmed payment involves somebody who is no longer in this game'
+      )
+    }
+    // Paying moves the payer toward zero from below and the receiver from above.
+    remaining.set(t.fromMemberId, remaining.get(t.fromMemberId)! + t.amountCents)
+    remaining.set(t.toMemberId, remaining.get(t.toMemberId)! - t.amountCents)
+  }
+  return nets.map((n) => ({ memberId: n.memberId, netCents: remaining.get(n.memberId)! }))
+}
