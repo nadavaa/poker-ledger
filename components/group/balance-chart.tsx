@@ -1,4 +1,4 @@
-import { formatWholeDollars } from '@/lib/money'
+import { formatWholeDollars, roundToWholeDollar } from '@/lib/money'
 import type { BalancePoint } from '@/lib/stats'
 
 /**
@@ -33,7 +33,11 @@ export function BalanceChart({ points }: { points: BalancePoint[] }) {
         </span>
         <span
           className={`money text-sm font-semibold ${
-            up ? 'text-up' : 'text-down'
+            roundToWholeDollar(last) === 0
+              ? 'text-muted-foreground'
+              : up
+                ? 'text-up'
+                : 'text-down'
           }`}
         >
           {formatWholeDollars(last)}

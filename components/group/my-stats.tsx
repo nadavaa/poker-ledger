@@ -1,4 +1,8 @@
-import { formatCents, formatWholeDollars } from '@/lib/money'
+import {
+  formatCents,
+  formatWholeDollars,
+  roundToWholeDollar,
+} from '@/lib/money'
 import { formatTime } from '@/lib/time'
 import { streakWords, type Stats } from '@/lib/stats'
 import { Card, CardContent } from '@/components/ui/card'
@@ -60,14 +64,14 @@ export function MyStats({
           </p>
           <p
             className={`money-display my-1.5 text-[3.25rem] font-semibold ${
-              stats.totalNetCents > 0
+              roundToWholeDollar(stats.totalNetCents) > 0
                 ? 'text-up'
-                : stats.totalNetCents < 0
+                : roundToWholeDollar(stats.totalNetCents) < 0
                   ? 'text-down'
-                  : 'text-foreground'
+                  : 'text-muted-foreground'
             }`}
           >
-            {stats.totalNetCents > 0 ? '+' : ''}
+            {roundToWholeDollar(stats.totalNetCents) > 0 ? '+' : ''}
             {formatWholeDollars(stats.totalNetCents)}
           </p>
           <p className="text-xs text-muted-foreground">

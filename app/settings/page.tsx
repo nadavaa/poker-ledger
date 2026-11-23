@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
-import { formatCents, formatWholeDollars } from '@/lib/money'
+import {
+  formatCents,
+  formatWholeDollars,
+  roundToWholeDollar,
+} from '@/lib/money'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { AvatarUpload } from '@/components/avatar-upload'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -146,14 +150,14 @@ export default async function SettingsPage() {
                   numbers. */}
               <span
                 className={`money-display shrink-0 text-xl font-semibold ${
-                  l.lifetime_net_cents > 0
+                  roundToWholeDollar(l.lifetime_net_cents) > 0
                     ? 'text-up'
-                    : l.lifetime_net_cents < 0
+                    : roundToWholeDollar(l.lifetime_net_cents) < 0
                       ? 'text-down'
                       : 'text-muted-foreground'
                 }`}
               >
-                {l.lifetime_net_cents > 0 ? '+' : ''}
+                {roundToWholeDollar(l.lifetime_net_cents) > 0 ? '+' : ''}
                 {formatWholeDollars(l.lifetime_net_cents)}
               </span>
             </CardContent>

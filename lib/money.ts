@@ -64,9 +64,20 @@ export function formatCents(cents: number): string {
  * keeps a real remainder. Halves round away from zero, so -$12.50 is -$13.
  */
 export function formatWholeDollars(cents: number): string {
-  const dollars = Math.round(Math.abs(cents) / 100)
-  const sign = cents < 0 && dollars !== 0 ? '-' : ''
-  return `${sign}$${dollars.toLocaleString('en-US')}`
+  const rounded = roundToWholeDollar(cents)
+  const sign = rounded < 0 ? '-' : ''
+  return `${sign}$${(Math.abs(rounded) / 100).toLocaleString('en-US')}`
+}
+
+/**
+ * Integer cents rounded to the nearest whole dollar, still in cents:
+ * 23450 -> 23500, -1250 -> -1300, 30 -> 0. Anything that colours or signs a
+ * formatWholeDollars amount should test this, so +30¢ reads as a grey "$0"
+ * rather than a green "+$0".
+ */
+export function roundToWholeDollar(cents: number): number {
+  const rounded = Math.round(Math.abs(cents) / 100) * 100
+  return cents < 0 && rounded !== 0 ? -rounded : rounded
 }
 
 /** Chips owed for a cash amount, at the game's snapshotted ratio. */

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
-import { formatWholeDollars } from '@/lib/money'
+import { formatWholeDollars, roundToWholeDollar } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -210,14 +210,14 @@ export default async function HomePage({
                         <div className="flex shrink-0 flex-col items-end">
                           <p
                             className={`money-display text-2xl font-semibold ${
-                              (netByMemberId.get(m.id) ?? 0) > 0
+                              roundToWholeDollar(netByMemberId.get(m.id) ?? 0) > 0
                                 ? 'text-up'
-                                : (netByMemberId.get(m.id) ?? 0) < 0
+                                : roundToWholeDollar(netByMemberId.get(m.id) ?? 0) < 0
                                   ? 'text-down'
                                   : 'text-muted-foreground'
                             }`}
                           >
-                            {(netByMemberId.get(m.id) ?? 0) > 0 ? '+' : ''}
+                            {roundToWholeDollar(netByMemberId.get(m.id) ?? 0) > 0 ? '+' : ''}
                             {formatWholeDollars(netByMemberId.get(m.id) ?? 0)}
                           </p>
                           <p className="text-[0.7rem] uppercase tracking-[0.06em] text-muted-foreground">

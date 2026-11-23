@@ -9,6 +9,7 @@ const SCREENS = [
   { href: '/dev/player-sheet?buyins=6&cashedOut=1', label: 'Player sheet, cashed out' },
   { href: '/dev/buyin-fields', label: 'Buy-in fields: group settings, new game, edit game' },
   { href: '/dev/stats', label: 'My Stats tab, totals with odd cents' },
+  { href: '/dev/stats?net=-30', label: 'My Stats tab, total rounds to $0' },
 ]
 
 export default function DevIndex() {
