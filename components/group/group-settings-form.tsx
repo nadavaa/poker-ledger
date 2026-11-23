@@ -3,7 +3,11 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { centsToDollars, dollarsToCents } from '@/lib/money'
+import {
+  centsToWholeDollars,
+  dollarsToCents,
+  wholeDollarsInput,
+} from '@/lib/money'
 import { isValidTimeZone, timeZoneOptions } from '@/lib/time'
 import { useDirtyForm } from '@/components/use-dirty-form'
 import { Button } from '@/components/ui/button'
@@ -66,7 +70,7 @@ export function GroupSettingsForm({
       initial: {
         name: initial.name,
         seats: String(initial.seatLimit),
-        buyin: centsToDollars(initial.buyinCents),
+        buyin: centsToWholeDollars(initial.buyinCents),
         ratio: String(initial.chipsPerDollar),
         timezone: initial.timezone,
         mode: initial.paymentMode,
@@ -147,9 +151,10 @@ export function GroupSettingsForm({
           <Label htmlFor="buyin">Buy-in $</Label>
           <Input
             id="buyin"
-            inputMode="decimal"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={fields.buyin}
-            onChange={(e) => change('buyin', e.target.value)}
+            onChange={(e) => change('buyin', wholeDollarsInput(e.target.value))}
             aria-invalid={parseCents(fields.buyin) === null}
           />
         </div>

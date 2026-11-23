@@ -5,7 +5,7 @@ import { toZonedInput } from '@/lib/time'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { centsToDollars } from '@/lib/money'
+import { centsToWholeDollars, wholeDollarsInput } from '@/lib/money'
 import { PaymentModeField } from '@/components/payment/payment-mode-field'
 import type { PaymentMode } from '@/lib/payment-mode'
 
@@ -87,9 +87,13 @@ export function NewGameForm({
               <Input
                 id="buyin"
                 name="buyin"
-                inputMode="decimal"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 required
-                defaultValue={centsToDollars(defaults.default_buyin_cents)}
+                defaultValue={centsToWholeDollars(defaults.default_buyin_cents)}
+                onInput={(e) => {
+                  e.currentTarget.value = wholeDollarsInput(e.currentTarget.value)
+                }}
               />
             </div>
             <div className="flex flex-col gap-1.5">

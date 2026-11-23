@@ -32,6 +32,14 @@ export function centsToWholeDollars(cents: number): string {
 }
 
 /**
+ * What a whole-dollar amount box keeps of what was typed: digits only, and
+ * nothing from a "." on. Dropping just the dot would turn "600.50" into 60050.
+ */
+export function wholeDollarsInput(raw: string): string {
+  return raw.split('.')[0].replace(/\D/g, '')
+}
+
+/**
  * Integer cents formatted for display, e.g. "$50", "$1,150" or "-$12.50".
  *
  * Nobody plays for cents, so whole dollars render without a decimal. A real

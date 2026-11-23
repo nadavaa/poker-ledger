@@ -7,6 +7,7 @@ const SCREENS = [
   },
   { href: '/dev/player-sheet?buyins=2', label: 'Player sheet, 2 buy-ins' },
   { href: '/dev/player-sheet?buyins=6&cashedOut=1', label: 'Player sheet, cashed out' },
+  { href: '/dev/buyin-fields', label: 'Buy-in fields: group settings, new game, edit game' },
 ]
 
 export default function DevIndex() {
