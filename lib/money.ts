@@ -24,6 +24,14 @@ export function centsToDollars(cents: number): string {
 }
 
 /**
+ * Integer cents as whole dollars for a typed-amount box: 5000 -> "50".
+ * Nobody buys in for cents, so a stray remainder rounds to the nearest dollar.
+ */
+export function centsToWholeDollars(cents: number): string {
+  return String(Math.round(cents / 100))
+}
+
+/**
  * Integer cents formatted for display, e.g. "$50", "$1,150" or "-$12.50".
  *
  * Nobody plays for cents, so whole dollars render without a decimal. A real
