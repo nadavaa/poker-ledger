@@ -3,7 +3,11 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { centsToDollars, dollarsToCents } from '@/lib/money'
+import {
+  centsToWholeDollars,
+  dollarsToCents,
+  wholeDollarsInput,
+} from '@/lib/money'
 import { useDirtyForm } from '@/components/use-dirty-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -111,7 +115,7 @@ export function EditGameForm({
         location: initial.location ?? '',
         scheduledAt: toZonedInput(initial.scheduledAt, timeZone),
         seats: String(initial.seatLimit),
-        buyin: centsToDollars(initial.buyinCents),
+        buyin: centsToWholeDollars(initial.buyinCents),
         ratio: String(initial.chipsPerDollar),
         mode: initial.paymentMode,
       },
@@ -255,9 +259,10 @@ export function EditGameForm({
           <Label htmlFor="game-buyin">Buy-in</Label>
           <Input
             id="game-buyin"
-            inputMode="decimal"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={fields.buyin}
-            onChange={(e) => change('buyin', e.target.value)}
+            onChange={(e) => change('buyin', wholeDollarsInput(e.target.value))}
             disabled={frozen('buyinCents')}
             aria-invalid={!!problems.errors.buyinCents}
           />

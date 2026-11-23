@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   centsToChips,
   centsToWholeDollars,
+  wholeDollarsInput,
   chipsToCents,
   dollarsToCents,
   formatCents,
@@ -631,14 +632,13 @@ export function PlayerSheet({
           <div className="flex gap-2">
             <Input
               autoFocus
-              // Whole dollars only, and the phone shows the number pad without
-              // a decimal point. Anything from a "." on is dropped, not just
-              // the dot: stripping the dot alone turned "600.50" into 60050.
+              // Whole dollars only; the phone shows the number pad without a
+              // decimal point.
               inputMode="numeric"
               pattern="[0-9]*"
               value={amount}
               onChange={(e) => {
-                setAmount(e.target.value.split('.')[0].replace(/\D/g, ''))
+                setAmount(wholeDollarsInput(e.target.value))
                 setInvalid(false)
               }}
               aria-invalid={invalid}
