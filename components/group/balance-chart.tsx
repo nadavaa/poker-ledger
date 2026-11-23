@@ -1,4 +1,4 @@
-import { formatCents } from '@/lib/money'
+import { formatWholeDollars } from '@/lib/money'
 import type { BalancePoint } from '@/lib/stats'
 
 /**
@@ -36,14 +36,14 @@ export function BalanceChart({ points }: { points: BalancePoint[] }) {
             up ? 'text-up' : 'text-down'
           }`}
         >
-          {formatCents(last)}
+          {formatWholeDollars(last)}
         </span>
       </div>
       <svg
         viewBox={`0 0 ${w} ${h}`}
         className="mt-2 w-full"
         role="img"
-        aria-label={`Running balance across ${points.length} games, currently ${formatCents(last)}`}
+        aria-label={`Running balance across ${points.length} games, currently ${formatWholeDollars(last)}`}
       >
         <line
           x1={pad}

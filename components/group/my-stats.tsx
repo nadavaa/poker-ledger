@@ -1,4 +1,4 @@
-import { formatCents } from '@/lib/money'
+import { formatCents, formatWholeDollars } from '@/lib/money'
 import { formatTime } from '@/lib/time'
 import { streakWords, type Stats } from '@/lib/stats'
 import { Card, CardContent } from '@/components/ui/card'
@@ -68,7 +68,7 @@ export function MyStats({
             }`}
           >
             {stats.totalNetCents > 0 ? '+' : ''}
-            {formatCents(stats.totalNetCents)}
+            {formatWholeDollars(stats.totalNetCents)}
           </p>
           <p className="text-xs text-muted-foreground">
             over {stats.gamesPlayed}{' '}
@@ -80,7 +80,7 @@ export function MyStats({
       <div className="grid grid-cols-2 gap-2">
         <Stat
           label="Average per game"
-          value={formatCents(stats.averageNetCents)}
+          value={formatWholeDollars(stats.averageNetCents)}
         />
         <Stat
           label="Win rate"
@@ -99,7 +99,7 @@ export function MyStats({
         <Stat label="Current streak" value={streakWords(stats.currentStreak.kind, stats.currentStreak.length)} />
         <Stat
           label="Total bought in"
-          value={formatCents(stats.totalBoughtInCents)}
+          value={formatWholeDollars(stats.totalBoughtInCents)}
         />
         <Stat
           label="Longest win streak"

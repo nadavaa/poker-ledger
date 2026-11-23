@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
-import { formatCents } from '@/lib/money'
+import { formatWholeDollars } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -218,7 +218,7 @@ export default async function HomePage({
                             }`}
                           >
                             {(netByMemberId.get(m.id) ?? 0) > 0 ? '+' : ''}
-                            {formatCents(netByMemberId.get(m.id) ?? 0)}
+                            {formatWholeDollars(netByMemberId.get(m.id) ?? 0)}
                           </p>
                           <p className="text-[0.7rem] uppercase tracking-[0.06em] text-muted-foreground">
                             lifetime

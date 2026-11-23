@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUser } from '@/lib/supabase/auth'
-import { formatCents } from '@/lib/money'
+import { formatCents, formatWholeDollars } from '@/lib/money'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { AvatarUpload } from '@/components/avatar-upload'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -154,7 +154,7 @@ export default async function SettingsPage() {
                 }`}
               >
                 {l.lifetime_net_cents > 0 ? '+' : ''}
-                {formatCents(l.lifetime_net_cents)}
+                {formatWholeDollars(l.lifetime_net_cents)}
               </span>
             </CardContent>
           </Card>
