@@ -56,6 +56,30 @@ export function formatCents(cents: number): string {
     : `${sign}$${whole}.${String(remainder).padStart(2, '0')}`
 }
 
+/**
+ * Integer cents rounded to whole dollars for display, e.g. "$1,150" or "-$13".
+ *
+ * For running totals and averages only — a lifetime net, a season's buy-ins —
+ * where the cents are noise. A single game's amounts use formatCents, which
+ * keeps a real remainder. Halves round away from zero, so -$12.50 is -$13.
+ */
+export function formatWholeDollars(cents: number): string {
+  const rounded = roundToWholeDollar(cents)
+  const sign = rounded < 0 ? '-' : ''
+  return `${sign}$${(Math.abs(rounded) / 100).toLocaleString('en-US')}`
+}
+
+/**
+ * Integer cents rounded to the nearest whole dollar, still in cents:
+ * 23450 -> 23500, -1250 -> -1300, 30 -> 0. Anything that colours or signs a
+ * formatWholeDollars amount should test this, so +30¢ reads as a grey "$0"
+ * rather than a green "+$0".
+ */
+export function roundToWholeDollar(cents: number): number {
+  const rounded = Math.round(Math.abs(cents) / 100) * 100
+  return cents < 0 && rounded !== 0 ? -rounded : rounded
+}
+
 /** Chips owed for a cash amount, at the game's snapshotted ratio. */
 export function centsToChips(cents: number, chipsPerDollar: number): number {
   return Math.round((cents * chipsPerDollar) / 100)
