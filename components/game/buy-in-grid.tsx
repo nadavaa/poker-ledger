@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   centsToChips,
-  centsToDollars,
+  centsToWholeDollars,
   chipsToCents,
   dollarsToCents,
   formatCents,
@@ -553,7 +553,7 @@ export function PlayerSheet({
   onCashOut: (chips: number) => void
   onUndoCashOut: () => void
 }) {
-  const [amount, setAmount] = useState(centsToDollars(defaultBuyinCents))
+  const [amount, setAmount] = useState(centsToWholeDollars(defaultBuyinCents))
   const [note, setNote] = useState('')
   const [invalid, setInvalid] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -631,10 +631,14 @@ export function PlayerSheet({
           <div className="flex gap-2">
             <Input
               autoFocus
-              inputMode="decimal"
+              // Whole dollars only, and the phone shows the number pad without
+              // a decimal point. Anything from a "." on is dropped, not just
+              // the dot: stripping the dot alone turned "600.50" into 60050.
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={amount}
               onChange={(e) => {
-                setAmount(e.target.value)
+                setAmount(e.target.value.split('.')[0].replace(/\D/g, ''))
                 setInvalid(false)
               }}
               aria-invalid={invalid}
