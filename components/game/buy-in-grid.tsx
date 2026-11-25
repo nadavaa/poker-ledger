@@ -396,7 +396,7 @@ export function BuyInGrid({
           cashout={cashoutFor(sheet.memberId, cashouts)}
           timeZone={timeZone}
           onClose={() => setSheet(null)}
-          onAdd={(cents, note) => addBuyin(sheet, cents, note)}
+          onAdd={(cents) => addBuyin(sheet, cents)}
           onVoid={(id) => voidBuyin(id, 'admin correction')}
           onRemove={() => removePlayer(sheet)}
           onCashOut={(chips) => cashOut(sheet, chips)}
@@ -561,7 +561,7 @@ export function PlayerCard({
       </button>
 
 
-      {/* Without this, a custom amount, a note and voiding are reachable only
+      {/* Without this, a custom or quick-add amount and voiding are reachable only
           by holding the card, with nothing on screen saying so. */}
       <button
         type="button"
@@ -576,6 +576,53 @@ export function PlayerCard({
         </svg>
       </button>
     </div>
+  )
+}
+
+/** Quick-add tiles in the player sheet, as multiples of the game's buy-in. */
+const QUICK_MULTIPLES = [2, 3, 4]
+
+function QuickTile({
+  cents,
+  armKey,
+  onTap,
+}: {
+  cents: number
+  armKey: number | null
+  onTap: () => void
+}) {
+  const armed = armKey !== null
+  return (
+    <button
+      type="button"
+      data-armed-card={armed ? '' : undefined}
+      onClick={onTap}
+      className={`relative flex h-16 touch-manipulation select-none flex-col items-center justify-center overflow-hidden rounded-xl border transition-[transform,background-color,border-color] duration-150 ease-out active:scale-[0.97] ${
+        armed ? 'border-up bg-up-soft' : 'border-border bg-card active:bg-muted'
+      }`}
+    >
+      <span
+        key={armed ? `armed-${armKey}` : 'idle'}
+        className="flex flex-col items-center animate-[arm-in_150ms_ease-out]"
+      >
+        <span
+          className={`money text-lg font-semibold ${armed ? 'text-up' : ''}`}
+        >
+          +{formatCents(cents)}
+        </span>
+        {armed && (
+          <span className="text-xs font-semibold text-up">Confirm?</span>
+        )}
+      </span>
+      {armed && (
+        <span
+          key={`drain-${armKey}`}
+          aria-hidden
+          style={{ animationDuration: `${ARM_MS}ms` }}
+          className="absolute inset-x-0 bottom-0 h-1 origin-left animate-[arm-drain_linear_forwards] bg-up/70"
+        />
+      )}
+    </button>
   )
 }
 
@@ -626,14 +673,18 @@ export function PlayerSheet({
   cashout: CashoutRecord | null
   timeZone: string
   onClose: () => void
-  onAdd: (cents: number, note?: string) => void
+  onAdd: (cents: number) => void
   onVoid: (id: string) => void
   onRemove: () => void
   onCashOut: (chips: number) => void
   onUndoCashOut: () => void
 }) {
   const [amount, setAmount] = useState(centsToWholeDollars(defaultBuyinCents))
-  const [note, setNote] = useState('')
+  // Quick-add tiles take two taps, like the cards on the grid.
+  const quick = useTwoTap(async (id) => {
+    onAdd(defaultBuyinCents * Number(id))
+    onClose()
+  })
   const [invalid, setInvalid] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [cashingOut, setCashingOut] = useState(false)
@@ -656,7 +707,7 @@ export function PlayerSheet({
       setInvalid(true)
       return
     }
-    onAdd(cents, note)
+    onAdd(cents)
     onClose()
   }
 
@@ -724,12 +775,6 @@ export function PlayerSheet({
             />
             <Button type="submit">Add</Button>
           </div>
-          <Input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Note (optional)"
-            maxLength={120}
-          />
           {invalid && (
             <p className="text-sm text-destructive">Enter a valid amount.</p>
           )}
@@ -742,6 +787,18 @@ export function PlayerSheet({
               }
             })()}
           </p>
+          <div className="grid grid-cols-3 gap-2">
+            {QUICK_MULTIPLES.map((k) => (
+              <QuickTile
+                key={k}
+                cents={defaultBuyinCents * k}
+                armKey={
+                  quick.armed?.memberId === String(k) ? quick.armed.key : null
+                }
+                onTap={() => quick.tap(String(k))}
+              />
+            ))}
+          </div>
         </form>
         )}
 
