@@ -193,6 +193,42 @@
   }
 }
 
+/* Buy-in card arming: the content swap cross-fades, a confirm pops the new
+   total, and a bar drains over the wait for the second tap. */
+@keyframes arm-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes buyin-pop {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.96);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes arm-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @layer utilities {
   /* Money is the content. Tabular figures so digits don't shuffle as values
      update, and negative tracking because large numerals read too loose. */

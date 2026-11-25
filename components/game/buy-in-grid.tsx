@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
+import { useTwoTap, ARM_MS } from './use-two-tap'
 import {
   enqueue,
   flushQueue,
@@ -192,6 +193,11 @@ export function BuyInGrid({
     undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS)
   }
 
+  const twoTap = useTwoTap(async (memberId) => {
+    const player = players.find((p) => p.memberId === memberId)
+    if (player) await addBuyin(player, defaultBuyinCents)
+  })
+
   async function voidBuyin(id: string, reason: string) {
     setError(null)
     // Already voided here or by another device's Realtime update. The trigger
@@ -317,8 +323,16 @@ export function BuyInGrid({
                   }
                 : null
             }
-            onTap={() => addBuyin(p, defaultBuyinCents)}
-            onLongPress={() => setSheet(p)}
+            defaultBuyinCents={defaultBuyinCents}
+            armKey={
+              twoTap.armed?.memberId === p.memberId ? twoTap.armed.key : null
+            }
+            adding={twoTap.adding[p.memberId] ?? 0}
+            onTap={() => twoTap.tap(p.memberId)}
+            onLongPress={() => {
+              twoTap.disarm()
+              setSheet(p)
+            }}
           />
         ))}
       </div>
@@ -392,10 +406,13 @@ export function BuyInGrid({
   )
 }
 
-function PlayerCard({
+export function PlayerCard({
   player,
   total,
   cashedOut,
+  defaultBuyinCents,
+  armKey,
+  adding,
   onTap,
   onLongPress,
 }: {
@@ -403,13 +420,46 @@ function PlayerCard({
   total?: { cents: number; count: number }
   /** Left the game with this much; no more buy-ins for them. */
   cashedOut: { chips: number; cents: number } | null
+  defaultBuyinCents: number
+  /** Set while the card waits for its confirming tap; changes on each arm. */
+  armKey: number | null
+  /** Confirmed default buy-ins not yet back from the database. */
+  adding: number
   onTap: () => void
   onLongPress: () => void
 }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fired = useRef(false)
-  const count = total?.count ?? 0
+  const armed = armKey !== null && !cashedOut
+  // Shown on the confirming tap, not when the insert comes back.
+  const count = (total?.count ?? 0) + adding
+  const cents = (total?.cents ?? 0) + adding * defaultBuyinCents
   const staked = count > 0
+
+  // How the card last left the armed state picks the animation for the
+  // total coming back: a pop for a confirm, a plain fade for a cancel. None
+  // on first render, so the grid doesn't flicker on page load.
+  const [wasArmed, setWasArmed] = useState(armed)
+  const [settled, setSettled] = useState<{
+    n: number
+    kind: 'confirm' | 'cancel'
+  } | null>(null)
+  if (wasArmed !== armed) {
+    setWasArmed(armed)
+    if (!armed) {
+      setSettled({
+        n: (settled?.n ?? 0) + 1,
+        kind: adding > 0 ? 'confirm' : 'cancel',
+      })
+    }
+  }
+  const contentAnim = armed
+    ? 'animate-[arm-in_150ms_ease-out]'
+    : settled?.kind === 'confirm'
+      ? 'animate-[buyin-pop_260ms_ease-out]'
+      : settled
+        ? 'animate-[arm-in_150ms_ease-out]'
+        : ''
 
   function start() {
     fired.current = false
@@ -434,18 +484,22 @@ function PlayerCard({
     <div className="relative">
       <button
         type="button"
-        // No confirmation dialog: speed matters more than accuracy, because
-        // void exists. Feedback is on pointer-down, never on release.
+        // Two taps: the first arms the card, the second adds the buy-in.
+        // Misclicks on a crowded table were adding money for the wrong
+        // person; undo stays as the net for the rare double mistake.
+        data-armed-card={armed ? '' : undefined}
         onPointerDown={start}
         onPointerUp={() => cancel(true)}
         onPointerLeave={() => cancel(false)}
         onPointerCancel={() => cancel(false)}
         onContextMenu={(e) => e.preventDefault()}
         aria-disabled={!!cashedOut}
-        className={`flex min-h-[7.5rem] w-full touch-manipulation select-none flex-col justify-between rounded-2xl border p-3.5 text-left transition-[transform,background-color,border-color] duration-100 ease-out ${
+        className={`relative flex min-h-[7.5rem] w-full touch-manipulation select-none flex-col justify-between overflow-hidden rounded-2xl border p-3.5 text-left transition-[transform,background-color,border-color] duration-150 ease-out ${
           cashedOut
             ? 'border-border/60 bg-card/30 opacity-60'
-            : staked
+            : armed
+              ? 'border-up bg-up-soft active:scale-[0.97]'
+              : staked
               ? 'border-border bg-card active:scale-[0.97] active:bg-muted'
               : 'border-dashed border-border/70 bg-card/40 active:scale-[0.97] active:bg-muted/60'
         }`}
@@ -467,18 +521,41 @@ function PlayerCard({
               Cashed out · {cashedOut.chips.toLocaleString()} chips
             </span>
           </>
+        ) : armed ? (
+          <span
+            key={`armed-${armKey}`}
+            className={`flex flex-1 flex-col justify-between ${contentAnim}`}
+          >
+            <span className="money-display text-[2rem] font-semibold text-up">
+              +{formatCents(defaultBuyinCents)}
+            </span>
+            <span className="text-sm font-semibold text-up">Confirm?</span>
+          </span>
         ) : (
-          <>
+          <span
+            key={`idle-${settled?.n ?? 0}`}
+            className={`flex flex-1 flex-col justify-between ${contentAnim}`}
+          >
             <span
-              className={`money-display text-[2rem] font-semibold ${
+              className={`money-display origin-left text-[2rem] font-semibold ${
                 staked ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
-              {formatCents(total?.cents ?? 0)}
+              {formatCents(cents)}
             </span>
 
             <BuyInDots count={count} />
-          </>
+          </span>
+        )}
+
+        {/* Drains over the arm window, so the timeout is visible. */}
+        {armed && (
+          <span
+            key={`drain-${armKey}`}
+            aria-hidden
+            style={{ animationDuration: `${ARM_MS}ms` }}
+            className="absolute inset-x-0 bottom-0 h-1 origin-left animate-[arm-drain_linear_forwards] bg-up/70"
+          />
         )}
       </button>
 
