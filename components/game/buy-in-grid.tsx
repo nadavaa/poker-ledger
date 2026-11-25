@@ -529,7 +529,10 @@ export function PlayerCard({
             <span className="money-display text-[2rem] font-semibold text-up">
               +{formatCents(defaultBuyinCents)}
             </span>
-            <span className="text-sm font-semibold text-up">Confirm?</span>
+            <span className="text-sm">
+              <span className="font-semibold text-up">Confirm?</span>{' '}
+              <span className="text-muted-foreground">tap again</span>
+            </span>
           </span>
         ) : (
           <span
