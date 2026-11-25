@@ -14,10 +14,13 @@ export function QrLinkButton({
   path,
   title,
   description,
+  size = 'icon-xs',
 }: {
   path: string
   title: string
   description?: string
+  /** icon-sm sits level with a size="sm" button beside it. */
+  size?: 'icon-xs' | 'icon-sm'
 }) {
   const [url, setUrl] = useState<string | null>(null)
 
@@ -25,7 +28,7 @@ export function QrLinkButton({
     <>
       <Button
         variant="outline"
-        size="icon-xs"
+        size={size}
         aria-label={`Show ${title} QR code`}
         onClick={() => setUrl(`${window.location.origin}${path}`)}
       >
@@ -37,11 +40,14 @@ export function QrLinkButton({
         title={title}
         description={description}
         onClose={() => setUrl(null)}
+        enter
       >
         {url && (
           // Always dark on white: scanners read a light-on-dark code badly,
           // and the quiet zone around it is part of the code.
-          <div className="mx-auto rounded-2xl bg-white p-4">
+          // It arrives just behind the sheet, fading up from slightly small,
+          // rather than as a white square that is simply there.
+          <div className="mx-auto rounded-2xl bg-white p-4 animate-[qr-in_320ms_ease-out_120ms_both]">
             <QRCodeSVG
               value={url}
               size={224}

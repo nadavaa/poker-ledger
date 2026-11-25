@@ -19,6 +19,7 @@ export function ActionSheet({
   description,
   onClose,
   hideCancel = false,
+  enter = false,
   children,
 }: {
   open: boolean
@@ -28,6 +29,8 @@ export function ActionSheet({
   /** For a sheet whose own buttons already include the way out — a second
    *  Cancel underneath them is one more thing to read. */
   hideCancel?: boolean
+  /** Fade the backdrop and slide the sheet up rather than popping it in. */
+  enter?: boolean
   children: ReactNode
 }) {
   // Only ever opened by a tap, so this never runs during SSR.
@@ -35,11 +38,15 @@ export function ActionSheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 sm:items-center"
+      className={`fixed inset-0 z-[100] flex items-end justify-center bg-black/50 sm:items-center ${
+        enter ? 'animate-[backdrop-in_200ms_ease-out]' : ''
+      }`}
       onClick={onClose}
     >
       <div
-        className="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl sm:rounded-3xl"
+        className={`material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl sm:rounded-3xl ${
+          enter ? 'animate-[sheet-up_280ms_cubic-bezier(0.32,0.72,0,1)]' : ''
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-semibold">{title}</h3>

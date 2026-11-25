@@ -189,6 +189,12 @@ export default async function GroupPage({
             path={`/join/${group.invite_code}`}
             label="Copy invite"
           />
+          <QrLinkButton
+            path={`/join/${group.invite_code}`}
+            title={`Join ${group.name}`}
+            description="Scan with a phone camera to join the group."
+            size="icon-sm"
+          />
         </div>
       </header>
 

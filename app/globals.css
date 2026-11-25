@@ -218,6 +218,37 @@
   }
 }
 
+/* Bottom sheets that ask for it (the QR sheet): the backdrop fades, the
+   sheet rises on an iOS-like curve, and the code fades up just behind it. */
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes qr-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes arm-drain {
   from {
     transform: scaleX(1);
