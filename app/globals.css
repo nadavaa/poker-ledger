@@ -193,8 +193,8 @@
   }
 }
 
-/* Buy-in card arming: the content swap cross-fades, a confirm pops the new
-   total, and a bar drains over the wait for the second tap. */
+/* Buy-in card arming: the content swap cross-fades, the total pops as it
+   lands on a new amount, and a bar drains over the wait for the second tap. */
 @keyframes arm-in {
   from {
     opacity: 0;
@@ -208,12 +208,10 @@
 
 @keyframes buyin-pop {
   0% {
-    opacity: 0.4;
-    transform: scale(0.96);
+    transform: scale(1);
   }
-  60% {
-    opacity: 1;
-    transform: scale(1.04);
+  50% {
+    transform: scale(1.06);
   }
   100% {
     transform: scale(1);

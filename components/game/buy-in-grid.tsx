@@ -17,6 +17,7 @@ import { ActivityFeed } from './activity-feed'
 import { useGameBuyins, type Buyin } from './use-game-buyins'
 import { useSignupRefresh } from './use-signup-refresh'
 import { useTwoTap, ARM_MS } from './use-two-tap'
+import { useCountUp } from './use-count-up'
 import {
   enqueue,
   flushQueue,
@@ -436,30 +437,22 @@ export function PlayerCard({
   const cents = (total?.cents ?? 0) + adding * defaultBuyinCents
   const staked = count > 0
 
-  // How the card last left the armed state picks the animation for the
-  // total coming back: a pop for a confirm, a plain fade for a cancel. None
+  // Each time the card leaves the armed state the total fades back in. Not
   // on first render, so the grid doesn't flicker on page load.
   const [wasArmed, setWasArmed] = useState(armed)
-  const [settled, setSettled] = useState<{
-    n: number
-    kind: 'confirm' | 'cancel'
-  } | null>(null)
+  const [settled, setSettled] = useState(0)
   if (wasArmed !== armed) {
     setWasArmed(armed)
-    if (!armed) {
-      setSettled({
-        n: (settled?.n ?? 0) + 1,
-        kind: adding > 0 ? 'confirm' : 'cancel',
-      })
-    }
+    if (!armed) setSettled((n) => n + 1)
   }
-  const contentAnim = armed
-    ? 'animate-[arm-in_150ms_ease-out]'
-    : settled?.kind === 'confirm'
-      ? 'animate-[buyin-pop_260ms_ease-out]'
-      : settled
-        ? 'animate-[arm-in_150ms_ease-out]'
-        : ''
+  const contentAnim =
+    armed || settled > 0 ? 'animate-[arm-in_150ms_ease-out]' : ''
+
+  // On a confirm the old total fades back in, then counts up to the new one
+  // and settles with a small pop. Green while it moves, tying it to the +$50
+  // just tapped. Changes from other phones and undos glide the same way.
+  const shown = useCountUp(cents, { delayMs: 150 })
+  const moving = shown.value !== cents
 
   function start() {
     fired.current = false
@@ -536,15 +529,20 @@ export function PlayerCard({
           </span>
         ) : (
           <span
-            key={`idle-${settled?.n ?? 0}`}
+            key={`idle-${settled}`}
             className={`flex flex-1 flex-col justify-between ${contentAnim}`}
           >
             <span
-              className={`money-display origin-left text-[2rem] font-semibold ${
-                staked ? 'text-foreground' : 'text-muted-foreground'
-              }`}
+              key={`total-${shown.done}`}
+              className={`money-display origin-left text-[2rem] font-semibold transition-colors duration-300 ${
+                moving
+                  ? 'text-up'
+                  : staked
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
+              } ${shown.done > 0 ? 'animate-[buyin-pop_220ms_ease-out]' : ''}`}
             >
-              {formatCents(cents)}
+              {formatCents(shown.value)}
             </span>
 
             <BuyInDots count={count} />
