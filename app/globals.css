@@ -259,6 +259,23 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* iOS Safari draws date and time fields natively, with an intrinsic width
+     and height that ignore w-full and h-11: on New game the date field ran
+     past the card's edge and stood taller than the fields under it. Dropping
+     the native appearance makes it size like every other Input. */
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='time'] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+  }
+  /* Without this the value centres itself, and an empty field collapses. */
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 1.5em;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
