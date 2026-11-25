@@ -247,6 +247,20 @@
   }
 }
 
+/* iOS 26 lays a soft blur under the status bar of a Home Screen web app,
+   and it reaches a little way down into the page: the back link at the top
+   of every screen sat inside it and read as blurred. The app starts below
+   the strip; content scrolled up under it still blurs, as in native apps.
+   Safari tabs and desktop don't have the strip, so they keep 0. */
+:root {
+  --top-clear: 0px;
+}
+@media (display-mode: standalone) {
+  :root {
+    --top-clear: 1.75rem;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -294,6 +308,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    padding-top: var(--top-clear);
   }
   html {
     @apply font-sans;

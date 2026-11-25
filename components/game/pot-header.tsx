@@ -53,8 +53,10 @@ export function PotHeader({
 }) {
   const now = useNow()
 
+  // Pins below --top-clear in the Home Screen app, so the pot's figures
+  // stay out of the iOS status bar blur once the page scrolls.
   return (
-    <div className="material sticky top-0 z-20 -mx-4 -mt-4 mb-1 bg-background/80 px-4 pb-3 pt-4 backdrop-blur-xl backdrop-saturate-150">
+    <div className="material sticky top-[var(--top-clear)] z-20 -mx-4 -mt-4 mb-1 bg-background/80 px-4 pb-3 pt-4 backdrop-blur-xl backdrop-saturate-150">
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <span className="text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
