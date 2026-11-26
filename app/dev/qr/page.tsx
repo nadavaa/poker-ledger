@@ -1,15 +1,25 @@
 import { CopyLinkButton } from '@/components/copy-link-button'
+import { Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { QrLinkButton } from '@/components/qr-link-button'
+import { ShareLinkButton } from '@/components/share-link-button'
 import { MemberRoleMenu } from '@/components/group/member-role-menu'
 
-/** The group invite QR beside Copy invite, a member's claim QR, and the
+/** The group header's edit, share and invite QR buttons, a member's claim QR, and the
  *  role menu on their name: three sheets for checking sheet motion. */
 export default function Page() {
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 p-4">
       <h1 className="text-lg font-semibold">Test Group</h1>
       <div className="flex flex-wrap items-center gap-2">
-        <CopyLinkButton path="/join/dev-invite" label="Copy invite" />
+        <Button variant="outline" size="icon-sm" aria-label="Edit group">
+          <Pencil className="size-4" aria-hidden />
+        </Button>
+        <ShareLinkButton
+          path="/join/dev-invite"
+          title="Join Test Group"
+          label="Share invite link"
+        />
         <QrLinkButton
           path="/join/dev-invite"
           title="Join Test Group"
