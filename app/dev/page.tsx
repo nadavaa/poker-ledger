@@ -8,6 +8,8 @@ const SCREENS = [
   { href: '/dev/player-sheet?buyins=2', label: 'Player sheet, 2 buy-ins' },
   { href: '/dev/player-sheet?buyins=6&cashedOut=1', label: 'Player sheet, cashed out' },
   { href: '/dev/buyin-cards', label: 'Buy-in cards: two-tap arm and confirm' },
+  { href: '/dev/group-header?layout=side', label: 'Group header: buttons beside the name' },
+  { href: '/dev/group-header?layout=below', label: 'Group header: buttons under the name' },
   { href: '/dev/qr', label: 'QR codes: group invite and claim link' },
   { href: '/dev/buyin-fields', label: 'Buy-in fields: group settings, new game, edit game' },
   { href: '/dev/stats', label: 'My Stats tab, totals with odd cents' },
