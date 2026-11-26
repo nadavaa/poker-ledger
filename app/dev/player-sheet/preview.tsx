@@ -46,26 +46,25 @@ export function PlayerSheetPreview({
           Reopen sheet
         </button>
       )}
-      {open && (
-        <PlayerSheet
-          player={{ memberId: MEMBER, name: 'Gilad' }}
-          chipsPerDollar={10}
-          defaultBuyinCents={5000}
-          buyins={fakeBuyins(count)}
-          cashout={
-            cashedOut
-              ? { memberId: MEMBER, chips: 1200, recordedAt: '2026-11-21T23:00:00Z', leftTable: true }
-              : null
-          }
-          timeZone="America/New_York"
-          onClose={() => setOpen(false)}
-          onAdd={noop}
-          onVoid={noop}
-          onRemove={noop}
-          onCashOut={noop}
-          onUndoCashOut={noop}
-        />
-      )}
+      <PlayerSheet
+        open={open}
+        player={{ memberId: MEMBER, name: 'Gilad' }}
+        chipsPerDollar={10}
+        defaultBuyinCents={5000}
+        buyins={fakeBuyins(count)}
+        cashout={
+          cashedOut
+            ? { memberId: MEMBER, chips: 1200, recordedAt: '2026-11-21T23:00:00Z', leftTable: true }
+            : null
+        }
+        timeZone="America/New_York"
+        onClose={() => setOpen(false)}
+        onAdd={noop}
+        onVoid={noop}
+        onRemove={noop}
+        onCashOut={noop}
+        onUndoCashOut={noop}
+      />
     </main>
   )
 }

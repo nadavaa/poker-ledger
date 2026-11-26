@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
+import { SheetFrame } from '@/components/sheet-frame'
 import { useSignupRefresh } from './use-signup-refresh'
 import { AddPlayer, type AvailableMember } from './add-player'
 import { Avatar } from '@/components/avatar'
@@ -133,66 +134,61 @@ export function ScheduledView({
         </>
       )}
 
-      {dialogOpen && (
-        <div
-          className="fixed inset-0 z-30 flex items-end justify-center bg-black/40"
-          onClick={() => setDialogOpen(false)}
-        >
-          <div
-            className="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="font-semibold">Who&apos;s at the table?</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Everyone you check buys in for {formatCents(defaultBuyinCents)}.
-              Add the rest as they arrive.
-            </p>
+      <SheetFrame
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        backdropClassName="fixed inset-0 z-30 flex items-end justify-center bg-black/40"
+        panelClassName="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl"
+      >
+        <h3 className="font-semibold">Who&apos;s at the table?</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Everyone you check buys in for {formatCents(defaultBuyinCents)}.
+          Add the rest as they arrive.
+        </p>
 
-            <div className="mt-3 flex flex-col gap-1">
-              {players.map((p) => (
-                <label
-                  key={p.memberId}
-                  className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    className="size-5"
-                    checked={here.has(p.memberId)}
-                    onChange={(e) =>
-                      setHere((prev) => {
-                        const next = new Set(prev)
-                        if (e.target.checked) next.add(p.memberId)
-                        else next.delete(p.memberId)
-                        return next
-                      })
-                    }
-                  />
-                  {p.name}
-                </label>
-              ))}
-            </div>
+        <div className="mt-3 flex flex-col gap-1">
+          {players.map((p) => (
+            <label
+              key={p.memberId}
+              className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm"
+            >
+              <input
+                type="checkbox"
+                className="size-5"
+                checked={here.has(p.memberId)}
+                onChange={(e) =>
+                  setHere((prev) => {
+                    const next = new Set(prev)
+                    if (e.target.checked) next.add(p.memberId)
+                    else next.delete(p.memberId)
+                    return next
+                  })
+                }
+              />
+              {p.name}
+            </label>
+          ))}
+        </div>
 
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">
-                {checkedCount} in ·{' '}
-                {formatCents(checkedCount * defaultBuyinCents)}
-              </span>
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  className="h-11 rounded-xl"
-                  onClick={start}
-                  disabled={pending}
-                >
-                  {pending ? 'Starting…' : 'Start game'}
-                </Button>
-              </div>
-            </div>
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <span className="text-sm text-muted-foreground">
+            {checkedCount} in ·{' '}
+            {formatCents(checkedCount * defaultBuyinCents)}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="h-11 rounded-xl"
+              onClick={start}
+              disabled={pending}
+            >
+              {pending ? 'Starting…' : 'Start game'}
+            </Button>
           </div>
         </div>
-      )}
+      </SheetFrame>
     </div>
   )
 }

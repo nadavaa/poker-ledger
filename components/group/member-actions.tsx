@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { SheetFrame } from '@/components/sheet-frame'
 
 type Preview = {
   mode: 'delete' | 'deactivate' | 'blocked'
@@ -27,7 +28,10 @@ export function RemoveMemberButton({
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
+  // The preview outlives sheetOpen, so the sheet slides away with its
+  // content rather than going blank first.
   const [preview, setPreview] = useState<Preview | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,6 +47,7 @@ export function RemoveMemberButton({
       return
     }
     setPreview(data as Preview)
+    setSheetOpen(true)
   }
 
   async function confirm() {
@@ -56,7 +61,7 @@ export function RemoveMemberButton({
       setError(error.message)
       return
     }
-    setPreview(null)
+    setSheetOpen(false)
     router.refresh()
   }
 
@@ -72,19 +77,18 @@ export function RemoveMemberButton({
         Remove
       </Button>
 
-      {error && !preview && (
+      {error && !sheetOpen && (
         <p className="w-full text-xs text-down">{error}</p>
       )}
 
-      {preview && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
-          onClick={() => setPreview(null)}
-        >
-          <div
-            className="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl sm:rounded-3xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <SheetFrame
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        backdropClassName="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
+        panelClassName="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl sm:rounded-3xl"
+      >
+        {preview && (
+          <>
             {preview.mode === 'blocked' ? (
               <>
                 <h3 className="text-base font-semibold">
@@ -95,7 +99,7 @@ export function RemoveMemberButton({
                 </p>
                 <Button
                   className="mt-4 h-11 w-full rounded-xl"
-                  onClick={() => setPreview(null)}
+                  onClick={() => setSheetOpen(false)}
                 >
                   OK
                 </Button>
@@ -119,7 +123,7 @@ export function RemoveMemberButton({
                   <Button
                     variant="ghost"
                     className="h-11 flex-1 rounded-xl"
-                    onClick={() => setPreview(null)}
+                    onClick={() => setSheetOpen(false)}
                   >
                     Cancel
                   </Button>
@@ -134,9 +138,9 @@ export function RemoveMemberButton({
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </SheetFrame>
     </>
   )
 }

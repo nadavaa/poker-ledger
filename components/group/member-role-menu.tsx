@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Enums } from '@/lib/supabase/types'
 import { Button } from '@/components/ui/button'
+import { SheetFrame } from '@/components/sheet-frame'
 
 type Role = Enums<'member_role'>
 const ROLES: Role[] = ['owner', 'admin', 'member']
@@ -99,51 +100,46 @@ export function MemberRoleMenu({
         </Button>
       </span>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
+      <SheetFrame
+        open={open}
+        onClose={() => setOpen(false)}
+        backdropClassName="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center"
+        panelClassName="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl sm:rounded-3xl"
+      >
+        <h3 className="text-base font-semibold">{name}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Change their role in this group.
+        </p>
+
+        <div className="mt-3 flex flex-col gap-1.5">
+          {ROLES.map((r) => (
+            <Button
+              key={r}
+              variant={r === role ? 'secondary' : 'outline'}
+              className="h-11 justify-start rounded-xl capitalize"
+              disabled={pending || r === role}
+              onClick={() => change(r)}
+            >
+              {r}
+              {r === role && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  current
+                </span>
+              )}
+            </Button>
+          ))}
+        </div>
+
+        {error && <p className="mt-2 text-sm text-down">{error}</p>}
+
+        <Button
+          variant="ghost"
+          className="mt-3 h-11 w-full rounded-xl"
           onClick={() => setOpen(false)}
         >
-          <div
-            className="material w-full max-w-md rounded-t-3xl border-t border-white/10 bg-popover/95 p-4 pb-safe backdrop-blur-xl sm:rounded-3xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-semibold">{name}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Change their role in this group.
-            </p>
-
-            <div className="mt-3 flex flex-col gap-1.5">
-              {ROLES.map((r) => (
-                <Button
-                  key={r}
-                  variant={r === role ? 'secondary' : 'outline'}
-                  className="h-11 justify-start rounded-xl capitalize"
-                  disabled={pending || r === role}
-                  onClick={() => change(r)}
-                >
-                  {r}
-                  {r === role && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      current
-                    </span>
-                  )}
-                </Button>
-              ))}
-            </div>
-
-            {error && <p className="mt-2 text-sm text-down">{error}</p>}
-
-            <Button
-              variant="ghost"
-              className="mt-3 h-11 w-full rounded-xl"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+          Cancel
+        </Button>
+      </SheetFrame>
     </>
   )
 }

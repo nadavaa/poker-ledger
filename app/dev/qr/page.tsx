@@ -1,7 +1,9 @@
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { QrLinkButton } from '@/components/qr-link-button'
+import { MemberRoleMenu } from '@/components/group/member-role-menu'
 
-/** The group invite QR beside Copy invite, and a member's claim QR. */
+/** The group invite QR beside Copy invite, a member's claim QR, and the
+ *  role menu on their name: three sheets for checking sheet motion. */
 export default function Page() {
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 p-4">
@@ -16,7 +18,9 @@ export default function Page() {
         />
       </div>
       <div className="flex items-center justify-between rounded-2xl border border-border p-3">
-        <span>Gilad</span>
+        <MemberRoleMenu memberId="dev-gilad" role="member" name="Gilad">
+          <span>Gilad</span>
+        </MemberRoleMenu>
         <div className="flex items-center gap-2">
           <CopyLinkButton path="/claim/dev-claim" label="Claim link" size="xs" />
           <QrLinkButton
