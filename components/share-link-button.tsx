@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Share } from 'lucide-react'
+import { Check, Navigation } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -49,7 +49,7 @@ export function ShareLinkButton({
   const icon = copied ? (
     <Check className="size-4" aria-hidden />
   ) : (
-    <Share className="size-4" aria-hidden />
+    <Navigation className="size-4" aria-hidden />
   )
 
   if (text) {
