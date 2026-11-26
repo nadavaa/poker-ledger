@@ -8,7 +8,6 @@ import { formatCents } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { CopyLinkButton } from '@/components/copy-link-button'
 import { QrLinkButton } from '@/components/qr-link-button'
 import { ShareLinkButton } from '@/components/share-link-button'
 import { FirstGameGuide } from '@/components/group/first-game-guide'
@@ -359,25 +358,25 @@ export default async function GroupPage({
               ?.filter((m) => m.is_active)
               .map((m) => {
               const played = gamesPlayedByMember.get(m.id) ?? 0
+              const name = resolveDisplayName(
+                m.display_name,
+                m.profiles?.display_name
+              )
+              const claimCode =
+                canManage && !m.profile_id ? claimCodes.get(m.id) : undefined
               return (
                 <Card key={m.id}>
                   <CardContent className="flex items-center justify-between gap-2 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <Avatar
                         id={m.profile_id ?? m.id}
-                        name={resolveDisplayName(
-                          m.display_name,
-                          m.profiles?.display_name
-                        )}
+                        name={name}
                         url={m.profiles?.avatar_url ?? null}
                         size={40}
                       />
                       <div className="min-w-0">
                       <p className="truncate text-sm font-medium">
-                        {resolveDisplayName(
-                          m.display_name,
-                          m.profiles?.display_name
-                        )}
+                        {name}
                         {m.profile_id === user.id && (
                           <span className="text-muted-foreground"> (you)</span>
                         )}
@@ -390,22 +389,20 @@ export default async function GroupPage({
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {canManage && !m.profile_id && claimCodes.get(m.id) && (
-                        <CopyLinkButton
-                          path={`/claim/${claimCodes.get(m.id)}`}
-                          label="Claim link"
-                          size="xs"
-                        />
-                      )}
-                      {canManage && !m.profile_id && claimCodes.get(m.id) && (
-                        <QrLinkButton
-                          path={`/claim/${claimCodes.get(m.id)}`}
-                          title={`Claim link for ${resolveDisplayName(
-                            m.display_name,
-                            m.profiles?.display_name
-                          )}`}
-                          description="Scan with their phone camera to link this member to their account."
-                        />
+                      {claimCode && (
+                        <>
+                          <ShareLinkButton
+                            path={`/claim/${claimCode}`}
+                            title={`Claim ${name} in ${group.name}`}
+                            label={`Share claim link for ${name}`}
+                            size="icon-xs"
+                          />
+                          <QrLinkButton
+                            path={`/claim/${claimCode}`}
+                            title={`Claim link for ${name}`}
+                            description="Scan with their phone camera to link this member to their account."
+                          />
+                        </>
                       )}
                     </div>
                   </CardContent>
