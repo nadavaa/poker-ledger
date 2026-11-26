@@ -1,4 +1,3 @@
-import { CopyLinkButton } from '@/components/copy-link-button'
 import { Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { QrLinkButton } from '@/components/qr-link-button'
@@ -32,7 +31,12 @@ export default function Page() {
           <span>Gilad</span>
         </MemberRoleMenu>
         <div className="flex items-center gap-2">
-          <CopyLinkButton path="/claim/dev-claim" label="Claim link" size="xs" />
+          <ShareLinkButton
+            path="/claim/dev-claim"
+            title="Claim Gilad in Test Group"
+            label="Share claim link for Gilad"
+            size="icon-xs"
+          />
           <QrLinkButton
             path="/claim/dev-claim"
             title="Claim link for Gilad"

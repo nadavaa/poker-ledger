@@ -14,12 +14,15 @@ export function ShareLinkButton({
   path,
   title,
   label,
+  size = 'icon-sm',
 }: {
   path: string
   /** What the share sheet shows as the subject. */
   title: string
   /** Accessible name; the button itself is only an icon. */
   label: string
+  /** icon-sm beside size="sm" buttons, icon-xs in a list row. */
+  size?: 'icon-xs' | 'icon-sm'
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -42,7 +45,7 @@ export function ShareLinkButton({
   return (
     <Button
       variant="outline"
-      size="icon-sm"
+      size={size}
       aria-label={copied ? 'Link copied' : label}
       onClick={share}
     >
