@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CopyLinkButton } from '@/components/copy-link-button'
+import { ShareLinkButton } from '@/components/share-link-button'
 import { Steps } from '@/components/steps'
 
 /**
@@ -10,9 +10,11 @@ import { Steps } from '@/components/steps'
  */
 export function FirstGameGuide({
   groupId,
+  groupName,
   invitePath,
 }: {
   groupId: string
+  groupName: string
   invitePath: string
 }) {
   return (
@@ -28,7 +30,13 @@ export function FirstGameGuide({
               body: 'Send the invite link to your group chat.',
               extra: (
                 <div className="pt-1">
-                  <CopyLinkButton path={invitePath} label="Copy invite" />
+                  <ShareLinkButton
+                    path={invitePath}
+                    title={`Join ${groupName}`}
+                    label="Share invite link"
+                    text="Share invite"
+                    textSize="sm"
+                  />
                 </div>
               ),
             },

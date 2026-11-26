@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button'
 import { QrLinkButton } from '@/components/qr-link-button'
 import { ShareLinkButton } from '@/components/share-link-button'
 import { MemberRoleMenu } from '@/components/group/member-role-menu'
+import { FirstGameGuide } from '@/components/group/first-game-guide'
 
 /** The group header's edit, share and invite QR buttons, a member's claim QR, and the
- *  role menu on their name: three sheets for checking sheet motion. */
+ *  role menu on their name (sheets for checking sheet motion), and the
+ *  first-game guide's share button. */
 export default function Page() {
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 p-4">
@@ -44,6 +46,11 @@ export default function Page() {
           />
         </div>
       </div>
+      <FirstGameGuide
+        groupId="dev-group"
+        groupName="Test Group"
+        invitePath="/join/dev-invite"
+      />
     </main>
   )
 }
