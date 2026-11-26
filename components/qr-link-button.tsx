@@ -22,7 +22,10 @@ export function QrLinkButton({
   /** icon-sm sits level with a size="sm" button beside it. */
   size?: 'icon-xs' | 'icon-sm'
 }) {
+  // The url outlives `open`, so the code is still there while the sheet
+  // slides away rather than vanishing from inside it.
   const [url, setUrl] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
 
   return (
     <>
@@ -30,16 +33,19 @@ export function QrLinkButton({
         variant="outline"
         size={size}
         aria-label={`Show ${title} QR code`}
-        onClick={() => setUrl(`${window.location.origin}${path}`)}
+        onClick={() => {
+          setUrl(`${window.location.origin}${path}`)
+          setOpen(true)
+        }}
       >
         <QrCode className="size-4" aria-hidden />
       </Button>
 
       <ActionSheet
-        open={url !== null}
+        open={open}
         title={title}
         description={description}
-        onClose={() => setUrl(null)}
+        onClose={() => setOpen(false)}
         enter
       >
         {url && (
