@@ -17,6 +17,7 @@ export function ShareLinkButton({
   label,
   size = 'icon-sm',
   text,
+  textSize = 'xs',
 }: {
   path: string
   /** What the share sheet shows as the subject. */
@@ -26,8 +27,11 @@ export function ShareLinkButton({
   /** icon-sm beside size="sm" buttons, icon-xs in a list row. */
   size?: 'icon-xs' | 'icon-sm'
   /** Words beside the icon, for where the icon alone doesn't say what is
-   *  being shared. The button then sizes to fit (h-9, like icon-xs). */
+   *  being shared. The button then widens to fit. */
   text?: string
+  /** Height of a button with text: xs (36px) in a list row, sm (40px) on
+   *  its own. */
+  textSize?: 'xs' | 'sm'
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -55,7 +59,12 @@ export function ShareLinkButton({
 
   if (text) {
     return (
-      <Button variant="outline" size="xs" aria-label={label} onClick={share}>
+      <Button
+        variant="outline"
+        size={textSize}
+        aria-label={label}
+        onClick={share}
+      >
         {icon}
         {copied ? 'Copied!' : text}
       </Button>
