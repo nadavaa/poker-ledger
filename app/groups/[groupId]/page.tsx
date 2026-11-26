@@ -167,16 +167,17 @@ export default async function GroupPage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4">
-      <header className="page-header flex flex-col gap-3">
-        <div>
+      <header className="page-header flex items-end justify-between gap-3">
+        <div className="min-w-0">
           <Link href="/" className="text-xs text-muted-foreground">
             &larr; All groups
           </Link>
-          <h1 className="text-lg font-semibold tracking-tight">{group.name}</h1>
+          <h1 className="text-lg font-semibold tracking-tight break-words">{group.name}</h1>
         </div>
-        {/* Their own row: crowding these beside the title wrapped the group
-            name onto a second line on a phone. */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Beside the name, level with its last line. Icon-only, so they
+            take 136px at most and a long name wraps rather than the
+            buttons; they never shrink. */}
+        <div className="flex shrink-0 items-center gap-2">
           {canManage && (
             <Button
               variant="outline"
