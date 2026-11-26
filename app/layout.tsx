@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorker } from "@/components/pwa/service-worker";
+import { RefreshOnResume } from "@/components/pwa/refresh-on-resume";
 import { NavTransitions } from "@/components/nav-transitions";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/landing-copy";
 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <NavTransitions />
         <ServiceWorker />
+        <RefreshOnResume />
       </body>
     </html>
   );

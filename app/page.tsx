@@ -49,27 +49,37 @@ export default async function HomePage({
   const user = await getSessionUser(supabase)
   if (!user) return <LandingPage />
 
-  const [{ data: profile }, { data: memberships }, { data: payment }] =
-    await Promise.all([
-    supabase
-      .from('profiles')
-      .select('display_name, avatar_url, onboarding_completed_at')
-      .eq('id', user.id)
-      .single(),
-    supabase
-      .from('group_members')
-      .select('id, group_id, groups(id, name, avatar_url)')
-      .eq('profile_id', user.id)
-      .eq('is_active', true)
-      .order('created_at'),
-    // Own details only; the RPC reads nobody else's.
-    supabase.rpc('my_payment_details').maybeSingle(),
-  ])
+  // Every read is checked. A failed read used to look exactly like a missing
+  // one: the header fell back to the email, the groups vanished, and the
+  // payment banner claimed no payment method was on file, and the Home
+  // Screen app has no reload button to get out of it. A signed-in account
+  // always has a profile row (handle_new_user), so no row means the database
+  // didn't see this user either, and that counts as a failure too.
+  let home = await loadHome(supabase, user.id)
+  if (!home.coreOk || home.payment.error) {
+    console.error('home: read failed, retrying', describe(home))
+    home = await loadHome(supabase, user.id)
+  }
+  if (!home.coreOk) {
+    console.error('home: read failed twice', describe(home))
+    // app/error.tsx shows Try again, which runs a fresh request.
+    throw new Error('Your home screen did not load.')
+  }
+  if (home.payment.error) {
+    console.error('home: payment details failed twice', describe(home))
+  }
 
-  const cannotBePaid = !payment?.venmo_handle && !payment?.phone_number
+  const profile = home.profile.data!
+  const memberships = home.memberships.data
+  const payment = home.payment.data
+
+  // Unknown is not the same as missing: with no answer about payment
+  // details, say nothing rather than tell them they can't be paid.
+  const cannotBePaid =
+    !home.payment.error && !payment?.venmo_handle && !payment?.phone_number
 
   // New account, or one that closed the browser mid-flow.
-  if (profile && !profile.onboarding_completed_at) redirect('/welcome')
+  if (!profile.onboarding_completed_at) redirect('/welcome')
 
   const groupIds = (memberships ?? []).map((m) => m.group_id)
   const myMemberIds = (memberships ?? []).map((m) => m.id)
@@ -135,13 +145,13 @@ export default async function HomePage({
         <div className="flex min-w-0 items-center gap-3">
           <Avatar
             id={user.id}
-            name={profile?.display_name ?? user.email}
-            url={profile?.avatar_url ?? null}
+            name={profile.display_name ?? user.email}
+            url={profile.avatar_url ?? null}
             size={40}
             fallback="none"
           />
           <h1 className="truncate text-lg font-semibold">
-            {profile?.display_name ?? user.email}
+            {profile.display_name ?? user.email}
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -290,4 +300,43 @@ export default async function HomePage({
       <FeedbackLink />
     </main>
   )
+}
+
+type Supabase = Awaited<ReturnType<typeof createClient>>
+
+/** The three reads the home screen can't render honestly without. */
+async function loadHome(supabase: Supabase, userId: string) {
+  const [profile, memberships, payment] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('display_name, avatar_url, onboarding_completed_at')
+      .eq('id', userId)
+      .maybeSingle(),
+    supabase
+      .from('group_members')
+      .select('id, group_id, groups(id, name, avatar_url)')
+      .eq('profile_id', userId)
+      .eq('is_active', true)
+      .order('created_at'),
+    // Own details only; the RPC reads nobody else's.
+    supabase.rpc('my_payment_details').maybeSingle(),
+  ])
+  return {
+    profile,
+    memberships,
+    payment,
+    coreOk: !profile.error && !!profile.data && !memberships.error,
+  }
+}
+
+/** What went wrong, for the server log: codes and messages, never data. */
+function describe(home: Awaited<ReturnType<typeof loadHome>>) {
+  return {
+    profile: home.profile.error?.code ?? (home.profile.data ? 'ok' : 'no row'),
+    profileMessage: home.profile.error?.message,
+    memberships: home.memberships.error?.code ?? 'ok',
+    membershipsMessage: home.memberships.error?.message,
+    payment: home.payment.error?.code ?? 'ok',
+    paymentMessage: home.payment.error?.message,
+  }
 }
