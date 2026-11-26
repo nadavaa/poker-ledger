@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Pencil } from 'lucide-react'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
@@ -9,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { QrLinkButton } from '@/components/qr-link-button'
+import { ShareLinkButton } from '@/components/share-link-button'
 import { FirstGameGuide } from '@/components/group/first-game-guide'
 import { MyStats } from '@/components/group/my-stats'
 import { computeStats, runningBalance } from '@/lib/stats'
@@ -178,16 +180,18 @@ export default async function GroupPage({
           {canManage && (
             <Button
               variant="outline"
-              size="sm"
+              size="icon-sm"
               render={<Link href={`/groups/${groupId}/edit`} />}
               nativeButton={false}
+              aria-label="Edit group"
             >
-              Edit group
+              <Pencil className="size-4" aria-hidden />
             </Button>
           )}
-          <CopyLinkButton
+          <ShareLinkButton
             path={`/join/${group.invite_code}`}
-            label="Copy invite"
+            title={`Join ${group.name}`}
+            label="Share invite link"
           />
           <QrLinkButton
             path={`/join/${group.invite_code}`}
