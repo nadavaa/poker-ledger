@@ -38,7 +38,7 @@ export default async function Page({
         <header className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <span className="text-xs text-muted-foreground">&larr; All groups</span>
-            <h1 className="text-lg font-semibold tracking-tight">{name}</h1>
+            <h1 className="text-lg font-semibold tracking-tight break-words">{name}</h1>
           </div>
           <Buttons name={name} />
         </header>
@@ -46,7 +46,7 @@ export default async function Page({
         <header className="flex flex-col gap-3">
           <div>
             <span className="text-xs text-muted-foreground">&larr; All groups</span>
-            <h1 className="text-lg font-semibold tracking-tight">{name}</h1>
+            <h1 className="text-lg font-semibold tracking-tight break-words">{name}</h1>
           </div>
           <Buttons name={name} />
         </header>
