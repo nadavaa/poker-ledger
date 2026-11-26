@@ -46,7 +46,6 @@ export function QrLinkButton({
         title={title}
         description={description}
         onClose={() => setOpen(false)}
-        enter
       >
         {url && (
           // Always dark on white: scanners read a light-on-dark code badly,

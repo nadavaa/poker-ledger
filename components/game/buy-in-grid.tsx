@@ -28,6 +28,7 @@ import { AddPlayer, type AvailableMember } from './add-player'
 import { PotHeader } from './pot-header'
 import { CollapsibleSection } from '@/components/collapsible-section'
 import { ErrorToast } from '@/components/error-toast'
+import { SheetFrame } from '@/components/sheet-frame'
 import { formatTime } from '@/lib/time'
 import {
   cashoutFor,
@@ -95,7 +96,13 @@ export function BuyInGrid({
     amountCents: number
   } | null>(null)
   const [undoPending, setUndoPending] = useState(false)
+  // The player stays set while the sheet slides away, so it leaves with
+  // their details; sheetOpen is what opens and closes it.
   const [sheet, setSheet] = useState<Player | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  // Bumped on every open, so a reopened sheet starts clean rather than with
+  // a half-typed cash-out left over from last time.
+  const [sheetRev, setSheetRev] = useState(0)
 
   // Seeded from the server and moved optimistically, so cashing someone out
   // dims their card and updates the header on the tap rather than a round
@@ -240,7 +247,7 @@ export function BuyInGrid({
         leftTable: true,
       },
     ])
-    setSheet(null)
+    setSheetOpen(false)
     router.refresh()
   }
 
@@ -257,7 +264,7 @@ export function BuyInGrid({
     setCashouts((prev) =>
       prev.filter((c) => c.memberId !== player.memberId)
     )
-    setSheet(null)
+    setSheetOpen(false)
     router.refresh()
   }
 
@@ -275,7 +282,7 @@ export function BuyInGrid({
       setError(error.message)
       return
     }
-    setSheet(null)
+    setSheetOpen(false)
     router.refresh()
   }
 
@@ -333,6 +340,8 @@ export function BuyInGrid({
             onLongPress={() => {
               twoTap.disarm()
               setSheet(p)
+              setSheetOpen(true)
+              setSheetRev((n) => n + 1)
             }}
           />
         ))}
@@ -388,14 +397,15 @@ export function BuyInGrid({
 
       {sheet && (
         <PlayerSheet
-          key={sheet.memberId}
+          key={`${sheet.memberId}-${sheetRev}`}
+          open={sheetOpen}
           player={sheet}
           chipsPerDollar={chipsPerDollar}
           defaultBuyinCents={defaultBuyinCents}
           buyins={buyins.filter((b) => b.member_id === sheet.memberId)}
           cashout={cashoutFor(sheet.memberId, cashouts)}
           timeZone={timeZone}
-          onClose={() => setSheet(null)}
+          onClose={() => setSheetOpen(false)}
           onAdd={(cents) => addBuyin(sheet, cents)}
           onVoid={(id) => voidBuyin(id, 'admin correction')}
           onRemove={() => removePlayer(sheet)}
@@ -653,6 +663,7 @@ function BuyInDots({ count }: { count: number }) {
 }
 
 export function PlayerSheet({
+  open = true,
   player,
   chipsPerDollar,
   defaultBuyinCents,
@@ -666,6 +677,8 @@ export function PlayerSheet({
   onCashOut,
   onUndoCashOut,
 }: {
+  /** False runs the close animation; the parent unmounts it after. */
+  open?: boolean
   player: Player
   chipsPerDollar: number
   defaultBuyinCents: number
@@ -712,258 +725,255 @@ export function PlayerSheet({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-30 flex items-end justify-center bg-black/40"
-      onClick={onClose}
+    // Capped and scrolling inside: with a long buy-in list the sheet used to
+    // grow taller than the screen, and since it is pinned to the bottom, the
+    // amount box was pushed off the top where nobody could reach it. dvh, not
+    // vh, so mobile browser bars are not counted.
+    <SheetFrame
+      open={open}
+      onClose={onClose}
+      backdropClassName="fixed inset-0 z-30 flex items-end justify-center bg-black/40"
+      panelClassName="max-h-[85dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl bg-background p-4 pb-safe"
     >
-      {/* Capped and scrolling inside: with a long buy-in list the sheet used
-          to grow taller than the screen, and since it is pinned to the
-          bottom, the amount box was pushed off the top where nobody could
-          reach it. dvh, not vh, so mobile browser bars are not counted. */}
-      <div
-        className="max-h-[85dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl bg-background p-4 pb-safe"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">{player.name}</h3>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Close
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">{player.name}</h3>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+
+      {gone ? (
+        <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-3">
+          <p className="text-sm font-medium">
+            <span aria-hidden>✓</span> Cashed out{' '}
+            <span className="money">
+              {cashout!.chips.toLocaleString()} chips
+            </span>{' '}
+            <span className="text-muted-foreground">
+              · {formatCents(chipsToCents(cashout!.chips, chipsPerDollar))}
+            </span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Recorded {formatTime(cashout!.recordedAt, timeZone, 'clock')}. They can&apos;t buy in
+            again until this is undone, and the count carries into the
+            final settlement.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start rounded-xl"
+            onClick={onUndoCashOut}
+          >
+            Undo cash out
           </Button>
         </div>
-
-        {gone ? (
-          <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-3">
-            <p className="text-sm font-medium">
-              <span aria-hidden>✓</span> Cashed out{' '}
-              <span className="money">
-                {cashout!.chips.toLocaleString()} chips
-              </span>{' '}
-              <span className="text-muted-foreground">
-                · {formatCents(chipsToCents(cashout!.chips, chipsPerDollar))}
-              </span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Recorded {formatTime(cashout!.recordedAt, timeZone, 'clock')}. They can&apos;t buy in
-              again until this is undone, and the count carries into the
-              final settlement.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="self-start rounded-xl"
-              onClick={onUndoCashOut}
-            >
-              Undo cash out
-            </Button>
-          </div>
-        ) : (
-        <form onSubmit={submit} className="mt-3 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <Input
-              autoFocus
-              // Whole dollars only; the phone shows the number pad without a
-              // decimal point.
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={amount}
-              onChange={(e) => {
-                setAmount(wholeDollarsInput(e.target.value))
-                setInvalid(false)
-              }}
-              aria-invalid={invalid}
-              aria-label="Custom amount in dollars"
-            />
-            <Button type="submit">Add</Button>
-          </div>
-          {invalid && (
-            <p className="text-sm text-destructive">Enter a valid amount.</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {(() => {
-              try {
-                return `${centsToChips(dollarsToCents(amount), chipsPerDollar)} chips`
-              } catch {
-                return ' '
+      ) : (
+      <form onSubmit={submit} className="mt-3 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Input
+            autoFocus
+            // Whole dollars only; the phone shows the number pad without a
+            // decimal point.
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={amount}
+            onChange={(e) => {
+              setAmount(wholeDollarsInput(e.target.value))
+              setInvalid(false)
+            }}
+            aria-invalid={invalid}
+            aria-label="Custom amount in dollars"
+          />
+          <Button type="submit">Add</Button>
+        </div>
+        {invalid && (
+          <p className="text-sm text-destructive">Enter a valid amount.</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {(() => {
+            try {
+              return `${centsToChips(dollarsToCents(amount), chipsPerDollar)} chips`
+            } catch {
+              return ' '
+            }
+          })()}
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {QUICK_MULTIPLES.map((k) => (
+            <QuickTile
+              key={k}
+              cents={defaultBuyinCents * k}
+              armKey={
+                quick.armed?.memberId === String(k) ? quick.armed.key : null
               }
-            })()}
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {QUICK_MULTIPLES.map((k) => (
-              <QuickTile
-                key={k}
-                cents={defaultBuyinCents * k}
-                armKey={
-                  quick.armed?.memberId === String(k) ? quick.armed.key : null
-                }
-                onTap={() => quick.tap(String(k))}
-              />
-            ))}
-          </div>
-        </form>
-        )}
-
-        {/* Between buying in and being removed: they played, they're leaving,
-            and their chips count. */}
-        {!gone && (
-          <div className="mt-3 border-t border-border pt-3">
-            {cashingOut ? (
-              <form
-                className="flex flex-col gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (chipsOut === '') return
-                  onCashOut(Number(chipsOut))
-                }}
-              >
-                <label
-                  htmlFor={`chips-out-${player.memberId}`}
-                  className="text-sm font-medium"
-                >
-                  Chips they&apos;re leaving with
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    autoFocus
-                    id={`chips-out-${player.memberId}`}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={chipsOut}
-                    // Digits only, stripped as you type — the same rule as
-                    // the end-game counting screen.
-                    onChange={(e) =>
-                      setChipsOut(e.target.value.replace(/\D/g, ''))
-                    }
-                    placeholder="0"
-                    className="money h-11 text-center !text-lg font-semibold"
-                  />
-                  <Button type="submit" disabled={chipsOut === ''}>
-                    Cash out
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setCashingOut(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {chipsOut === ''
-                    ? '0 is a real count — it means they busted.'
-                    : `${formatCents(
-                        chipsToCents(Number(chipsOut), chipsPerDollar)
-                      )} · frees their seat for the waitlist`}
-                </p>
-              </form>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-xl"
-                onClick={() => setCashingOut(true)}
-              >
-                Cash out
-              </Button>
-            )}
-          </div>
-        )}
-
-        <div className="mt-4 flex flex-col gap-2">
-          <h4 className="text-sm font-medium text-muted-foreground">
-            Their buy-ins
-          </h4>
-          {buyins.length === 0 && (
-            <p className="text-sm text-muted-foreground">None yet.</p>
-          )}
-          {buyins.map((b) => (
-            <div
-              key={b.id}
-              className="flex min-h-12 items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm"
-            >
-              {/* The time is what tells four identical $50 rows apart. */}
-              <span className={b.voided_at ? 'line-through opacity-50' : ''}>
-                <span className="money font-medium">
-                  {formatCents(b.amount_cents)}
-                </span>
-                <span className="money text-muted-foreground">
-                  {' '}
-                  · {formatTime(b.created_at, timeZone, 'clock')}
-                </span>
-                {b.note && (
-                  <span className="text-muted-foreground"> · {b.note}</span>
-                )}
-              </span>
-
-              {b.voided_at ? (
-                <span className="text-xs text-muted-foreground">voided</span>
-              ) : confirmVoid === b.id ? (
-                <span className="flex shrink-0 items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setConfirmVoid(null)}
-                  >
-                    Keep
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="xs"
-                    onClick={() => {
-                      onVoid(b.id)
-                      setConfirmVoid(null)
-                    }}
-                  >
-                    Void it
-                  </Button>
-                </span>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="shrink-0"
-                  onClick={() => setConfirmVoid(b.id)}
-                >
-                  Void
-                </Button>
-              )}
-            </div>
+              onTap={() => quick.tap(String(k))}
+            />
           ))}
         </div>
+      </form>
+      )}
 
-        <div className="mt-4 border-t border-border pt-3">
-          {confirmRemove ? (
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">
-                Free their seat?
-              </span>
+      {/* Between buying in and being removed: they played, they're leaving,
+          and their chips count. */}
+      {!gone && (
+        <div className="mt-3 border-t border-border pt-3">
+          {cashingOut ? (
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (chipsOut === '') return
+                onCashOut(Number(chipsOut))
+              }}
+            >
+              <label
+                htmlFor={`chips-out-${player.memberId}`}
+                className="text-sm font-medium"
+              >
+                Chips they&apos;re leaving with
+              </label>
               <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  id={`chips-out-${player.memberId}`}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={chipsOut}
+                  // Digits only, stripped as you type — the same rule as
+                  // the end-game counting screen.
+                  onChange={(e) =>
+                    setChipsOut(e.target.value.replace(/\D/g, ''))
+                  }
+                  placeholder="0"
+                  className="money h-11 text-center !text-lg font-semibold"
+                />
+                <Button type="submit" disabled={chipsOut === ''}>
+                  Cash out
+                </Button>
                 <Button
+                  type="button"
                   variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmRemove(false)}
+                  onClick={() => setCashingOut(false)}
                 >
                   Cancel
                 </Button>
-                <Button variant="destructive" size="sm" onClick={onRemove}>
-                  Remove
-                </Button>
               </div>
-            </div>
+              <p className="text-xs text-muted-foreground">
+                {chipsOut === ''
+                  ? '0 is a real count — it means they busted.'
+                  : `${formatCents(
+                      chipsToCents(Number(chipsOut), chipsPerDollar)
+                    )} · frees their seat for the waitlist`}
+              </p>
+            </form>
           ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => setConfirmRemove(true)}
+              className="rounded-xl"
+              onClick={() => setCashingOut(true)}
             >
-              Remove from game
+              Cash out
             </Button>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">
-            The first waitlister takes the seat. Everything this player bought
-            in for is voided and comes back out of the pot.
-          </p>
         </div>
+      )}
+
+      <div className="mt-4 flex flex-col gap-2">
+        <h4 className="text-sm font-medium text-muted-foreground">
+          Their buy-ins
+        </h4>
+        {buyins.length === 0 && (
+          <p className="text-sm text-muted-foreground">None yet.</p>
+        )}
+        {buyins.map((b) => (
+          <div
+            key={b.id}
+            className="flex min-h-12 items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+          >
+            {/* The time is what tells four identical $50 rows apart. */}
+            <span className={b.voided_at ? 'line-through opacity-50' : ''}>
+              <span className="money font-medium">
+                {formatCents(b.amount_cents)}
+              </span>
+              <span className="money text-muted-foreground">
+                {' '}
+                · {formatTime(b.created_at, timeZone, 'clock')}
+              </span>
+              {b.note && (
+                <span className="text-muted-foreground"> · {b.note}</span>
+              )}
+            </span>
+
+            {b.voided_at ? (
+              <span className="text-xs text-muted-foreground">voided</span>
+            ) : confirmVoid === b.id ? (
+              <span className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setConfirmVoid(null)}
+                >
+                  Keep
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="xs"
+                  onClick={() => {
+                    onVoid(b.id)
+                    setConfirmVoid(null)
+                  }}
+                >
+                  Void it
+                </Button>
+              </span>
+            ) : (
+              <Button
+                variant="ghost"
+                size="xs"
+                className="shrink-0"
+                onClick={() => setConfirmVoid(b.id)}
+              >
+                Void
+              </Button>
+            )}
+          </div>
+        ))}
       </div>
-    </div>
+
+      <div className="mt-4 border-t border-border pt-3">
+        {confirmRemove ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground">
+              Free their seat?
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmRemove(false)}
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={onRemove}>
+                Remove
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmRemove(true)}
+          >
+            Remove from game
+          </Button>
+        )}
+        <p className="mt-1 text-xs text-muted-foreground">
+          The first waitlister takes the seat. Everything this player bought
+          in for is voided and comes back out of the pot.
+        </p>
+      </div>
+    </SheetFrame>
   )
 }
