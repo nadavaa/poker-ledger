@@ -395,7 +395,7 @@ export default async function GroupPage({
                             path={`/claim/${claimCode}`}
                             title={`Claim ${name} in ${group.name}`}
                             label={`Share claim link for ${name}`}
-                            size="icon-xs"
+                            text="Claim link"
                           />
                           <QrLinkButton
                             path={`/claim/${claimCode}`}
