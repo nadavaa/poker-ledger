@@ -219,7 +219,8 @@
 }
 
 /* Bottom sheets that ask for it (the QR sheet): the backdrop fades, the
-   sheet rises on an iOS-like curve, and the code fades up just behind it. */
+   sheet rises on an iOS-like curve, and the code fades up just behind it.
+   Closing runs it back: the sheet drops away as the backdrop clears. */
 @keyframes backdrop-in {
   from {
     opacity: 0;
@@ -235,6 +236,24 @@
   }
   to {
     transform: translateY(0);
+  }
+}
+
+@keyframes backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
   }
 }
 
