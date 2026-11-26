@@ -35,7 +35,7 @@ export default function Page() {
             path="/claim/dev-claim"
             title="Claim Gilad in Test Group"
             label="Share claim link for Gilad"
-            size="icon-xs"
+            text="Claim link"
           />
           <QrLinkButton
             path="/claim/dev-claim"

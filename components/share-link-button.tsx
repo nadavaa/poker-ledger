@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Share } from 'lucide-react'
+import { Check, Navigation } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -15,6 +15,7 @@ export function ShareLinkButton({
   title,
   label,
   size = 'icon-sm',
+  text,
 }: {
   path: string
   /** What the share sheet shows as the subject. */
@@ -23,6 +24,9 @@ export function ShareLinkButton({
   label: string
   /** icon-sm beside size="sm" buttons, icon-xs in a list row. */
   size?: 'icon-xs' | 'icon-sm'
+  /** Words beside the icon, for where the icon alone doesn't say what is
+   *  being shared. The button then sizes to fit (h-9, like icon-xs). */
+  text?: string
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -42,6 +46,21 @@ export function ShareLinkButton({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const icon = copied ? (
+    <Check className="size-4" aria-hidden />
+  ) : (
+    <Navigation className="size-4" aria-hidden />
+  )
+
+  if (text) {
+    return (
+      <Button variant="outline" size="xs" aria-label={label} onClick={share}>
+        {icon}
+        {copied ? 'Copied!' : text}
+      </Button>
+    )
+  }
+
   return (
     <Button
       variant="outline"
@@ -49,11 +68,7 @@ export function ShareLinkButton({
       aria-label={copied ? 'Link copied' : label}
       onClick={share}
     >
-      {copied ? (
-        <Check className="size-4" aria-hidden />
-      ) : (
-        <Share className="size-4" aria-hidden />
-      )}
+      {icon}
     </Button>
   )
 }
